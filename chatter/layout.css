@@ -64,18 +64,18 @@
 .side .brand .sbword{display:block;flex:0 0 54%;min-width:0;width:54%;max-width:54%;height:auto;filter:drop-shadow(0 0 9px #567aff66)}
 .side .brand .sbmoon-orbits{
   position:absolute;left:49.25%;top:44.4%;width:0;height:0;
-  pointer-events:none;transform:rotate(-21deg) scaleY(.68);
-  --moon-radius:40px;--moon-correct:1.4705882353;
+  pointer-events:none;transform:rotate(-20deg) scaleY(.30);
+  --moon-radius:52px;--moon-correct:3.3333333333;
 }
 .side .brand .sbmoon-track{
   position:absolute;left:0;top:0;width:0;height:0;
   transform:rotate(var(--moon-start));transform-origin:center;
 }
 .side .brand .sbmoon-track-a{
-  --moon-start:-52deg;--moon-counter-start:52deg;--moon-counter-end:-308deg;--moon-speed:3.2s;
+  --moon-start:0deg;--moon-counter-start:0deg;--moon-counter-end:-360deg;--moon-speed:4.5s;
 }
 .side .brand .sbmoon-track-b{
-  --moon-start:153deg;--moon-counter-start:-153deg;--moon-counter-end:-513deg;--moon-speed:4.4s;
+  --moon-start:180deg;--moon-counter-start:-180deg;--moon-counter-end:-540deg;--moon-speed:4.5s;
 }
 .side .brand .sbmoon{
   position:absolute;display:block;left:-5px;top:-5px;width:10px;height:10px;
@@ -93,8 +93,6 @@
 .side .brand .bwrap:is(:hover,:focus-visible) .sbmoon{
   animation:sidebar-orbit-sphere var(--moon-speed) linear infinite;
 }
-.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-track-b,
-.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-b{animation-direction:reverse}
 @keyframes sidebar-orbit-track{
   from{transform:rotate(var(--moon-start))}
   to{transform:rotate(calc(var(--moon-start) + 360deg))}
@@ -105,7 +103,7 @@
 }
 @media(max-width:800px){
   .side .brand .bwrap.sidebar-orbit-logo{width:206px}
-  .side .brand .sbmoon-orbits{--moon-radius:34px}
+  .side .brand .sbmoon-orbits{--moon-radius:45px}
 }
 @media(prefers-reduced-motion:reduce){
   html:not(.force-motion) .side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-track,
