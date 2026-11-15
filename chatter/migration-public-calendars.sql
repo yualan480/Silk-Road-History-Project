@@ -98,3 +98,28 @@ SELECT
   (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='events' AND column_name='class_role_id') AS imported_event_column,
   (SELECT has_function_privilege('authenticated', 'public.import_class_calendar(jsonb)', 'EXECUTE')) AS authenticated_can_import,
   (SELECT has_function_privilege('anon', 'public.import_class_calendar(jsonb)', 'EXECUTE')) AS anon_can_import;
+
+-- Assign subject groups to future class roles automatically.
+CREATE OR REPLACE FUNCTION public.class_roles_infer_exclusive_group()
+RETURNS trigger LANGUAGE plpgsql SET search_path = ''
+AS $function$
+BEGIN
+  IF NEW.exclusive_group IS NOT NULL THEN RETURN NEW; END IF;
+  IF NEW.subject ~* '^(Algebra[[:space:]]+[IVX0-9]+|Geometry|Math Analysis)$' THEN
+    NEW.exclusive_group := 'math';
+  ELSIF NEW.subject ~* '^(Spanish|French|Latin|German|Italian)([[:space:]]+[IVX0-9]+)?$' THEN
+    NEW.exclusive_group := 'world languages';
+  ELSIF NEW.level IS NOT NULL AND char_length(NEW.subject) <= 40 THEN
+    NEW.exclusive_group := lower(NEW.subject);
+  ELSE
+    SELECT r.exclusive_group INTO NEW.exclusive_group
+    FROM public.class_roles r WHERE lower(r.subject)=lower(NEW.subject)
+      AND r.exclusive_group IS NOT NULL AND r.id IS DISTINCT FROM NEW.id LIMIT 1;
+  END IF;
+  RETURN NEW;
+END $function$;
+DROP TRIGGER IF EXISTS class_roles_infer_exclusive_group_trigger ON public.class_roles;
+CREATE TRIGGER class_roles_infer_exclusive_group_trigger
+BEFORE INSERT OR UPDATE OF subject,level,exclusive_group ON public.class_roles
+FOR EACH ROW EXECUTE FUNCTION public.class_roles_infer_exclusive_group();
+SELECT t.tgname FROM pg_trigger t WHERE t.tgrelid='public.class_roles'::regclass AND t.tgname='class_roles_infer_exclusive_group_trigger';
