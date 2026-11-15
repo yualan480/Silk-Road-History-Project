@@ -56,7 +56,7 @@ export function initOrbit(c) {
   /* ───────── state ───────── */
   const today = new Date();
   const O = {
-    ann: [], events: [], boards: [], err: '', loaded: false, loading: null,
+    ann: [], annRead: new Set(), events: [], boards: [], err: '', loaded: false, loading: null,
     cal: { y: today.getFullYear(), m: today.getMonth() }, bigCal: { y: today.getFullYear(), m: today.getMonth() },
     calOpen: lsGet('orbit-cal') ? lsGet('orbit-cal') === '1' : innerHeight > 820,
     ev: { tab: 'upcoming', day: null, id: null },
@@ -102,14 +102,15 @@ export function initOrbit(c) {
   async function load(force) {
     if (O.loading && !force) return O.loading;
     O.loading = (async () => {
-      const [a, e, b] = await Promise.all([
+      const [a, e, b, r] = await Promise.all([
         sb.from('announcements').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(30),
         sb.from('events').select('*, rsvps:event_rsvps(user_id,status)').gte('starts_at', new Date(Date.now() - 14 * 864e5).toISOString()).order('starts_at').limit(1000),
         sb.from('boards').select('*').order('created_at'),
+        sb.from('announcement_reads').select('announcement_id').eq('user_id', S.me.id),
       ]);
-      const bad = a.error || e.error || b.error;
+      const bad = a.error || e.error || b.error || r.error;
       if (bad) { O.err = setupErr(bad); O.loaded = true; return; }
-      O.err = ''; O.ann = a.data || []; O.events = e.data || []; O.boards = b.data || []; O.loaded = true;
+      O.err = ''; O.ann = a.data || []; O.annRead = new Set((r.data || []).map(x => x.announcement_id)); O.events = e.data || []; O.boards = b.data || []; O.loaded = true;
       const ids = new Set(); O.ann.forEach(x => x.created_by && ids.add(x.created_by));
       O.events.forEach(x => { x.host_id && ids.add(x.host_id); (x.rsvps || []).forEach(r => ids.add(r.user_id)); });
       O.boards.forEach(x => x.created_by && ids.add(x.created_by));
@@ -147,7 +148,7 @@ export function initOrbit(c) {
     clearTimeout(reloadT); clearTimeout(repaintT); clearInterval(O.timer); O.timer = 0;
     if (O.ch) { sb.removeChannel(O.ch); O.ch = null; }
     closeBoard();
-    Object.assign(O, { wb: false, ann: [], events: [], boards: [], err: '', loaded: false, loading: null, bd: null, ai: { msgs: [], busy: false, rules: null }, reminded: new Set(), ev: { tab: 'upcoming', day: null, id: null } });
+    Object.assign(O, { wb: false, ann: [], annRead: new Set(), events: [], boards: [], err: '', loaded: false, loading: null, bd: null, ai: { msgs: [], busy: false, rules: null }, reminded: new Set(), ev: { tab: 'upcoming', day: null, id: null } });
   }
   function remind() {   // a nudge 10 minutes before an event you said yes or maybe to
     if (!S.me) return;
@@ -175,6 +176,26 @@ export function initOrbit(c) {
         if (r.error) { fail(r.error); return false; }
         toast(editing ? 'Announcement updated.' : 'Announcement posted.'); await load(true); repaint();
       } }]);
+  }
+  async function markAnnouncementRead(id) {
+    if (!S.me || !O.ann.some(a => a.id === id) || O.annRead.has(id)) return;
+    const { error } = await sb.from('announcement_reads').insert({ announcement_id: id, user_id: S.me.id });
+    // A second tab may have acknowledged the same announcement already.
+    if (error && error.code !== '23505') return fail(error);
+    O.annRead.add(id);
+    toast('Announcement marked as read.');
+    repaint();
+  }
+  async function announcementReaders(id) {
+    if (!staff()) return toast('Only Orbit moderators and owners can view the reader list.', true);
+    const a = O.ann.find(x => x.id === id); if (!a) return;
+    const { data, error } = await sb.from('announcement_reads').select('user_id,read_at').eq('announcement_id', id).order('read_at', { ascending: false });
+    if (error) return fail(error);
+    const readers = data || [];
+    await c.needProfiles([...new Set(readers.map(r => r.user_id))]);
+    modal('Announcement readers', `<p class="muted" style="margin:0 0 12px"><b>${esc(a.title)}</b> · ${readers.length} ${readers.length === 1 ? 'person has' : 'people have'} marked this as read.</p>
+      ${readers.length ? `<div class="ann-reader-list">${readers.map(r => `<div class="ann-reader-row">${av(prof(r.user_id))}<div><b>${esc(person(r.user_id))}</b><small>Read ${esc(new Date(r.read_at).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))}</small></div></div>`).join('')}</div>` : '<p class="muted">No one has marked this announcement as read yet.</p>'}`,
+      [{ label: 'Close', cls: 'ghost' }]);
   }
   const delAnnouncement = id => c.confirmBox('Delete announcement?', 'This removes it from Home for everyone.', 'Delete', async () => {
     const r = await sb.rpc('delete_announcement', { p_id: id }); if (r.error) return fail(r.error);
@@ -227,8 +248,13 @@ export function initOrbit(c) {
   function annCard(a) {
     const can = staff(), body = a ? (a.body || '') : (O.loaded ? 'Your world. Connected.' : '');
     const btns = can ? `<span class="grow"></span>${a ? `<button type="button" class="oann-btn" data-o="editann" data-id="${a.id}" aria-label="Edit this announcement">${ic('pencil', 15)}<span>Edit</span></button>` : ''}<button type="button" class="oann-btn pri" data-o="newann" data-home="1" aria-label="Add an announcement">${ic('plus', 15)}<span>${a ? 'Add new' : 'Add'}</span></button>` : '';
+    const read = a ? O.annRead.has(a.id) : false;
+    const readActions = a ? `<div class="oann-read-actions">
+      <button type="button" class="oann-read-btn${read ? ' is-read' : ''}" data-o="readann" data-id="${a.id}" ${read ? 'disabled aria-disabled="true"' : ''}>${ic('check', 15)}<span>${read ? 'Marked as read' : 'Mark as read'}</span></button>
+      ${can ? `<button type="button" class="oann-read-btn tertiary" data-o="annreaders" data-id="${a.id}">${ic('friends', 15)}<span>View readers</span></button>` : ''}
+    </div>` : '';
     return `<section class="oann${a ? '' : ' none'}" aria-label="Announcement"><div class="oann-h"><span class="oann-badge">${ic('bell', 16)} Announcement</span>${a && a.pinned ? '<span class="oann-pin">Pinned</span>' : ''}${btns}</div>
-      <div class="oann-main"><img src="logo.svg" width="34" height="34" alt=""><div class="oann-t"><b>${esc(a ? a.title : 'Welcome to Orbit!')}</b>${body ? `<div class="oann-body">${a ? md(body, 'ann' + a.id) : esc(body)}</div>` : ''}${!a && can ? '<small class="oann-hint">Nothing posted yet. Tap Add to tell everyone the news.</small>' : ''}</div></div></section>`;
+      <div class="oann-main"><img src="logo.svg" width="34" height="34" alt=""><div class="oann-t"><b>${esc(a ? a.title : 'Welcome to Orbit!')}</b>${body ? `<div class="oann-body">${a ? md(body, 'ann' + a.id) : esc(body)}</div>` : ''}${!a && can ? '<small class="oann-hint">Nothing posted yet. Tap Add to tell everyone the news.</small>' : ''}</div></div>${readActions}</section>`;
   }
   function renderHome(main) {
     const sv = S.sv, text = S.chans.filter(x => x.kind === 'text');
@@ -943,6 +969,8 @@ export function initOrbit(c) {
       case 'wbclose': O.wb = false; closeBoard(); return wbMount();
       case 'event': return openEvent(id);
       case 'newann': return announcementModal(null, d.home === '1');
+      case 'readann': return markAnnouncementRead(id);
+      case 'annreaders': return announcementReaders(id);
       case 'editann': return announcementModal(O.ann.find(x => x.id === id));
       case 'delann': return delAnnouncement(id);
       case 'pinann': return pinAnnouncement(id);

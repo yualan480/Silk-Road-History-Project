@@ -1240,6 +1240,19 @@ html.games-locked #main .top>.gtog,html.games-locked #main .top>#mb,html.games-l
 .oann-body{margin-top:6px;font-size:15px;line-height:1.5;color:#eef3ff;max-height:9.5em;overflow:auto;overflow-wrap:anywhere}
 .oann-body p{margin:0 0 6px}.oann-body a{color:#ffe9a8}
 .oann-hint{display:block;margin-top:6px;color:#dbe5ff}
+
+.oann-read-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:9px;padding-top:13px;margin-top:13px;border-top:1px solid #ffffff30}
+.oann-read-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border:1px solid #fff;border-radius:10px;background:#fff;color:#1737a5;font-size:13px;font-weight:700;cursor:var(--cur-pointer,pointer);transition:background .15s,color .15s}
+.oann-read-btn:hover:not(:disabled){background:#e5eeff}
+.oann-read-btn.is-read,.oann-read-btn:disabled{background:#baf2d4;color:#075e43;border-color:#baf2d4;cursor:default}
+.oann-read-btn.tertiary{background:#ffffff1a;border-color:#ffffff80;color:#fff}
+.oann-read-btn.tertiary:hover{background:#ffffff36}
+.ann-reader-list{max-height:360px;overflow-y:auto;display:grid;gap:7px}
+.ann-reader-row{display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px}
+.ann-reader-row .av{flex:none}
+.ann-reader-row b,.ann-reader-row small{display:block}
+.ann-reader-row small{color:var(--muted);font-size:12px;margin-top:2px}
+
 .oenter>.oann{animation:oin .75s var(--ease-out) both;animation-delay:calc(.24s - var(--el,0ms))}
 @media(max-width:760px){.orbithome .oann{width:94%}.oann-t>b{font-size:18px}}
 
