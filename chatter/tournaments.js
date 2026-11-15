@@ -116,7 +116,7 @@ export function initTournaments(c) {
   function standings(t) {
     const out = new Map(), ps = T.players.get(t.id) || [], bad = new Set(ps.filter(p => p.status !== 'registered').map(p => p.user_id)), since = new Map(ps.map(p => [p.user_id, p.registered_at]));
     for (const s of T.scores.get(t.id) || []) {   // only scores made after the player entered count, and the first one counts even if it is not their best
-      if (s.status !== 'approved' || bad.has(s.user_id) || (since.get(s.user_id) && s.created_at < since.get(s.user_id))) continue;
+      if (s.status !== 'approved' || bad.has(s.user_id) || (since.get(s.user_id) && s.created_at < since.get(s.user_id)) || s.created_at < t.starts_at || (t.ends_at && s.created_at >= t.ends_at)) continue;
       const o = out.get(s.user_id) || { user: s.user_id, score: -1, at: '', n: 0 }; o.n++;
       if (s.score > o.score || (s.score === o.score && s.created_at < o.at)) { o.score = s.score; o.at = s.created_at; }
       out.set(s.user_id, o);
@@ -206,7 +206,7 @@ export function initTournaments(c) {
         T.admin && staff() ? adminHtml() : `
         <section class="tn-hero"><div class="tn-heroart" aria-hidden="true">${ic('trophy', 86)}</div>
           <div><h1>Tournaments</h1><p class="tn-tag2">Compete. Connect. Win.</p>
-          <p class="muted">Play your favorite Orbit Games against the rest of Orbit, climb the brackets and leaderboards, and earn Orbits for finishing on the podium.</p>
+          <p class="muted">Play Orbit Games in weekly rotating tournaments or staff-run events. Scores from rounds finished during a live tournament count toward its leaderboard; past results stay in the archive.</p>
           <div class="tn-stats"><span>${ic('calendar', 16)}<b>${openN}</b> Upcoming</span><span>${ic('bracket', 16)}<b>${liveN}</b> Ongoing</span><span>${ic('users', 16)}<b>${players.size}</b> Players signed up</span></div></div></section>
         <div class="tn-filters" role="toolbar" aria-label="Filter tournaments">${chips.map(([k, l]) => `<button class="tn-chip ${T.filter === k ? 'on' : ''}" data-t="filter" data-k="${k}">${l}</button>`).join('')}
           <span class="grow"></span><input id="tn-q" class="tn-q" type="search" placeholder="Search tournaments" aria-label="Search tournaments" value="${esc(T.q)}">
@@ -227,7 +227,7 @@ export function initTournaments(c) {
     if (canJoin(t)) join = `<button class="btn" data-t="register" data-id="${t.id}">Register →</button>`;
     else if (mine(t.id) && t.status === 'open') join = `<button class="btn ghost" data-t="withdraw" data-id="${t.id}">Withdraw</button>`;
     const body = { overview: overview, players: participants, bracket: bracketHtml, board: boardHtml, manage: manageHtml }[T.tab](t);
-    main.innerHTML = `<div class="top">${menuBtn()}${back}<b class="title">${esc(t.title)}</b><span class="grow"></span>${staff() ? `<button class="btn sm ghost" data-t="edit" data-id="${t.id}">Edit</button>` : ''}</div>
+    main.innerHTML = `<div class="top">${menuBtn()}${back}<b class="title">${esc(t.title)}</b><span class="grow"></span>${staff() ? `${t.auto_generated ? '' : `<button class="btn sm ghost" data-t="edit" data-id="${t.id}">Edit</button>`}` : ''}</div>
       <div class="panel tn">
         <section class="tn-dhead" style="--c1:${g.c1};--c2:${g.c2}"><span class="tn-bigemoji">${g.emoji}</span>
           <div class="tn-dtext"><h1>${esc(t.title)}</h1><p><span class="tn-st ${st.k}">${st.l}</span> ${esc(g.title)} · ${esc(fmtName(t))} · ${esc(fmtDT(t.starts_at))} → ${esc(fmtDT(t.ends_at))}</p></div>
@@ -308,6 +308,8 @@ export function initTournaments(c) {
     else if (t.status === 'live') actions = (t.format === 'leaderboard' ? b('finish', 'Finish & pay prizes', '') : '') + b('edit', 'Edit') + b('cancel', 'Cancel tournament', 'danger');
     else if (t.status === 'completed') actions = b('delete', 'Delete', 'danger');
     else actions = b('todraft', 'Reopen as draft') + b('delete', 'Delete', 'danger');
+    // Auto-rotated events start and finish on schedule; keep their results as history.
+    if (t.auto_generated) actions = ['open', 'live'].includes(t.status) ? b('cancel', 'Cancel this weekly event', 'danger') : '';
     const ready = ms.filter(m => m.status === 'ready');
     return `<div class="tn-two">
       <section class="tn-box"><h3>${ic('shield', 18)} Controls</h3><p>Status: <span class="tn-st ${stat(t).k}">${stat(t).l}</span> ${t.prizes_paid ? '<span class="tn-tag gold">Prizes paid</span>' : ''}</p><div class="tn-btnrow">${actions}</div>
@@ -403,7 +405,7 @@ export function initTournaments(c) {
       case 'filter': T.filter = el.dataset.k; return renderMain();
       case 'admin': T.admin = !T.admin; return renderMain();
       case 'new': return editor(null);
-      case 'edit': return t && editor(t);
+      case 'edit': return t && !t.auto_generated && editor(t);
       case 'manage': return openManage(id);
       case 'register': if (await call('tournament_register', { p_id: id }, 'You’re signed up!')) { if (S.view === 'tournaments') renderMain(); } return;
       case 'withdraw': return ask('Withdraw?', `Leave “${t?.title}”? You can sign up again while sign-ups are open.`, 'Withdraw', () => call('tournament_unregister', { p_id: id }, 'You left the tournament.'));
