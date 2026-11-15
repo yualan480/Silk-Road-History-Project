@@ -43,6 +43,7 @@ const TAB_TAGS = [
   ['direct-messages', 'Direct Messages', 'dm', 'dm', ['dm', 'dms', 'messages', 'direct']],
   ['communities', 'Communities', 'communities', 'users', ['community']],
   ['friends', 'Friends', 'friends', 'friends', ['friend']],
+  ['roles', 'Roles', 'roles', 'tag', ['role', 'class-roles', 'classes']],
   ['events', 'Events', 'events', 'calendar', ['event']],
   ['tournaments', 'Tournaments', 'tournaments', 'trophy', ['tournament']],
   ['unblocked-games', 'Unblocked Games', 'unblocked', 'compass', ['unblocked']],
