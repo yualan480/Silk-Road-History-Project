@@ -3,6 +3,7 @@
    app.js hands over what this needs through initOrbit(ctx) and calls the hooks that come back. */
 
 import { startStars, startLogo } from './fx.js?v=5';
+import { openCalendarImport } from './calendar-import.js?v=1';
 import { createBackdrop } from './orbit-bg.js?v=4';
 import { ambient, cycleTime } from './ambient.js?v=6';
 import { createDrift } from './orbit-drift.js?v=3';
@@ -68,7 +69,7 @@ export function initOrbit(c) {
   const fail = e => toast(setupErr(e), true);
 
   /* ───────── time helpers ───────── */
-  const kindOf = e => KINDS[e.kind] || KINDS.other;
+  const kindOf = e => e.class_role_id ? { emoji: '📅', label: e.class_role_label || 'Class or club schedule' } : (KINDS[e.kind] || KINDS.other);
   const whenFmt = { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
   const fmtWhen = iso => new Date(iso).toLocaleString([], whenFmt);
   const fmtTime = iso => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -100,7 +101,7 @@ export function initOrbit(c) {
     O.loading = (async () => {
       const [a, e, b] = await Promise.all([
         sb.from('announcements').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(30),
-        sb.from('events').select('*, rsvps:event_rsvps(user_id,status)').gte('starts_at', new Date(Date.now() - 60 * 864e5).toISOString()).order('starts_at').limit(500),
+        sb.from('events').select('*, rsvps:event_rsvps(user_id,status)').gte('starts_at', new Date(Date.now() - 14 * 864e5).toISOString()).order('starts_at').limit(1000),
         sb.from('boards').select('*').order('created_at'),
       ]);
       const bad = a.error || e.error || b.error;
@@ -299,8 +300,8 @@ export function initOrbit(c) {
       <button class="evmain" data-o="event" data-id="${e.id}"><span class="evemo">${k.emoji}</span>
         <span class="t"><b>${esc(e.title)}</b><small>${esc(fmtWhen(e.starts_at))}${e.ends_at ? ' – ' + esc(fmtTime(e.ends_at)) : ''}</small>
         <small>${esc(k.label)}${e.host_id ? ' · hosted by ' + esc(person(e.host_id)) : ''}${e.location ? ' · ' + esc(e.location) : ''}</small></span>
-        <span class="evr">${stateChip(e)}<small>${g.length} going${maybe(e).length ? `, ${maybe(e).length} maybe` : ''}</small></span></button>
-      ${evState(e) === 'past' ? '' : rsvpBtns(e)}</article>`;
+        <span class="evr">${stateChip(e)}<small>${e.class_role_id ? 'Public schedule' : `${g.length} going${maybe(e).length ? `, ${maybe(e).length} maybe` : ''}`}</small></span></button>
+      ${e.class_role_id || evState(e) === 'past' ? '' : rsvpBtns(e)}</article>`;
   }
   const monthName = (y, m) => new Date(y, m, 1).toLocaleDateString([], { month: 'long', year: 'numeric' });
   function monthCells(y, m) {
@@ -314,7 +315,7 @@ export function initOrbit(c) {
       <div class="bgrid">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="bdow">${d}</div>`).join('')}
       ${monthCells(y, m).map(({ d, k, inMonth }) => { const es = map.get(k) || [];
         return `<div class="bday ${inMonth ? '' : 'out'} ${k === tk ? 'today' : ''}"><button class="bnum" data-o="day" data-k="${k}" aria-label="${esc(d.toLocaleDateString([], { month: 'long', day: 'numeric' }))}${es.length ? ', ' + es.length + ' events' : ''}">${d.getDate()}</button>
-          ${es.slice(0, 3).map(e => `<button class="bchip k-${esc(e.kind)}" data-o="event" data-id="${e.id}" title="${esc(e.title)}">${kindOf(e).emoji} ${esc(e.title)}</button>`).join('')}${es.length > 3 ? `<button class="bmore" data-o="day" data-k="${k}">+${es.length - 3} more</button>` : ''}</div>`; }).join('')}</div></div>`;
+          ${es.slice(0, 3).map(e => `<button class="bchip k-${esc(e.kind)}" data-o="event" data-id="${e.id}" title="${esc((e.class_role_label ? e.class_role_label + ' · ' : '') + e.title)}">${kindOf(e).emoji} ${esc(e.class_role_label ? e.class_role_label + ' · ' + e.title : e.title)}</button>`).join('')}${es.length > 3 ? `<button class="bmore" data-o="day" data-k="${k}">+${es.length - 3} more</button>` : ''}</div>`; }).join('')}</div></div>`;
   }
   function renderEvents(main) {
     const tab = O.ev.tab, day = O.ev.day;
@@ -328,9 +329,9 @@ export function initOrbit(c) {
       const groups = []; for (const e of list) { const k = dayKey(e.starts_at), g = groups[groups.length - 1]; if (g && g.k === k) g.es.push(e); else groups.push({ k, es: [e] }); }
       body = `${day ? `<p class="chip dayf">Showing ${esc(fmtDay(day + 'T12:00'))} <button class="ib sm" data-o="clearday" aria-label="Show all events">${ic('x', 14)}</button></p>` : ''}
         ${groups.map(g => `<h3 class="lbl">${esc(fmtDay(g.k + 'T12:00'))}</h3>${g.es.map(evCard).join('')}`).join('') ||
-          `<div class="empty" style="padding:2rem 0"><h2>${day ? 'Nothing that day' : tab === 'past' ? 'No past events yet' : 'Nothing scheduled yet'}</h2><p>${staff() ? 'Schedule a game night, trivia or a drawing contest.' : 'Check back soon.'}</p>${staff() ? `<button class="btn" data-o="newevent" style="width:auto">Schedule an event</button>` : ''}</div>`}`;
+          `<div class="empty" style="padding:2rem 0"><h2>${day ? 'Nothing that day' : tab === 'past' ? 'No past events yet' : 'Nothing scheduled yet'}</h2><p>${staff() ? 'Schedule a game night, trivia or a drawing contest.' : 'You can share a class or club calendar.'}</p><div style="display:flex;flex-direction:column;gap:8px;align-items:center">${staff() ? `<button class="btn" data-o="newevent" style="width:auto">Schedule an event</button>` : ''}<button class="btn ghost" data-o="importics" style="width:auto">Add my calendar</button></div></div>`}`;
     }
-    main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${ic('calendar', 20)}</span><b class="title">Events</b><span class="grow"></span>${staff() && !O.err ? `<button class="btn sm" data-o="newevent">+ New event</button>` : ''}</div>
+    main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${ic('calendar', 20)}</span><b class="title">Events</b><span class="grow"></span>${!O.err ? `<div style="display:flex;flex-direction:column;gap:5px">${staff() ? `<button class="btn sm" data-o="newevent">Schedule an event</button>` : ''}<button class="btn sm ghost" data-o="importics">Add my calendar</button></div>` : ''}</div>
       <div class="panel"><div class="tabs">${[['upcoming', 'Upcoming'], ['calendar', 'Calendar'], ['past', 'Past']].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" data-o="evtab" data-k="${k}">${t}</button>`).join('')}</div>${body}</div>`;
     bindMenu();
   }
@@ -350,12 +351,11 @@ export function initOrbit(c) {
         ${e.location ? `<div>${ic('mapPin', 18)}<span>${esc(e.location)}</span></div>` : ''}
       </div>
       ${e.description ? `<div class="evdesc">${md(e.description, 'ev' + e.id)}</div>` : ''}
-      <div class="evact">${evState(e) === 'past' ? '' : rsvpBtns(e)}
+      <div class="evact">${e.class_role_id || evState(e) === 'past' ? '' : rsvpBtns(e)}
         ${board ? `<button class="btn sm" data-o="board" data-id="${board.id}">${ic('brush', 14)} Open contest board</button>` : ''}
         <button class="btn sm ghost" data-o="ics" data-id="${e.id}">${ic('download', 14)} Add to my calendar</button>
-        ${staff() ? `<button class="btn sm ghost" data-o="editevent" data-id="${e.id}">${ic('pencil', 14)} Edit</button><button class="btn sm danger" data-o="delevent" data-id="${e.id}">${ic('trash', 14)} Delete</button>` : ''}</div>
-      <h3 class="lbl">Going (${g.length})</h3>${people(g)}
-      ${mb.length ? `<h3 class="lbl">Maybe (${mb.length})</h3>${people(mb)}` : ''}
+        ${staff() ? `${e.class_role_id ? '' : `<button class="btn sm ghost" data-o="editevent" data-id="${e.id}">${ic('pencil', 14)} Edit</button>`}<button class="btn sm danger" data-o="delevent" data-id="${e.id}">${ic('trash', 14)} Delete</button>` : ''}</div>
+      ${e.class_role_id ? `<p class="muted">Shared from an Orbit member's calendar. Label: <b>${esc(e.class_role_label || 'Selected role')}</b>.</p>` : `<h3 class="lbl">Going (${g.length})</h3>${people(g)}${mb.length ? `<h3 class="lbl">Maybe (${mb.length})</h3>${people(mb)}` : ''}`}
     </article></div>`;
     bindMenu();
   }
@@ -943,6 +943,7 @@ export function initOrbit(c) {
       case 'delann': return delAnnouncement(id);
       case 'pinann': return pinAnnouncement(id);
       case 'newevent': return eventForm(null, O.ev.day);
+      case 'importics': return openCalendarImport({ modal, toast, sb, esc, classRoles: () => c.classRoles?.() || [], navTo: c.navTo, refresh: async () => { await load(true); repaint(); } });
       case 'editevent': return eventForm(O.events.find(e => e.id === id));
       case 'delevent': return delEvent(id);
       case 'rsvp': return rsvp(id, d.s);
