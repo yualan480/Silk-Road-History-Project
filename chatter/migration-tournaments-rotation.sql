@@ -144,7 +144,7 @@ grant execute on function public.tournament_submit_score(uuid,bigint,text) to au
 -- NOT delete completed events (players' results and prizes need their history).
 create or replace function private.tournament_rotation_tick()
 returns void language plpgsql security invoker set search_path = '' as $$
-declare v_week timestamptz := (date_trunc('week', now() at time zone 'UTC') at time zone 'UTC') + interval '7 days';
+declare v_week timestamptz := (date_trunc('week', now() at time zone 'America/New_York') + interval '7 days') at time zone 'America/New_York';
         v_games text[] := array['tetris','blockblast','snake','game2048','breakout','flappy','geodash','dino','pacman','slope','minesweeper','girder','sudoku'];
         v_index int; v_game text; v_title text; v_row public.tournaments; v_n int;
 begin
