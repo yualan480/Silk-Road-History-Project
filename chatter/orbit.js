@@ -4,6 +4,7 @@
 
 import { startStars, startLogo } from './fx.js?v=5';
 import { openCalendarImport } from './calendar-import.js?v=2';
+import { classifyCalendarEvent, prioritizeCalendarEvents } from './calendar-role-tone.js?v=1';
 import { createBackdrop } from './orbit-bg.js?v=4';
 import { ambient, cycleTime } from './ambient.js?v=6';
 import { createDrift } from './orbit-drift.js?v=3';
@@ -89,6 +90,8 @@ export function initOrbit(c) {
   };
   const toLocalInput = d => { d = new Date(d); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   const upcoming = () => O.events.filter(e => evEnd(e) >= Date.now()).sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at));
+  const myRoleIds = () => new Set((c.classRoles?.() || []).map(r => String(r.id)));
+  const roleLegend = () => '<div class="role-legend"><span class="role-legend-me">● Your roles</span><span class="role-legend-other">● Other classes/clubs (gray)</span></div>';
   const byDay = () => { const m = new Map(); for (const e of O.events) { const k = dayKey(e.starts_at); (m.get(k) || m.set(k, []).get(k)).push(e); } return m; };
   const going = e => (e.rsvps || []).filter(r => r.status === 'going');
   const maybe = e => (e.rsvps || []).filter(r => r.status === 'maybe');
@@ -294,13 +297,13 @@ export function initOrbit(c) {
   }
   const rsvpBtns = e => `<div class="rsvp"><button class="btn sm ${myRsvp(e) === 'going' ? '' : 'ghost'}" data-o="rsvp" data-id="${e.id}" data-s="going" aria-pressed="${myRsvp(e) === 'going'}">${ic('check', 14)} Going</button><button class="btn sm ${myRsvp(e) === 'maybe' ? '' : 'ghost'}" data-o="rsvp" data-id="${e.id}" data-s="maybe" aria-pressed="${myRsvp(e) === 'maybe'}">Maybe</button></div>`;
   const stateChip = e => { const s = evState(e); return s === 'live' ? '<span class="chip live">● Live now</span>' : s === 'soon' ? '<span class="chip soon">Starting soon</span>' : s === 'past' ? '<span class="chip">Ended</span>' : ''; };
-  function evCard(e) {
-    const k = kindOf(e), g = going(e);
-    return `<article class="evcard ${evState(e) === 'live' ? 'live' : ''}">
+  function evCard(e, selectedIds = myRoleIds()) {
+    const k = kindOf(e), g = going(e), tone = classifyCalendarEvent(e, selectedIds);
+    return `<article class="evcard ${evState(e) === 'live' ? 'live' : ''}${e.class_role_id ? ' role-' + tone : ''}">
       <button class="evmain" data-o="event" data-id="${e.id}"><span class="evemo">${k.emoji}</span>
         <span class="t"><b>${esc(e.title)}</b><small>${esc(fmtWhen(e.starts_at))}${e.ends_at ? ' – ' + esc(fmtTime(e.ends_at)) : ''}</small>
         <small>${esc(k.label)}${e.host_id ? ' · hosted by ' + esc(person(e.host_id)) : ''}${e.location ? ' · ' + esc(e.location) : ''}</small></span>
-        <span class="evr">${stateChip(e)}<small>${e.class_role_id ? 'Public schedule' : `${g.length} going${maybe(e).length ? `, ${maybe(e).length} maybe` : ''}`}</small></span></button>
+        <span class="evr">${stateChip(e)}<small>${e.class_role_id ? (tone === 'matching' ? 'Your role' : 'Outside your roles') : `${g.length} going${maybe(e).length ? `, ${maybe(e).length} maybe` : ''}`}</small></span></button>
       ${e.class_role_id || evState(e) === 'past' ? '' : rsvpBtns(e)}</article>`;
   }
   const monthName = (y, m) => new Date(y, m, 1).toLocaleDateString([], { month: 'long', year: 'numeric' });
@@ -310,15 +313,15 @@ export function initOrbit(c) {
     return cells;
   }
   function bigCalendar() {
-    const { y, m } = O.bigCal, map = byDay(), tk = dayKey(new Date());
+    const { y, m } = O.bigCal, map = byDay(), tk = dayKey(new Date()), selectedIds = myRoleIds();
     return `<div class="bcal"><div class="bcalh"><button class="ib" data-o="bcal" data-d="-1" aria-label="Previous month">${ic('chevL')}</button><b>${esc(monthName(y, m))}</b><button class="ib" data-o="bcal" data-d="1" aria-label="Next month">${ic('chevR')}</button><button class="btn sm ghost" data-o="bcal" data-d="0">Today</button></div>
       <div class="bgrid">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="bdow">${d}</div>`).join('')}
       ${monthCells(y, m).map(({ d, k, inMonth }) => { const es = map.get(k) || [];
         return `<div class="bday ${inMonth ? '' : 'out'} ${k === tk ? 'today' : ''}"><button class="bnum" data-o="day" data-k="${k}" aria-label="${esc(d.toLocaleDateString([], { month: 'long', day: 'numeric' }))}${es.length ? ', ' + es.length + ' events' : ''}">${d.getDate()}</button>
-          ${es.slice(0, 3).map(e => `<button class="bchip k-${esc(e.kind)}" data-o="event" data-id="${e.id}" title="${esc((e.class_role_label ? e.class_role_label + ' · ' : '') + e.title)}">${kindOf(e).emoji} ${esc(e.class_role_label ? e.class_role_label + ' · ' + e.title : e.title)}</button>`).join('')}${es.length > 3 ? `<button class="bmore" data-o="day" data-k="${k}">+${es.length - 3} more</button>` : ''}</div>`; }).join('')}</div></div>`;
+          ${prioritizeCalendarEvents(es, selectedIds).slice(0, 3).map(e => `<button class="bchip k-${esc(e.kind)}${e.class_role_id ? ' role-' + classifyCalendarEvent(e, selectedIds) : ''}" data-o="event" data-id="${e.id}" title="${esc((e.class_role_label ? e.class_role_label + ' · ' : '') + e.title)}">${kindOf(e).emoji} ${esc(e.class_role_label ? e.class_role_label + ' · ' + e.title : e.title)}</button>`).join('')}${es.length > 3 ? `<button class="bmore" data-o="day" data-k="${k}">+${es.length - 3} more</button>` : ''}</div>`; }).join('')}</div></div>`;
   }
   function renderEvents(main) {
-    const tab = O.ev.tab, day = O.ev.day;
+    const tab = O.ev.tab, day = O.ev.day, selectedIds = myRoleIds();
     let body;
     if (O.err) body = `<p class="muted">${esc(O.err)}</p>`;
     else if (!O.loaded) { body = '<p class="muted">Loading…</p>'; load().then(repaint); }
@@ -328,22 +331,22 @@ export function initOrbit(c) {
       if (day) list = O.events.filter(e => dayKey(e.starts_at) === day).sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at));
       const groups = []; for (const e of list) { const k = dayKey(e.starts_at), g = groups[groups.length - 1]; if (g && g.k === k) g.es.push(e); else groups.push({ k, es: [e] }); }
       body = `${day ? `<p class="chip dayf">Showing ${esc(fmtDay(day + 'T12:00'))} <button class="ib sm" data-o="clearday" aria-label="Show all events">${ic('x', 14)}</button></p>` : ''}
-        ${groups.map(g => `<h3 class="lbl">${esc(fmtDay(g.k + 'T12:00'))}</h3>${g.es.map(evCard).join('')}`).join('') ||
+        ${groups.map(g => `<h3 class="lbl">${esc(fmtDay(g.k + 'T12:00'))}</h3>${g.es.map(e => evCard(e, selectedIds)).join('')}`).join('') ||
           `<div class="empty" style="padding:2rem 0"><h2>${day ? 'Nothing that day' : tab === 'past' ? 'No past events yet' : 'Nothing scheduled yet'}</h2><p>${staff() ? 'Schedule a game night, trivia or a drawing contest.' : 'You can share a class or club calendar.'}</p><div style="display:flex;flex-direction:column;gap:8px;align-items:center">${staff() ? `<button class="btn" data-o="newevent" style="width:auto">Schedule an event</button>` : ''}<button class="btn ghost" data-o="importics" style="width:auto">Add my calendar</button></div></div>`}`;
     }
     main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${ic('calendar', 20)}</span><b class="title">Events</b><span class="grow"></span>${!O.err ? `<div style="display:flex;flex-direction:column;gap:5px">${staff() ? `<button class="btn sm" data-o="newevent">Schedule an event</button>` : ''}<button class="btn sm ghost" data-o="importics">Add my calendar</button></div>` : ''}</div>
-      <div class="panel"><div class="tabs">${[['upcoming', 'Upcoming'], ['calendar', 'Calendar'], ['past', 'Past']].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" data-o="evtab" data-k="${k}">${t}</button>`).join('')}</div>${body}</div>`;
+      <div class="panel"><div class="tabs">${[['upcoming', 'Upcoming'], ['calendar', 'Calendar'], ['past', 'Past']].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" data-o="evtab" data-k="${k}">${t}</button>`).join('')}</div>${O.loaded && !O.err ? roleLegend() : ''}${body}</div>`;
     bindMenu();
   }
   function renderEvent(main) {
     const e = O.events.find(x => x.id === O.ev.id);
     const back = `<button class="ib" data-o="go" data-k="events" aria-label="Back to events">${ic('back')}</button>`;
     if (!e) { main.innerHTML = `<div class="top">${menuBtn()}${back}<b class="title">Event</b></div><div class="empty"><h2>${O.loaded ? 'Event not found' : 'Loading…'}</h2><p>${O.loaded ? 'It may have been removed.' : ''}</p></div>`; bindMenu(); if (!O.loaded) load().then(repaint); return; }
-    const k = kindOf(e), g = going(e), mb = maybe(e), people = list => list.length ? `<div class="attgrid">${list.map(r => `<button class="att" data-o="prof" data-id="${r.user_id}">${av(prof(r.user_id))}<span>${esc(person(r.user_id))}</span></button>`).join('')}</div>` : '<p class="muted">Nobody yet.</p>';
+    const tone = classifyCalendarEvent(e, myRoleIds()), k = kindOf(e), g = going(e), mb = maybe(e), people = list => list.length ? `<div class="attgrid">${list.map(r => `<button class="att" data-o="prof" data-id="${r.user_id}">${av(prof(r.user_id))}<span>${esc(person(r.user_id))}</span></button>`).join('')}</div>` : '<p class="muted">Nobody yet.</p>';
     const board = e.board_id && O.boards.find(b => b.id === e.board_id);
     main.innerHTML = `<div class="top">${menuBtn()}${back}<span class="hashi">${k.emoji}</span><b class="title">${esc(e.title)}</b></div>
-    <div class="panel"><article class="evpage">
-      <div class="evtags"><span class="chip">${k.emoji} ${esc(k.label)}</span>${stateChip(e)}<span class="chip">${esc(rel(e))}</span></div>
+    <div class="panel"><article class="evpage${e.class_role_id ? ' role-' + tone : ''}">
+      <div class="evtags"><span class="chip">${k.emoji} ${esc(k.label)}</span>${stateChip(e)}<span class="chip">${esc(rel(e))}</span>${e.class_role_id ? `<span class="chip role-flag">${tone === 'matching' ? 'Your role' : 'Outside your roles'}</span>` : ''}</div>
       <h1>${esc(e.title)}</h1>
       <div class="evmeta">
         <div>${ic('clock', 18)}<span><b>${esc(new Date(e.starts_at).toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</b>${e.ends_at ? ` <span class="muted">until ${esc(fmtTime(e.ends_at))}</span>` : ''}</span></div>
@@ -397,12 +400,13 @@ export function initOrbit(c) {
   /* ───────── calendar in the sidebar ───────── */
   function sideCal() {
     if (!S.sv) return '';
-    const next = upcoming()[0], { y, m } = O.cal, map = byDay(), tk = dayKey(new Date());
+    const selectedIds = myRoleIds(), allUpcoming = upcoming(), next = allUpcoming.find(e => classifyCalendarEvent(e, selectedIds) !== 'unmatched') || allUpcoming[0];
+    const { y, m } = O.cal, map = byDay(), tk = dayKey(new Date());
     const label = O.err ? 'Not set up yet' : !O.loaded ? 'Loading…' : next ? `${kindOf(next).emoji} ${next.title} · ${fmtWhen(next.starts_at)}` : 'Nothing scheduled';
     return `<div class="scal"><button class="scal-h" data-o="calt" aria-expanded="${O.calOpen}">${ic('calendar', 18)}<span class="t"><b>Calendar</b><small>${esc(label)}</small></span>${ic('chev', 16)}</button>
       ${O.calOpen ? `<div class="scal-b"><div class="scal-nav"><button class="ib sm" data-o="scal" data-d="-1" aria-label="Previous month">${ic('chevL', 16)}</button><b>${esc(monthName(y, m))}</b><button class="ib sm" data-o="scal" data-d="1" aria-label="Next month">${ic('chevR', 16)}</button></div>
-        <div class="scal-g">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<i class="dow">${d}</i>`).join('')}${monthCells(y, m).map(({ d, k, inMonth }) => { const n = (map.get(k) || []).length;
-          return `<button class="sd ${inMonth ? '' : 'out'} ${k === tk ? 'today' : ''} ${n ? 'has' : ''}" data-o="day" data-k="${k}" aria-label="${esc(d.toLocaleDateString([], { month: 'long', day: 'numeric' }))}${n ? ', ' + n + ' event' + (n > 1 ? 's' : '') : ''}">${d.getDate()}</button>`; }).join('')}</div>
+        <div class="scal-g">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<i class="dow">${d}</i>`).join('')}${monthCells(y, m).map(({ d, k, inMonth }) => { const dayEvents = map.get(k) || [], n = dayEvents.length, onlyOtherRoles = n > 0 && dayEvents.every(e => classifyCalendarEvent(e, selectedIds) === 'unmatched');
+          return `<button class="sd ${inMonth ? '' : 'out'} ${k === tk ? 'today' : ''} ${n ? 'has' : ''} ${onlyOtherRoles ? 'role-unmatched' : ''}" data-o="day" data-k="${k}" aria-label="${esc(d.toLocaleDateString([], { month: 'long', day: 'numeric' }))}${n ? ', ' + n + ' event' + (n > 1 ? 's' : '') : ''}">${d.getDate()}</button>`; }).join('')}</div>
         <button class="scal-all" data-o="go" data-k="events">All events</button></div>` : ''}</div>`;
   }
   function bindSide(side) { side.querySelectorAll('.scal [data-o]').forEach(b => b.onclick = e => { e.stopPropagation(); act(b); }); }
