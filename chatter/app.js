@@ -910,6 +910,35 @@ function dmList() {
   <button class="btn ghost group-create" id="ng">${ic('friends', 16)} New group chat</button>
   ${rows.map(c => `<button class="row ${c.id === S.active && S.view === 'dm' ? 'on' : ''} ${unread(c) ? 'unr' : ''}" data-c="${c.id}">${convAv(c)}<span class="t"><b>${esc(convName(c))}</b><small>${esc(plain(c.last_message_preview) || 'No messages yet')}</small></span>${unread(c) ? '<span class="pill">new</span>' : ''}</button>`).join('') || '<p class="empty">No conversations yet.<br>Start one with the + button.</p>'}`;
 }
+/* On phones, DMs get their own scrollable contact sheet instead of hiding contacts below the full sidebar menu. */
+function openMobileDmContacts() {
+  if (S.view !== 'dm') return;
+  const main = $('#main'); if (!main) return;
+  const existing = main.querySelector('.dm-mobile-contacts');
+  if (existing) { existing.remove(); return; }
+  const panel = document.createElement('section');
+  panel.className = 'dm-mobile-contacts';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-label', 'Direct message contacts');
+  main.append(panel);
+  const draw = (focusSearch = false, selection = 0) => {
+    const keep = panel.querySelector('.dm-mobile-contacts-list')?.scrollTop || 0;
+    const listHtml = dmList().replace('id="cf"', 'id="cfmobile"').replace('id="nd"', 'id="ndmobile"').replace('id="ng"', 'id="ngmobile"');
+    panel.innerHTML = `<div class="dm-mobile-contacts-top"><b>Conversations</b><button type="button" class="ib" id="closecontacts" aria-label="Close contacts">${ic('x', 20)}</button></div><div class="dm-mobile-contacts-list">${listHtml}</div>`;
+    const list = panel.querySelector('.dm-mobile-contacts-list');
+    list.scrollTop = keep;
+    panel.querySelector('#closecontacts').onclick = () => panel.remove();
+    panel.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { panel.remove(); closeSide(); S.view = 'dm'; openConv(b.dataset.c); });
+    panel.querySelector('#ndmobile').onclick = () => { panel.remove(); newDmModal(); };
+    panel.querySelector('#ngmobile').onclick = () => { panel.remove(); groupPicker(); };
+    const field = panel.querySelector('#cfmobile');
+    field.oninput = e => { S.filter = e.target.value; draw(true, e.target.selectionStart || 0); };
+    if (focusSearch) { field.focus({ preventScroll: true }); field.setSelectionRange(selection, selection); }
+  };
+  draw();
+  panel.querySelector('#closecontacts').focus({ preventScroll: true });
+}
 function socialList() {
   const c = S.chans.find(x => x.kind === 'text' && !isRulesCh(x)) || S.chans.find(x => x.kind === 'text');
   if (!c) return `<p class="empty">${S.loaded ? 'No chat yet.' : 'Loading...'}</p>`;
@@ -1008,7 +1037,7 @@ async function loadOrbits() { try { const { data, error } = await sb.rpc('my_orb
 addEventListener('storage', e => { if (e.key === 'orbit-balance') { S.orbits = parseInt(e.newValue, 10) || 0; paintOrbits(); } });   // a game page or another tab earned or spent Orbits
 function renderSide() {
   const side = $('#side'); if (!side || !S.me) return;
-  const keep = $('.scroll', side)?.scrollTop || 0, un = S.convs.filter(unread).length, more = !!S.moreNav || ['roles', 'boards', 'board', 'leaderboard', 'support'].includes(S.view);
+  const keep = $('.scroll', side)?.scrollTop || 0, sideKeep = side.scrollTop, un = S.convs.filter(unread).length, more = !!S.moreNav || ['roles', 'boards', 'board', 'leaderboard', 'support'].includes(S.view);
   const nav = (k, label, icon, n) => `<button class="nav-i ${S.view === k || S.view === ({ events: 'event', boards: 'board', communities: 'community', tournaments: 'tournament' })[k] ? 'on' : ''}${S.hot?.[HOT_KEY[k]] && S.view !== k ? ' hot' : ''}" data-nav="${k}"${S.hot?.[HOT_KEY[k]] && S.view !== k ? ` aria-label="${label} (new)"` : ''}>${ic(icon)}<span>${label}</span>${n ? `<span class="pill">${n}</span>` : ''}</button>`;
   /* Orbit Social: one dropdown holding Direct Messages, Communities and Friends. It opens by itself while you are on one of them. */
   const inSocial = ['dm', 'communities', 'community', 'friends'].includes(S.view), socOpen = S.socialOpen ?? inSocial, socCount = un + (CM.invites() || 0) + S.incoming.length;
@@ -1025,6 +1054,7 @@ function renderSide() {
   ${V.ch ? `<div class="vpanel" id="vp"><button class="t" id="vo" title="Open call" aria-label="Open call screen"><b>Voice connected</b><small></small></button><button class="ib" id="vl" title="Leave voice" aria-label="Leave voice channel">${ic('phoneOff', 18)}</button></div>` : ''}
   <div class="me"><button class="row" id="mep" title="Your profile">${av(S.me)}<span class="t"><b>${esc(S.me.display_name)}${SHOP.coHtml(S.me.id)}</b><small>${S.me.custom_status ? esc(S.me.custom_status) : '<i class="odot"></i>Online'}</small></span>${orbitChip()}</button><button class="ib ${V.muted || V.deaf ? 'bad' : ''}" id="vm" title="${V.muted || V.deaf ? 'Unmute microphone' : 'Mute microphone'}" aria-label="Toggle microphone" aria-pressed="${V.muted || V.deaf}">${ic(V.muted || V.deaf ? 'micOff' : 'mic', 18)}</button><button class="ib ${V.deaf ? 'bad' : ''}" id="vd" title="${V.deaf ? 'Undeafen' : 'Deafen (stop hearing voice chat)'}" aria-label="Toggle deafen" aria-pressed="${V.deaf}">${ic('headphones', 18)}</button><button class="ib ${soundMuted ? 'bad' : ''}" id="sn" title="${soundMuted ? 'Unmute notification sounds' : 'Mute notification sounds'}" aria-label="Toggle notification sounds" aria-pressed="${soundMuted}">${ic(soundMuted ? 'bellOff' : 'bell', 18)}</button>${canAdmin() ? `<button class="ib" id="adm" title="Admin dashboard" aria-label="Admin dashboard">${ic('shield', 18)}${S.reportCount && can('view_reports') ? '<span class="dot"></span>' : ''}</button>` : ''}<button class="ib" id="set" title="Settings" aria-label="Settings">${ic('settings', 18)}</button></div>`;
   $('.scroll', side).scrollTop = keep;
+  side.scrollTop = sideKeep;
   side.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => navTo(b.dataset.nav));
   side.querySelectorAll('[data-social]').forEach(b => b.onclick = () => { S.socialOpen = !(S.socialOpen ?? inSocial); renderSide(); });
   side.querySelectorAll('[data-fun]').forEach(b => b.onclick = () => { S.funOpen = !(S.funOpen ?? inFun); renderSide(); });
@@ -1221,7 +1251,7 @@ function renderHead() {
 }
 function renderHead0() {
   const h = $('#head'); if (!h) return;
-  const sbtn = `<div class="sbar"><label class="sbox sin">${ic('search', 16)}<input id="sq" type="text" placeholder="Search messages…" autocomplete="off" spellcheck="false" aria-label="Search messages"></label><div class="sres" id="sres" hidden></div></div>`;
+  const sbtn = `<button type="button" class="ib mobile-msg-search" id="dmsearchmobile" title="Search messages" aria-label="Search messages">${ic('search', 18)}</button><div class="sbar"><label class="sbox sin">${ic('search', 16)}<input id="sq" type="text" placeholder="Search messages…" autocomplete="off" spellcheck="false" aria-label="Search messages"></label><div class="sres" id="sres" hidden></div></div>`;
   if (S.view === 'server' && isRulesCh(S.ch)) {
     h.innerHTML = `${menuBtn()}<span class="hashi">${chIcon(S.ch, 22)}</span><b class="title">${esc(S.ch.name)}</b>${S.ch.description ? `<span class="desc">${esc(S.ch.description)}</span>` : ''}<span class="grow"></span>`;
     bindMenu(); return;
@@ -1233,13 +1263,13 @@ function renderHead0() {
   } else {
     const c = S.convs.find(x => x.id === S.active);
     if (c?.is_group) {
-      h.innerHTML = `${menuBtn()}${convAv(c)}<span><b class="title">${esc(convName(c))}</b> <small class="muted">${c.mems.length} people</small></span><span class="grow"></span>${sbtn}<button class="ib" id="gi" title="Group info" aria-label="Group info">${ic('friends')}</button>`;
-      bindMenu(); bindMsgSearch(); $('#gi').onclick = () => groupModal(c.id); return;
+      h.innerHTML = `${menuBtn()}${convAv(c)}<span><b class="title">${esc(convName(c))}</b> <small class="muted">${c.mems.length} people</small></span><span class="grow"></span>${sbtn}<button type="button" class="ib dm-mobile-toggle" id="dmcontacts" aria-label="Browse DM contacts" title="Conversations">${ic('friends')}</button><button class="ib" id="gi" title="Group info" aria-label="Group info">${ic('friends')}</button>`;
+      bindMenu(); bindMsgSearch(); $('#dmcontacts').onclick = openMobileDmContacts; $('#gi').onclick = () => groupModal(c.id); return;
     }
     if (!c?.other) return;
-    h.innerHTML = `${menuBtn()}${av(c.other)}<span><b class="title">${esc(c.other.display_name)}</b> <small class="muted">${esc(stText[statusOf(c.other)])}${c.other.custom_status ? ' – ' + esc(c.other.custom_status) : ''}</small></span><span class="grow"></span>${sbtn}`;
+    h.innerHTML = `${menuBtn()}${av(c.other)}<span><b class="title">${esc(c.other.display_name)}</b> <small class="muted">${esc(stText[statusOf(c.other)])}${c.other.custom_status ? ' – ' + esc(c.other.custom_status) : ''}</small></span><span class="grow"></span>${sbtn}<button type="button" class="ib dm-mobile-toggle" id="dmcontacts" aria-label="Browse DM contacts" title="Conversations">${ic('friends')}</button>`;
   }
-  bindMenu(); bindMsgSearch();
+  bindMenu(); bindMsgSearch(); $('#dmcontacts')?.addEventListener('click', openMobileDmContacts);
 }
 function renderHome(main) {
   const sv = S.sv, text = S.chans.filter(c => c.kind === 'text');
@@ -1295,7 +1325,7 @@ function renderMainInner(loading) {
   if (S.view === 'call') return renderCall(main);
   const ch = S.view === 'server' ? S.ch : null, c = S.view === 'dm' ? S.convs.find(x => x.id === S.active) : null;
   if (S.view === 'server' && !ch) { main.innerHTML = `<div class="top">${menuBtn()}<b class="title">${esc(S.sv?.name || 'Orbit')}</b></div><div class="empty"><h2>${S.sv ? 'No channel selected' : S.loaded ? 'You are not in the server yet' : 'Loading…'}</h2><p>${S.sv ? 'Pick a text channel from the list.' : S.loaded ? 'Try reloading the page. If this keeps happening, tell the site admin.' : ''}</p></div>`; bindMenu(); return; }
-  if (!c && !ch) { main.innerHTML = `<div class="top">${menuBtn()}<b class="title">Direct messages</b></div><div class="empty"><h2>Find someone to talk to</h2><p>Start a conversation with the + button, or add friends from the Friends tab.</p><button class="btn" id="ne" style="width:auto">New message</button> <button class="btn ghost" id="ne2" style="width:auto">New group chat</button></div>`; bindMenu(); $('#ne').onclick = newDmModal; $('#ne2').onclick = () => groupPicker(); return; }
+  if (!c && !ch) { main.innerHTML = `<div class="top">${menuBtn()}<b class="title">Direct messages</b><span class="grow"></span><button type="button" class="ib dm-mobile-toggle" id="dmcontacts" aria-label="Browse DM contacts" title="Conversations">${ic('friends')}</button></div><div class="empty"><h2>Find someone to talk to</h2><p>Start a conversation with the + button, or browse your existing contacts.</p><button class="btn" id="ne" style="width:auto">New message</button> <button class="btn ghost" id="ne2" style="width:auto">New group chat</button></div>`; bindMenu(); $('#dmcontacts').onclick = openMobileDmContacts; $('#ne').onclick = newDmModal; $('#ne2').onclick = () => groupPicker(); return; }
   main.innerHTML = `<div class="top" id="head"></div><button class="pinbar" id="pb" hidden></button><div class="msgs" id="msgs" tabindex="0" aria-live="polite">${loading ? '<div class="sk"></div>'.repeat(5) : ''}</div><div class="typing" id="typ"></div>
   <div class="composer"><div class="replybar" id="rb" hidden></div><div class="pfiles" id="pf" hidden></div>${O.fmtBar()}<div class="box"><div class="ac" id="ac" role="listbox" aria-label="Suggestions" hidden></div><button class="ib" id="att" title="Attach files" aria-label="Attach files">${ic('paperclip')}</button><button class="ib" id="cam" title="Take a photo" aria-label="Take a photo">${ic('camera')}</button><input type="file" id="fi" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,application/zip,audio/*,video/mp4,video/webm"><button class="ib" id="pol" title="Create a poll" aria-label="Create a poll">${ic('poll')}</button><button class="ib" id="gft" title="Gift Orbits" aria-label="Gift Orbits">${ic('gift')}</button><textarea id="in" rows="1" enterkeyhint="enter" autocapitalize="sentences" spellcheck="true" placeholder="${esc(ch ? 'Message #' + ch.name : 'Message ' + convName(c))}" maxlength="4000" aria-label="Message"></textarea><button class="ib" id="spo" title="Spoiler: hide the selected text until someone clicks it" aria-label="Spoiler">${ic('eyeOff')}</button><button class="ib gifb" id="gif" title="Send a GIF" aria-label="Send a GIF">GIF</button><button class="ib" id="emo" title="Emoji" aria-label="Emoji">${ic('smile')}</button>${dictateBtn ? dictateBtn(ic) : ''}${O.fmtToggle()}${O.aiBtn()}<button class="send" id="snd" title="Send" aria-label="Send message">${ic('send', 18)}</button></div></div>`;
   renderHead();
@@ -1640,6 +1670,7 @@ function bindOrbitSearch(inp, out) {
 }
 let MSQ = '', MSQ_FOR = null, msSeq = 0;
 function bindMsgSearch() {
+  $('#dmsearchmobile')?.addEventListener('click', searchModal);
   const inp = $('#sq'), out = $('#sres'); if (!inp || !out) return;
   if (MSQ_FOR !== S.active) { MSQ = ''; MSQ_FOR = S.active; }
   inp.value = MSQ;

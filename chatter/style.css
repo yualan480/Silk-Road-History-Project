@@ -1374,3 +1374,53 @@ html:not(.force-motion) :is(.odhalo,.odring,.odcore,.odshine::after){}
 
 /* page scale (pagescale.js): full-screen effect layers that are placed from the mouse, window size or element rectangles work in real screen pixels */
 .olfx,.odlayer{zoom:calc(1 / var(--pz,1))}
+
+/* ───────── Phone usability: DM contacts and compact chat controls ───────── */
+.dm-mobile-toggle,.mobile-msg-search,.dm-mobile-contacts{display:none}
+@media(max-width:800px), (pointer:coarse) and (max-height:500px){
+  html,body,#root{max-width:100%;overflow-x:hidden}
+  .app,.app.hasmem{width:100%;max-width:100%;min-width:0}
+  .main{width:100%;min-width:0;overflow:hidden}
+  .main .top{min-width:0;gap:6px;padding:0 10px}
+  .main .top .title{display:block;min-width:0;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .main .top>span:has(.title){min-width:0;overflow:hidden}
+  .main .top>span:has(.title) small{display:none}
+  .main .panel{min-width:0;max-width:100%;padding-left:12px;padding-right:12px}
+  .main .panel img{max-width:100%}
+  .main .msgs{min-height:0;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+  .main .top .sbar{display:none}
+  .main .top .dm-mobile-toggle,.main .top .mobile-msg-search{display:grid;width:40px;height:40px;flex:none}
+  .side{height:100dvh;max-height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+  .side>.scroll{flex:0 0 auto;min-height:180px;overflow:visible}
+  .side>.me{position:sticky;bottom:0;z-index:2;gap:1px}
+  .side>.me .ib{width:32px;height:38px}
+  .composer .box{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+  .composer .box>.ib{order:1;width:36px;height:36px}
+  .composer .box textarea{order:2;flex:1 1 calc(100% - 54px);min-width:0;width:auto}
+  .composer .box .send{order:3;margin-left:auto}
+  .modalbg{padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+  .modal{width:min(100%,420px);max-width:calc(100vw - 24px);overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .main[data-view="dm"]{position:relative}
+  .dm-mobile-contacts{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--side);box-shadow:0 0 25px #0008}
+  .dm-mobile-contacts-top{display:flex;flex:none;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:17px}
+  .dm-mobile-contacts-list{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 12px calc(20px + env(safe-area-inset-bottom,0px));overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+  .dm-mobile-contacts-list .row{min-height:54px}
+  .dm-mobile-contacts-list .dmhead{position:sticky;top:0;z-index:1;background:var(--side)}
+  .main .panel.orbithome{max-height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+}
+@media(max-width:430px){
+  .orbithome .qlinks{grid-template-columns:minmax(0,1fr)}
+  .orbithome .qlink{padding:10px 12px}
+  .orbithome .otag{letter-spacing:.15em;font-size:1rem}
+  .oann-read-actions{justify-content:stretch}
+  .oann-read-actions .oann-read-btn{flex:1;justify-content:center}
+  .side{width:min(290px,calc(100vw - 26px))}
+}
+
+@media(pointer:coarse) and (max-height:500px) and (min-width:801px){
+  .app,.app.hasmem{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;left:0;top:0;bottom:0;width:290px;z-index:12;transform:translateX(-105%);transition:transform .15s}
+  .app.open .side{transform:none}
+  .app.open+.scrim{display:block}
+  .ib.menu{display:grid}
+}
