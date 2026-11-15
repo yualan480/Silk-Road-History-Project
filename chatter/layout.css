@@ -52,8 +52,9 @@
 .app:has(.orbithome) .side,.orbithome .oquick,.orbithome .owelcome{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 
 
-/* Keep the same large planet + original two spheres as the home logo.
-   Only the two spheres move on hover/focus; no duplicate moons are drawn. */
+/* Sidebar Orbit emblem: the same planet and two satellites as the home logo.
+   A tilted, elliptical orbit is drawn by the rotor path; a counter-rotation
+   cancels the ellipse's stretch so each satellite remains a true circle. */
 .side .brand .bwrap.sidebar-orbit-logo{
   display:flex;flex-direction:row;align-items:center;justify-content:flex-start;
   gap:0;width:236px;max-width:100%;position:relative;text-decoration:none;
@@ -61,15 +62,55 @@
 .side .brand .sbplanet{flex:0 0 46%;position:relative;display:block;min-width:0}
 .side .brand .sbplanet>img{display:block;width:100%;height:auto;filter:drop-shadow(0 0 14px #2f8bff88)}
 .side .brand .sbword{display:block;flex:0 0 54%;min-width:0;width:54%;max-width:54%;height:auto;filter:drop-shadow(0 0 9px #567aff66)}
-.side .brand .sbmoon-orbits{position:absolute;left:49.25%;top:44.4%;width:0;height:0;pointer-events:none;transform:rotate(-21deg) scaleY(.68)}
-.side .brand .sbmoon{position:absolute;display:block;width:10px;height:10px;left:-5px;top:-5px;border-radius:50%;background:radial-gradient(circle at 32% 26%,#fff 0,#d8f2ff 17%,#6cc0ff 55%,#545dd4 100%);box-shadow:0 0 0 1px #d5efff,0 0 9px #54c9ff}
-.side .brand .sbmoon-a{--moon-start:-52deg;--moon-radius:40px;--moon-speed:3.2s;transform:rotate(var(--moon-start)) translateX(var(--moon-radius)) scaleY(1.47)}
-.side .brand .sbmoon-b{--moon-start:153deg;--moon-radius:35px;--moon-speed:4.4s;width:7px;height:7px;left:-3.5px;top:-3.5px;transform:rotate(var(--moon-start)) translateX(var(--moon-radius)) scaleY(1.47);background:radial-gradient(circle at 30% 25%,#fff 0,#b2edff 28%,#8274ff 75%,#3e4fa8 100%)}
-.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon{animation:sidebar-moon-orbit var(--moon-speed) linear infinite}
+.side .brand .sbmoon-orbits{
+  position:absolute;left:49.25%;top:44.4%;width:0;height:0;
+  pointer-events:none;transform:rotate(-21deg) scaleY(.68);
+  --moon-radius:40px;--moon-correct:1.4705882353;
+}
+.side .brand .sbmoon-track{
+  position:absolute;left:0;top:0;width:0;height:0;
+  transform:rotate(var(--moon-start));transform-origin:center;
+}
+.side .brand .sbmoon-track-a{
+  --moon-start:-52deg;--moon-counter-start:52deg;--moon-counter-end:-308deg;--moon-speed:3.2s;
+}
+.side .brand .sbmoon-track-b{
+  --moon-start:153deg;--moon-counter-start:-153deg;--moon-counter-end:-513deg;--moon-speed:4.4s;
+}
+.side .brand .sbmoon{
+  position:absolute;display:block;left:-5px;top:-5px;width:10px;height:10px;
+  border-radius:50%;background:radial-gradient(circle at 32% 26%,#fff 0,#d8f2ff 17%,#6cc0ff 55%,#545dd4 100%);
+  box-shadow:0 0 0 1px #d5efff,0 0 9px #54c9ff;
+  transform:translateX(var(--moon-radius)) rotate(var(--moon-counter-start)) scaleY(var(--moon-correct));
+}
+.side .brand .sbmoon-b{
+  width:7px;height:7px;left:-3.5px;top:-3.5px;
+  background:radial-gradient(circle at 30% 25%,#fff 0,#b2edff 28%,#8274ff 75%,#3e4fa8 100%);
+}
+.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-track{
+  animation:sidebar-orbit-track var(--moon-speed) linear infinite;
+}
+.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon{
+  animation:sidebar-orbit-sphere var(--moon-speed) linear infinite;
+}
+.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-track-b,
 .side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-b{animation-direction:reverse}
-@keyframes sidebar-moon-orbit{from{transform:rotate(var(--moon-start)) translateX(var(--moon-radius)) scaleY(1.47)}to{transform:rotate(calc(var(--moon-start) + 360deg)) translateX(var(--moon-radius)) scaleY(1.47)}}
-@media(max-width:800px){.side .brand .bwrap.sidebar-orbit-logo{width:206px}.side .brand .sbmoon-a{--moon-radius:34px}.side .brand .sbmoon-b{--moon-radius:29px}}
-@media(prefers-reduced-motion:reduce){html:not(.force-motion) .side .brand .bwrap:is(:hover,:focus-visible) .sbmoon{animation:none!important}}
+@keyframes sidebar-orbit-track{
+  from{transform:rotate(var(--moon-start))}
+  to{transform:rotate(calc(var(--moon-start) + 360deg))}
+}
+@keyframes sidebar-orbit-sphere{
+  from{transform:translateX(var(--moon-radius)) rotate(var(--moon-counter-start)) scaleY(var(--moon-correct))}
+  to{transform:translateX(var(--moon-radius)) rotate(var(--moon-counter-end)) scaleY(var(--moon-correct))}
+}
+@media(max-width:800px){
+  .side .brand .bwrap.sidebar-orbit-logo{width:206px}
+  .side .brand .sbmoon-orbits{--moon-radius:34px}
+}
+@media(prefers-reduced-motion:reduce){
+  html:not(.force-motion) .side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-track,
+  html:not(.force-motion) .side .brand .bwrap:is(:hover,:focus-visible) .sbmoon{animation:none!important}
+}
 
 /* Profile class roles and the owner's assignment list. */
 .profile-class-roles{margin:14px 0 10px}
