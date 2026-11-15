@@ -3,7 +3,7 @@
    app.js hands over what this needs through initOrbit(ctx) and calls the hooks that come back. */
 
 import { startStars, startLogo } from './fx.js?v=5';
-import { openCalendarImport } from './calendar-import.js?v=1';
+import { openCalendarImport } from './calendar-import.js?v=2';
 import { createBackdrop } from './orbit-bg.js?v=4';
 import { ambient, cycleTime } from './ambient.js?v=6';
 import { createDrift } from './orbit-drift.js?v=3';

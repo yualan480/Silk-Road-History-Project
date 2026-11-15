@@ -1,6 +1,6 @@
 /* Orbit public ICS importer. Source files never leave the browser; only
    user-approved event titles, times and selected role IDs reach Supabase. */
-import { parseCalendar, guessClassRole } from './calendar-ics.js?v=1';
+import { parseCalendar, guessClassRole } from './calendar-ics.js?v=2';
 
 export function openCalendarImport({ modal, toast, sb, esc, classRoles, navTo, refresh }) {
   const roles = classRoles();
@@ -52,7 +52,9 @@ export function openCalendarImport({ modal, toast, sb, esc, classRoles, navTo, r
       const result = await sb.rpc('import_class_calendar', { p_items: rows });
       if (result.error) { toast(result.error.message || 'Could not publish calendar.', true); return false; }
       const added = Number(result.data || 0);
-      toast(added ? `${added} public calendar events added.` : 'Those events are already on the public calendar.');
+      const alreadyPublished = rows.length - added;
+      toast(`${added} public calendar event${added === 1 ? '' : 's'} added.` +
+        (alreadyPublished > 0 ? ` ${alreadyPublished} duplicate${alreadyPublished === 1 ? '' : 's'} merged with existing events.` : ''));
       await refresh();
     }}
   ], bg => {
@@ -77,8 +79,9 @@ export function openCalendarImport({ modal, toast, sb, esc, classRoles, navTo, r
           groups.get(key).count++;
         }
         series = [...groups.values()];
-        preview.innerHTML = `<p><b>${parsed.items.length}</b> event occurrences found across ${series.length} event titles.
+        preview.innerHTML = `<p><b>${parsed.items.length}</b> unique event occurrences found across ${series.length} event titles.
           Match each title to one of your selected roles, or skip it.</p>
+          ${parsed.duplicatesMerged ? `<p class="muted">${parsed.duplicatesMerged} duplicate occurrence${parsed.duplicatesMerged === 1 ? '' : 's'} automatically merged within this file.</p>` : ''}
           <div style="max-height:300px;overflow:auto;padding:4px 6px">
           ${series.map((g, i) => {
             const guessed = guessClassRole(g.title, roles);

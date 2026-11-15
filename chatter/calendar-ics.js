@@ -78,7 +78,7 @@ export function parseCalendar(text, options = {}) {
     else if (val === 'END:VEVENT' && cur) { blocks.push(cur); cur = null; }
     else if (cur) { const p = parseProp(line); if (p) (cur[p.name] ||= []).push(p); }
   }
-  const items = [], warnings = []; let excluded = 0;
+  const items = [], warnings = []; let excluded = 0, duplicatesMerged = 0;
   const seen = new Set();
   for (const [index, b] of blocks.entries()) {
     if (b.STATUS?.[0]?.value === 'CANCELLED') continue;
@@ -110,11 +110,15 @@ export function parseCalendar(text, options = {}) {
       produced++;
       if (produced > count) break;
       if (+when < from || +when > until || ex.has(+when)) continue;
-      const key = uid + '|' + when.toISOString();
-      if (seen.has(key)) continue;
+      // Different calendar apps assign different UIDs to the same class period.
+      // Merge identical occurrences by their visible content and actual time.
+      // The role is selected later; this also avoids counting duplicate previews.
+      const end = new Date(+when + duration).toISOString();
+      const key = normalize(title) + '|' + when.toISOString() + '|' + end;
+      if (seen.has(key)) { duplicatesMerged++; continue; }
       seen.add(key);
-      items.push({ uid: key.slice(0, 220), title, starts_at: when.toISOString(),
-        ends_at: new Date(+when + duration).toISOString(), group: uid, role_id: '' });
+      items.push({ uid: (uid + '|' + when.toISOString()).slice(0, 220), title,
+        starts_at: when.toISOString(), ends_at: end, group: uid, role_id: '' });
       if (items.length >= max) { warnings.push('Only the first ' + max + ' upcoming class periods were included.'); break; }
     }
     if (items.length >= max) break;
@@ -122,5 +126,5 @@ export function parseCalendar(text, options = {}) {
   }
   items.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   if (excluded) warnings.push(excluded + ' all-day or incomplete entries were skipped.');
-  return { items, warnings, sourceCount: blocks.length };
+  return { items, warnings, sourceCount: blocks.length, duplicatesMerged };
 }
