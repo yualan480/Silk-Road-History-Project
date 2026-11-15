@@ -12,7 +12,7 @@ import { initOrbit } from './orbit.js?v=17';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
-const { initTournaments } = await import('./tournaments.js?v=2').catch(e => (console.warn('Tournaments unavailable', e), {}));
+const { initTournaments } = await import('./tournaments.js?v=3').catch(e => (console.warn('Tournaments unavailable', e), {}));
 const { initGamble } = await import('./gamble.js?v=5').catch(e => (console.warn('Orbit Casino unavailable', e), {}));
 const { initArena } = await import('./arena.js?v=5').catch(e => (console.warn('Orbit Game unavailable', e), {}));
 const { dictateBtn, bindDictate } = await import('./dictate.js?v=1').catch(e => (console.warn('Voice typing unavailable', e), {}));
