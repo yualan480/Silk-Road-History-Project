@@ -2949,7 +2949,7 @@ function addGifsModal() {
 
 /* ───────── class roles: Biology (AP), World History (Honors)… The owner edits the list, everyone picks their own ─────────
    A role is a subject plus an optional level. Typing @Biology (AP) pings everyone with that role; @Biology pings every Biology student. */
-const LEVEL_ORDER = ['Accelerated', 'Honors', 'AP'], RNAME_RE = /^[\p{L}\p{N}][\p{L}\p{N} &'.+/-]*$/u, reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const LEVEL_ORDER = ['Accelerated', 'Honors', 'AP'], RNAME_RE = /^[\p{L}\p{N}][\p{L}\p{N} &'.+()\/,-]*$/u, reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const lvRank = l => { if (!l) return -1; const i = LEVEL_ORDER.findIndex(x => x.toLowerCase() === l.toLowerCase()); return i < 0 ? 99 : i; };
 const crLabel = r => r.subject + (r.level ? ` (${r.level})` : '');
 const CR_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#84cc16', '#f43f5e'];
@@ -3023,12 +3023,25 @@ function renderRoles(main) {
   <h3 class="lbl">Your roles</h3>
   <div class="rpills">${mine.map(r => `<span class="rpill"${crStyle(r)}>${esc(crLabel(r))}</span>`).join('') || '<span class="muted">You have not picked any yet.</span>'}</div>
   ${owner ? `<div class="rtools"><b>Owner tools</b> <span class="muted">Only you can add, rename or remove roles.</span>
-    <div class="radd"><input id="rs" list="rsubs" maxlength="40" placeholder="Subject, e.g. Chemistry" aria-label="Subject"><datalist id="rsubs">${subjects.map(g => `<option value="${esc(g.subject)}">`).join('')}</datalist>
+    <div class="radd"><input id="rs" list="rsubs" maxlength="90" placeholder="Subject, e.g. Chemistry" aria-label="Subject"><datalist id="rsubs">${subjects.map(g => `<option value="${esc(g.subject)}">`).join('')}</datalist>
     <input id="rl" list="rlevs" maxlength="60" placeholder="Levels, e.g. Honors, AP (optional)" aria-label="Levels, separated by commas"><datalist id="rlevs">${LEVEL_ORDER.map(l => `<option value="${l}">`).join('')}</datalist>
     <button type="button" class="btn" id="ra">Add role</button><button type="button" class="btn ghost" id="re" aria-pressed="${!!edit}">${edit ? 'Done editing' : 'Edit roles'}</button></div></div>` : ''}
-  <h3 class="lbl">${edit ? 'Tap a role to edit or delete it' : owner ? 'All classes · tap a role to give it or take it away' : 'All classes · tap to pick or drop yours'}</h3>
-  <div class="rgrid">${subjects.map(g => `<section class="rcard"><header><h3>${esc(g.subject)}</h3>${edit ? `<button type="button" class="btn sm ghost" data-rsub="${esc(g.subject)}">Rename</button>` : ''}</header><div class="rchips">${g.roles.map(chip).join('')}</div></section>`).join('') || '<p class="muted">No roles yet.' + (owner ? ' Add the first one above.' : '') + '</p>'}</div></div>`;
+  <h3 class="lbl">${edit ? 'Tap a role to edit or delete it' : owner ? 'Classes & clubs · tap a role to give it or take it away' : 'Classes & clubs · tap to pick or drop yours'}</h3>
+  <div style="display:flex;align-items:center;gap:10px;margin:10px 0 16px;flex-wrap:wrap"><input type="search" id="role-search" aria-label="Search class and club roles" placeholder="Search classes and clubs…" value="${esc(S.roleQuery || '')}" style="flex:1;min-width:210px;max-width:540px" autocomplete="off"><span id="role-search-count" class="muted" aria-live="polite"></span></div>
+  <p id="role-search-empty" class="muted" style="display:none">No matching roles. Try a different class or club name.</p>
+  <div class="rgrid">${subjects.map(g => `<section class="rcard" data-role-search="${esc(g.subject + ' ' + g.roles.map(crLabel).join(' '))}"><header><h3>${esc(g.subject)}</h3>${edit ? `<button type="button" class="btn sm ghost" data-rsub="${esc(g.subject)}">Rename</button>` : ''}</header><div class="rchips">${g.roles.map(chip).join('')}</div></section>`).join('') || '<p class="muted">No roles yet.' + (owner ? ' Add the first one above.' : '') + '</p>'}</div></div>`;
   $('.panel', main).scrollTop = keep;
+  const roleSearch = $('#role-search', main), roleCards = [...main.querySelectorAll('.rcard')];
+  const filterRoles = () => {
+    S.roleQuery = roleSearch.value;
+    const query = S.roleQuery.trim().toLocaleLowerCase(), terms = query.split(/\s+/).filter(Boolean);
+    let shown = 0;
+    for (const card of roleCards) { const hay = (card.dataset.roleSearch || '').toLocaleLowerCase(); const match = terms.every(t => hay.includes(t)); card.style.display = match ? '' : 'none'; if (match) shown++; }
+    $('#role-search-count', main).textContent = `${shown} of ${roleCards.length} roles`;
+    $('#role-search-empty', main).style.display = shown ? 'none' : '';
+  };
+  roleSearch.addEventListener('input', filterRoles);
+  filterRoles();
   main.querySelectorAll('[data-rid]').forEach(b => b.onclick = () => assignRoleModal(b.dataset.rid));   // only the owner has these buttons
   main.querySelectorAll('[data-pick]').forEach(b => b.onclick = async () => {   // members pick or drop their own (non-ability) roles
     const id = b.dataset.pick, on = S.cmem.get(id)?.has(S.me.id); b.disabled = true;
