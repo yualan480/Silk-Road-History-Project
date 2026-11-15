@@ -3,12 +3,12 @@
 -- capitalization, punctuation or spacing.
 -- This complements events_public_class_unique (the exact-title index).
 -- Keep the end time in the key: genuinely different event times must not merge.
-CREATE UNIQUE INDEX IF NOT EXISTS events_public_class_normalized_unique
+CREATE UNIQUE INDEX IF NOT EXISTS events_public_class_trimmed_unique
 ON public.events (
   class_role_id,
   starts_at,
   ends_at,
-  lower(regexp_replace(btrim(title), '[^[:alnum:]]+', ' ', 'g'))
+  lower(btrim(regexp_replace(title, '[^[:alnum:]]+', ' ', 'g')))
 )
 WHERE class_role_id IS NOT NULL;
 
