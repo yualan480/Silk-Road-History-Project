@@ -187,18 +187,23 @@
   // send a finished game's score (with the player's picture). It is sent when it beats this device's last
   // score for the game, or when the picture changed, so the leaderboard shows the newest picture.
   var lastError = '';
-  /* Orbit tournaments: tell the Orbit server about a finished round. If the player has entered a live leaderboard tournament for this game,
-     the server records their NEXT score as their tournament score (even if it is lower than their personal best); later scores only replace it when higher.
-     This runs for every round, before the "only send a new personal best" check below. It never throws into a game. */
-  var tSent = {};
+  /* Only real finished rounds go into a live tournament. Never submit a cached
+     personal best, avatar sync or an offline retry as a new tournament result. */
   function tournamentRound(game, score) {
-    try {
-      if (!(score > (tSent[game] || 0))) return;
-      var B = window.OrbitBank;
-      if (!B || !B.signedIn() || !B.rpc) return;
-      tSent[game] = score;
-      B.rpc('tournament_record_score', { p_game: game, p_score: score }).catch(function () { tSent[game] = 0; });
-    } catch (e) { /* tournaments are a bonus, never break a game */ }
+    function deliver(attempt) {
+      try {
+        var B = window.OrbitBank;
+        if (!B && window.parent !== window) B = window.parent.OrbitBank;
+        if (!B) {
+          if (attempt < 10) setTimeout(function () { deliver(attempt + 1); }, 250);
+          return;
+        }
+        if (!B.signedIn() || !B.rpc) return;
+        B.rpc('tournament_record_score', { p_game: game, p_score: score })
+          .catch(function (err) { console.warn('Tournament score was not recorded:', err); });
+      } catch (e) { /* a tournament must never break a game */ }
+    }
+    deliver(0);
   }
   // Retain unsent bests across navigation and temporary connection/server failures.
   function pendingKey(game, name) { return 'lb-pending-' + game + '-' + name.toLowerCase(); }
@@ -223,7 +228,6 @@
     var name = getName();
     if (GAMES.indexOf(game) === -1 || !name || !isCleanName(name)) return Promise.resolve(false);
     if (!(score > 0) || score > MAX_SCORE) return Promise.resolve(false);
-    tournamentRound(game, score);   // Orbit tournaments: the first score after entering counts, then only higher ones (the server decides)
     markPlayed();   // a real score means a game was played today
     var avatar = getAvatar(), av = hash(avatar);
     var memo = 'lb-sent-' + game + '-' + name.toLowerCase();
@@ -380,6 +384,7 @@
   }
   // what the games call when a round ends: send the score, then show where the player stands
   function submit(game, score) {
+    tournamentRound(game, Math.floor(Number(score))); // real round, not historical best
     var p = sendScore(game, score);
     var numeric = Math.floor(Number(score)), previous = guideBests[game];
     if (GAMES.indexOf(game) !== -1 && numeric > 0 && numeric <= MAX_SCORE && numeric > previous) {
