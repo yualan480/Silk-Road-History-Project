@@ -979,12 +979,31 @@ function renderGamer(main) {
   $('#gtog', main).onclick = () => { S.sideOff = !S.sideOff; renderMain(); };
   const fr = $('.gframe', main), isGame = path => !/\/(index\.html)?$/.test(path || '/');   // anything other than the game list (games/ or games/index.html) is a game
   O.gameOpen(!!S.gamerGo && isGame(fr.getAttribute('src')));
-  fr.addEventListener('load', () => { try { O.gameOpen(isGame(fr.contentWindow.location.pathname)); } catch {} });
+  const bindGameActivity = () => {
+    try {
+      const gameDoc = fr.contentDocument;
+      if (!gameDoc || gameDoc.__orbitActivityBound) return;
+      gameDoc.__orbitActivityBound = true;
+      ['keydown', 'pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'scroll']
+        .forEach(ev => gameDoc.addEventListener(ev, noteOrbitActivity, { capture: true, passive: true }));
+    } catch {} // Some embedded games use a different origin.
+  };
+  fr.addEventListener('load', () => {
+    bindGameActivity();
+    try { O.gameOpen(isGame(fr.contentWindow.location.pathname)); } catch {}
+  });
 }
 async function loadBoard(d) {
   if (d != null) { S.lbDays = d; S.lbFresh = true; }   // 0 = all-time, -1 = current balance
-  const { data, error } = await sb.rpc('orbit_leaderboard', { p_days: S.lbDays ?? -1 });
-  S.lb = data || []; S.lbErr = error ? error.message : '';
+  const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+  const [board, earned] = await Promise.all([
+    sb.rpc('orbit_leaderboard', { p_days: S.lbDays ?? -1 }),
+    sb.rpc('my_orbit_time_earnings', { p_day_start: dayStart.toISOString() }),
+  ]);
+  S.lb = board.data || []; S.lbErr = board.error ? board.error.message : '';
+  const time = Array.isArray(earned.data) ? earned.data[0] : earned.data;
+  S.lbTimeToday = Number(time?.today_orbits || 0);
+  S.lbTimeAll = Number(time?.all_time_orbits || 0);
   try { await needProfiles(S.lb.map(r => r.user_id)); } catch {}
   if (S.view === 'leaderboard') renderMain();
 }
@@ -997,7 +1016,8 @@ function renderLeaderboard(main) {
   const d = S.lbDays ?? -1, rows = S.lb || [], fresh = !!S.lbFresh && rows.length > 0; if (fresh) S.lbFresh = false;
   main.innerHTML = leaderboardHtml({ rows, days: d, showAll: !!S.lbAll, meId: S.me.id, err: S.lbErr, prof, av, ic, esc, roleOf, logo: 'orbit-logo-planet.png', menu: menuBtn(), fresh })
   + `
-  <details class="lbhow"><summary>How to earn Orbits</summary><ul class="lbrules"><li>Spend time on Orbit: +25 per active minute (up to 3,000 a day)</li><li>Attend an official community event: +50</li><li>Host an approved community event: +100</li><li>Complete a community challenge: +25</li><li>Reach a weekly participation milestone: +75</li><li>Win an official tournament: +100 (second place +50, third place +25)</li><li>Complete a daily login streak milestone: +25</li><li>Help another community member: +15</li><li>Submit a verified bug report: +25</li><li>Participate in an official community poll: +5</li><li>Complete a special staff-approved event: +50</li><li>Reach a monthly participation milestone: +150</li><li>Win Community Member of the Month: +200</li></ul>
+  <section class="lbactiveearn" aria-label="Active-time Orbit earnings"><div><strong>+100 Orbits per active minute</strong><small>Earn automatically while you actively use Orbit. Idle or background time doesn't count.</small></div><div class="lbactiveearn-total"><strong>+${Number(S.lbTimeToday || 0).toLocaleString()}</strong><small>Earned from active time today</small></div></section>
+  <details class="lbhow"><summary>How to earn Orbits</summary><ul class="lbrules"><li>Spend active time on Orbit: +100 per minute (idle time excluded)</li><li>Attend an official community event: +50</li><li>Host an approved community event: +100</li><li>Complete a community challenge: +25</li><li>Reach a weekly participation milestone: +75</li><li>Win an official tournament: +100 (second place +50, third place +25)</li><li>Complete a daily login streak milestone: +25</li><li>Help another community member: +15</li><li>Submit a verified bug report: +25</li><li>Participate in an official community poll: +5</li><li>Complete a special staff-approved event: +50</li><li>Reach a monthly participation milestone: +150</li><li>Win Community Member of the Month: +200</li></ul>
   <p class="muted"><b>Games:</b> Orbit Games pays a share of each final score in Orbits: ${gameRatesText()}. Games and Orbit share one balance, shown beside your profile.</p>
   <p class="muted">Messages, comments and clicks earn nothing. Staff verify event attendance, tournaments, help and bug reports, and each one pays once. Orbits buy cosmetics (frames, nameplates, themes, badges) and can't be exchanged for money.</p></details></div></div>`;
   main.querySelectorAll('[data-d]').forEach(b => b.onclick = () => loadBoard(+b.dataset.d));
@@ -1169,24 +1189,60 @@ function subscribe() {
   presCh.on('presence', { event: 'sync' }, () => { const was = S.online; S.online = new Map(Object.entries(presCh.presenceState()).map(([k, v]) => [k, v[0]])); was?.forEach((_, k) => { if (!S.online.has(k)) { SEEN.set(k, new Date().toISOString()); SEEN_TRIED.add(k); } }); renderSide(); renderMembers(); S.view === 'friends' || S.view === 'home' ? renderMain() : renderHead(); syncMembers(); })
     .on('presence', { event: 'join' }, p => { if (S.presLive) SHOP.onArrive?.(p.key, p.currentPresences); })   // the loop holder coming online
     .subscribe(async st => { if (st === 'SUBSCRIBED') { trackStatus(); S.presLive = false; setTimeout(() => { S.presLive = true; }, 3000); } });
-  ['keydown', 'pointerdown'].forEach(ev => addEventListener(ev, () => { const was = Date.now() - S.lastActive > 3e5; S.lastActive = Date.now(); if (was) trackStatus(); }, { passive: true }));
+  ['keydown', 'pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'scroll']
+    .forEach(ev => addEventListener(ev, noteOrbitActivity, { passive: true }));
+  addEventListener('focus', noteOrbitActivity);
   setInterval(() => { if (S.me && Date.now() - S.lastActive > 3e5) trackStatus(); }, 6e4);
   /* last online: stamp the time now, every minute while the tab is active, and again when it is hidden or closed */
   if (!window.__seenTimer) { touchSeen(); window.__seenTimer = setInterval(() => { if (Date.now() - S.lastActive < 6e5) touchSeen(); }, 6e4); addEventListener('pagehide', () => { if (S.me && S.me.status !== 'invisible') sb.rpc('touch_last_seen').then(() => {}, () => {}); }); document.addEventListener('visibilitychange', () => { if (document.hidden && S.me && S.me.status !== 'invisible') sb.rpc('touch_last_seen').then(() => {}, () => {}); else touchSeen(); }); }
   if (!window.__acc) window.__acc = setInterval(verifyAccess, 45000);
-  /* time on Orbit: +5 Orbits for every minute the tab is visible (the server pays at most one minute per minute) */
+  /* Active-time rewards: 100 Orbits per completed minute. No time accumulates while idle or away. */
   S.orbits = parseInt(localStorage.getItem('orbit-balance'), 10) || 0; paintOrbits(); loadOrbits(); SHOP.load().then(() => { renderSide(); renderMembers(); O.refreshFloaters?.(); });
-  if (!window.__orbMin) { let seen = 0; window.__orbMin = setInterval(async () => {
-    if (!S.me || document.hidden) return;
-    seen += 5; if (seen < 60) return; seen = 0;
-    try { const { data } = await sb.rpc('claim_orbit_minute'); if (data > 0) setOrbits((S.orbits || 0) + data); loadOrbits(); if (data > 0 && S.view === 'leaderboard') loadBoard(); } catch {}
-  }, 5000); }
+  if (!window.__orbMin) {
+    let activeSeconds = 0, payoutInFlight = false, lastTick = Date.now(), rewardedUserId = null;
+    window.__orbMin = setInterval(async () => {
+      const now = Date.now(), elapsed = Math.max(0, Math.min(5, (now - lastTick) / 1000));
+      lastTick = now;
+      if (!S.me) { activeSeconds = 0; rewardedUserId = null; return; }
+      if (rewardedUserId !== S.me.id) { activeSeconds = 0; rewardedUserId = S.me.id; }
+      const foreground = !document.hidden && document.hasFocus();
+      if (!foreground || now - S.lastActive > 60000) return;
+      activeSeconds += elapsed;
+      if (activeSeconds < 60 || payoutInFlight) return;
+      activeSeconds -= 60;
+      payoutInFlight = true;
+      try {
+        const { data, error } = await sb.rpc('claim_orbit_minute');
+        if (error) throw error;
+        if (Number(data) > 0) {
+          setOrbits((S.orbits || 0) + Number(data));
+          loadOrbits();
+          if (S.view === 'leaderboard') loadBoard();
+        }
+      } catch (err) {
+        activeSeconds = Math.min(60, activeSeconds + 60); // Retry an earned minute after a transient error.
+        console.warn('Active-time Orbit reward unavailable', err);
+      } finally { payoutInFlight = false; }
+    }, 5000);
+  }
 }
 async function trackStatus() {
   if (!presCh || !S.me) return;
   if (S.me.status === 'invisible') return presCh.untrack();
   const idle = Date.now() - S.lastActive > 3e5 && S.me.status === 'online';
   presCh.track({ status: S.view === 'gamer' && (S.me.status === 'online' || S.me.status === 'idle') ? 'playing' : idle ? 'idle' : S.me.status });
+}
+let lastOrbitMotion = 0;
+function noteOrbitActivity(ev) {
+  if (ev?.isTrusted === false) return;
+  const now = Date.now();
+  if (['pointermove', 'touchmove', 'wheel', 'scroll'].includes(ev?.type)) {
+    if (now - lastOrbitMotion < 2000) return;
+    lastOrbitMotion = now;
+  }
+  const wasIdle = now - S.lastActive > 300000;
+  S.lastActive = now;
+  if (wasIdle) trackStatus();
 }
 function onMsg(p) {
   if (p.eventType === 'DELETE') { const i = S.list.findIndex(m => m.id === p.old.id); if (i > -1) { S.list.splice(i, 1); renderMsgs(); } return; }

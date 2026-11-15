@@ -1424,3 +1424,12 @@ html:not(.force-motion) :is(.odhalo,.odring,.odcore,.odshine::after){}
   .app.open+.scrim{display:block}
   .ib.menu{display:grid}
 }
+
+/* Active-minute reward shown directly on the Orbit leaderboard. */
+.lbactiveearn{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:18px 0 10px;padding:17px 20px;border:1px solid #4385ce80;border-radius:16px;background:linear-gradient(110deg,#19345dba,#242048b8);color:#f1f8ff}
+.lbactiveearn>div{display:flex;flex-direction:column;gap:5px}
+.lbactiveearn strong{font-size:1rem;font-weight:800}
+.lbactiveearn small{font-size:.82rem;color:#c6d3eb;line-height:1.4}
+.lbactiveearn-total{text-align:right;flex-shrink:0}
+.lbactiveearn-total strong{font-size:1.35rem;color:#8aecc8}
+@media(max-width:540px){.lbactiveearn{align-items:flex-start;flex-direction:column;gap:12px;padding:15px}.lbactiveearn-total{text-align:left}}
