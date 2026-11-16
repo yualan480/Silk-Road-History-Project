@@ -1331,9 +1331,17 @@ function renderHead0() {
 }
 function renderHome(main) {
   const sv = S.sv, text = S.chans.filter(c => c.kind === 'text');
+  const quickLinks = [
+    { key: 'events', name: 'Events', desc: 'School calendar', icon: 'tag' },
+    { key: 'tournaments', name: 'Tournaments', desc: 'Compete with others', icon: 'trophy' },
+    { key: 'gamer', name: 'Orbit Games', desc: 'Play and earn Orbits', icon: 'gamepad' },
+    { key: 'leaderboard', name: 'Leaderboard', desc: 'See player rankings', icon: 'compass' }
+  ];
   main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${ic('home', 20)}</span><b class="title">Home</b></div><div class="panel">${sv ? `<div class="hero">${svIcon(sv, 'big')}<div><h1>${esc(sv.name)}</h1><p class="muted">${esc(sv.description || 'Conestoga 2030')}</p><p class="muted">${S.members.length} members, ${onlineCount()} online</p></div></div>
+  <h3 class="lbl">Quick Links</h3><div class="home-quick-links">${quickLinks.map(l => `<button type="button" class="home-quick-link" data-hq="${l.key}" aria-label="Go to ${l.name}"><span class="home-quick-icon">${ic(l.icon, 22)}</span><span class="home-quick-copy"><b>${l.name}</b><small>${l.desc}</small></span>${ic('arrow', 17)}</button>`).join('')}</div>
   <h3 class="lbl">Channels</h3>${text.map(c => `<button class="row" data-ch="${c.id}">${chIcon(c)}<span class="t"><b>${esc(c.name)}</b><small>${esc(c.description || 'No description')}</small></span>${S.chUnread[c.id] ? `<span class="pill red">${S.chUnread[c.id]}</span>` : ''}</button>`).join('') || '<p class="muted">No channels yet.</p>'}` : `<p class="empty">${S.loaded ? 'You are not in the server yet.' : 'Loading…'}</p>`}</div>`;
   bindMenu(); main.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => openChan(b.dataset.ch));
+  main.querySelectorAll('[data-hq]').forEach(b => b.onclick = () => navTo(b.dataset.hq));
 }
 function emojiPicker(ta, btn) {
   const old = $('.emoji'); if (old) return old.remove();
@@ -3427,12 +3435,21 @@ function renderGms(main) {
     if (!/^[A-Za-z0-9_-]{11}$/.test(p.video_id)) return '';
     const url = 'https://www.youtube.com/watch?v=' + p.video_id;
     const paras = String(p.summary || '').split(/\n+/).map(s => s.trim()).filter(Boolean);
+    const content = paras.map(s => {
+      // Only real broadcast screenshots saved by the summary publisher are rendered.
+      // Requiring video ID and timestamp in the filename keeps images tied to this broadcast.
+      const img = s.match(/^!\[([^\]]{3,160})\]\((gms-images\/([A-Za-z0-9_-]{11})-(\d{1,5})\.(?:png|jpe?g|webp))\)$/i);
+      if (img && img[3] === p.video_id) {
+        const secs = Number(img[4]);
+        return `<figure class="gms-figure"><a href="${url}&t=${secs}s" target="_blank" rel="noopener noreferrer"><img src="${img[2]}" alt="${esc(img[1])}" loading="lazy"></a><figcaption>${esc(img[1])} · <a href="${url}&t=${secs}s" target="_blank" rel="noopener noreferrer">View this moment in the broadcast</a></figcaption></figure>`;
+      }
+      return `<p>${esc(s)}</p>`;
+    }).join('');
     return `<article class="gms-card">
-      <a href="${url}" target="_blank" rel="noopener noreferrer" class="gms-thumb" title="Watch the full broadcast"><img src="https://i.ytimg.com/vi/${p.video_id}/hqdefault.jpg" alt="GMS broadcast thumbnail" loading="lazy"></a>
       <div class="gms-copy">
         <div class="gms-date">📅 <time datetime="${esc(p.published_on)}">${esc(dateText(p.published_on))}</time><span class="gms-pill">Published date</span></div>
         <h2>${esc(p.title)}</h2>
-        <div class="gms-summary">${paras.map(s => `<p>${esc(s)}</p>`).join('')}</div>
+        <div class="gms-summary">${content}</div>
         <a class="gms-watch" href="${url}" target="_blank" rel="noopener noreferrer">${ic('video', 16)} Watch the original broadcast ${ic('arrow', 15)}</a>
       </div>
     </article>`;
@@ -3443,7 +3460,7 @@ function renderGms(main) {
         <a href="https://www.youtube.com/@T-E-TV/streams" target="_blank" rel="noopener noreferrer">Official T/E TV livestreams ${ic('arrow', 14)}</a>
       </div>
       ${S.gmsErr ? `<p class="err">Could not load GMS updates: ${esc(S.gmsErr)}</p>` : cards || '<p class="empty">No GMS summaries published yet. Check back after the next broadcast is reviewed.</p>'}
-      <p class="muted gms-disclaimer">Summaries are AI-assisted. Check the linked video for full context and announcements.</p>
+      <p class="muted gms-disclaimer">Summaries are AI-assisted. Pictures appear only when they illustrate a verified moment in the linked broadcast.</p>
     </div>`;
   bindMenu();
 }
