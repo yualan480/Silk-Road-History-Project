@@ -241,34 +241,39 @@ export function initShop(c) {
   function customPage() {
     if (SH.reqErr) return `<p class="err">${esc(SH.reqErr)}</p>`;
     const list = SH.reqs.filter(r => r.user_id === S.me.id);
-    return `<p class="cx-note">Want something nobody else has? Pick a kind, type what you want and choose the colours. It costs ${fmt(CUSTOM_PRICE)} Orbits. Your idea is checked right away, then it takes <b>5 minutes</b> to generate and is added to <b>My Items</b>. You can leave the site while it generates. Ideas that are not appropriate are refused and you are not charged.</p>
+    return `<p class="cx-note">Want something nobody else has? Pick a kind and describe what you want. The name and design details are generated for you. It costs ${fmt(CUSTOM_PRICE)} Orbits. Your idea is checked right away, then it takes <b>5 minutes</b> to generate and is added to <b>My Items</b>. You can leave the site while it generates. Ideas that are not appropriate are refused and you are not charged.</p>
       <div class="shp-grid" style="margin-top:12px">${Object.keys(CUSTOM_LABEL).map(customCard).join('')}</div>
       <h3 class="cx-sub">Your orders</h3><div class="cx-list">${list.map(reqRow).join('') || '<p class="muted">You have not ordered anything yet.</p>'}</div>`;
   }
   function customForm(kind) {
-    const opts = STYLES[kind] || [], first = opts[0]?.[0] || 'ring', hasGlyph = kind === 'companion' || kind === 'collectible';
-    const body = `<div class="cx-form"><div class="cx-pv" id="cxpv"></div>
-      <label>Name<input id="cxn" maxlength="30" placeholder="e.g. Dragon Fire" autocomplete="off"></label>
-      <label>${kind === 'font' ? 'What should it look like?' : 'Describe what you want'}<textarea id="cxd" maxlength="300" placeholder="${kind === 'font' ? 'e.g. Spooky green letters that drip, like a haunted house sign' : 'Type your idea here. The more detail, the better.'}"></textarea></label>
-      <label>${kind === 'font' ? 'Closest style' : 'Closest shape / style'}<select id="cxs">${opts.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></label>
-      ${kind === 'companion' ? `<label>Holder shape<select id="cxt">${TILES.map(t => `<option value="${t}">${t[0].toUpperCase() + t.slice(1)}</option>`).join('')}</select></label>` : ''}
-      ${hasGlyph ? '<label>Emoji (the picture)<input id="cxg" maxlength="4" value="✨" autocomplete="off"></label>' : ''}
-      <div class="cx-colors"><label>Colour 1<input id="cxc1" type="color" value="#7a5cff"></label><label>Colour 2<input id="cxc2" type="color" value="#ff4fd8"></label></div>
-      <p class="cx-note">${fmt(CUSTOM_PRICE)} Orbits are taken now. You have ${fmt(S.orbits)}. It is checked right away and takes 5 minutes to generate. You can leave the site while you wait.</p></div>`;
-    const read = bg => ({ name: bg.querySelector('#cxn').value.trim(), details: bg.querySelector('#cxd').value.trim(),
-      art: { shape: bg.querySelector('#cxs').value, c1: bg.querySelector('#cxc1').value, c2: bg.querySelector('#cxc2').value, glyph: bg.querySelector('#cxg')?.value || '', tile: bg.querySelector('#cxt')?.value || 'circle' } });
-    modal(`Custom ${CUSTOM_LABEL[kind]}`, body, [{ label: 'Cancel', cls: 'ghost' }, { label: `Pay ${fmt(CUSTOM_PRICE)} Orbits`, fn: async bg => {
-      const v = read(bg);
-      if (!v.name) { toast('Give it a name first.', true); return false; }
-      if (v.details.length < 3) { toast('Describe what you want first.', true); return false; }
+    const body = `<div class="cx-form"><label>Describe your custom ${esc(CUSTOM_LABEL[kind].toLowerCase())}<textarea id="cxd" maxlength="300" rows="5" placeholder="Describe its appearance, colors, shape, and movement in your own words."></textarea></label>
+      <p class="cx-note">${fmt(CUSTOM_PRICE)} Orbits. We generate the name and design details from your description using Orbit’s supported visual effects. Your item takes 5 minutes to arrive in My Items.</p><p id="cxstatus" role="status"></p></div>`;
+    let sending = false;
+    modal(`Custom ${CUSTOM_LABEL[kind]}`, body, [{ label: 'Cancel', cls: 'ghost' }, { label: `Generate · ${fmt(CUSTOM_PRICE)} Orbits`, fn: async bg => {
+      if (sending) return false;
+      const details = bg.querySelector('#cxd').value.trim();
+      if (details.length < 3) { toast('Describe what you want first.', true); return false; }
       if ((S.orbits || 0) < CUSTOM_PRICE) { toast(`You need ${fmt(CUSTOM_PRICE - (S.orbits || 0))} more Orbits.`, true); return false; }
-      const { data, error } = await sb.rpc('submit_custom_item', { p_kind: kind, p_name: v.name, p_details: v.details, p_art: v.art });
-      if (error) { toast(error.message || 'Could not send that.', true); return false; }
-      c.setOrbits(data); await loadReqs(); SH.tab = 'custom'; toast('Generating! It will be in My Items in 5 minutes.'); c.renderMain();
-    } }], bg => {
-      const upd = () => { const v = read(bg); bg.querySelector('#cxpv').innerHTML = preview(fakeItem(kind, v.art, v.name)); };
-      bg.querySelectorAll('input,select,textarea').forEach(e => { e.addEventListener('input', upd); e.addEventListener('change', upd); }); upd();
-    });
+      sending = true;
+      const status = bg.querySelector('#cxstatus'); status.textContent = 'Designing your custom item…';
+      try {
+        const { data: design, error: designError } = await sb.functions.invoke('orbit-ai', { body: {
+          mode: 'chat', context: 'You design Orbit cosmetics. Return ONLY JSON, no markdown: {"name":"short name, max 30 characters","shape":"renderer effect","c1":"#rrggbb","c2":"#rrggbb","glyph":"emoji, max 4 UTF-16 units","tile":"holder"}. Interpret the user description creatively. Use compatible renderer effects: ' + JSON.stringify(STYLES[kind].map(x => x[0])) + '. Holder options: ' + TILES.join(', ') + '. Do not output code or HTML.',
+          messages: [{ role: 'user', text: `Design a ${CUSTOM_LABEL[kind]}: ${details}` }]
+        } });
+        if (designError || design?.error) throw new Error('The designer is unavailable. Please try again. No Orbits were charged.');
+        const text = String(design?.text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+        const v = JSON.parse(text);
+        if (!v || typeof v.name !== 'string' || !v.name.trim() || v.name.length > 30 || !STYLES[kind].some(x => x[0] === v.shape) || !HEX.test(v.c1) || !HEX.test(v.c2)) throw new Error('The designer returned an incomplete design. Please try again. No Orbits were charged.');
+        if (!bg.isConnected) return false;
+        status.textContent = 'Submitting your design…';
+        const { data, error } = await sb.rpc('submit_custom_item', { p_kind: kind, p_name: v.name.trim(), p_details: details,
+          p_art: { shape: v.shape, c1: v.c1, c2: v.c2, glyph: typeof v.glyph === 'string' ? v.glyph.slice(0, 4) : '', tile: TILES.includes(v.tile) ? v.tile : 'circle' } });
+        if (error) throw new Error(error.message || 'Could not send that.');
+        c.setOrbits(data); await loadReqs(); SH.tab = 'custom'; toast('Generating! It will be in My Items in 5 minutes.'); c.renderMain();
+      } catch (e) { status.textContent = ''; toast(e instanceof SyntaxError ? 'The designer could not complete this design. Please try again. No Orbits were charged.' : e.message, true); return false; }
+      finally { sending = false; }
+    } }]);
   }
   function previewModal(id) {
     const it = SH.byId.get(id); if (!it) return;
