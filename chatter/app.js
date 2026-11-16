@@ -45,6 +45,7 @@ const TAB_TAGS = [
   ['friends', 'Friends', 'friends', 'friends', ['friend']],
   ['roles', 'Roles', 'roles', 'tag', ['role', 'class-roles', 'classes']],
   ['events', 'Events', 'events', 'calendar', ['event']],
+  ['tesd-calendar', 'TESD Calendar', 'tesd-calendar', 'calendar', ['tesd', 'school-calendar', 'tesdcalendar']],
   ['tournaments', 'Tournaments', 'tournaments', 'trophy', ['tournament']],
   ['unblocked-games', 'Unblocked Games', 'unblocked', 'compass', ['unblocked']],
   ['orbit-games', 'Orbit Games', 'gamer', 'gamepad', ['games', 'game']],
@@ -212,7 +213,7 @@ Object.assign(I, {
 });
 const ic = (k, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
 /* every channel's icon: Suggestions and Tutorials use the # like the other channels, locked and private ones a padlock */
-const chIcon = (c, size = 18) => ic(c.special === 'suggestions' || c.special === 'videos' || c.special === 'gms' ? 'hash' : c.is_private || c.locked ? 'lock' : 'hash', size);
+const chIcon = (c, size = 18) => ic(c.special === 'suggestions' || c.special === 'videos' || c.special === 'gms' || c.name === 'tesd-calendar' ? 'hash' : c.is_private || c.locked ? 'lock' : 'hash', size);
 const logoMark = `<img src="logo.svg" width="38" height="38" alt="" style="border-radius:10px">`;
 const menuBtn = () => `<button class="ib menu" id="mb" aria-label="Open sidebar">${ic('menu')}</button>`;
 const toggleSide = () => setSidebarOpen(!$('#app')?.classList.contains('open'));
@@ -945,7 +946,7 @@ function socialList() {
   const c = S.chans.find(x => x.kind === 'text' && !isRulesCh(x)) || S.chans.find(x => x.kind === 'text');
   if (!c) return `<p class="empty">${S.loaded ? 'No chat yet.' : 'Loading...'}</p>`;
   const all = S.chans.filter(x => x.kind === 'text');
-  const list = all.map(x => `<button class="ch ${(x.special === 'suggestions' ? S.view === 'suggestions' : x.special === 'videos' ? S.view === 'tutorials' : x.special === 'gms' ? S.view === 'gms' : x.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[x.id] ? 'unr' : ''}${x.special === 'suggestions' && S.hot?.sug && S.view !== 'suggestions' ? ' hot' : ''}" data-ch="${x.id}"${x.special ? ` data-sp="${x.special}"` : ''}>${chIcon(x)}<span>${esc(x.name)}</span>${S.chUnread[x.id] ? `<span class="pill red">${S.chUnread[x.id] > 99 ? '99+' : S.chUnread[x.id]}</span>` : ''}</button>`).join('');
+  const list = all.map(x => `<button class="ch ${(x.special === 'suggestions' ? S.view === 'suggestions' : x.special === 'videos' ? S.view === 'tutorials' : x.special === 'gms' ? S.view === 'gms' : x.name === 'tesd-calendar' ? S.view === 'tesd-calendar' : x.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[x.id] ? 'unr' : ''}${x.special === 'suggestions' && S.hot?.sug && S.view !== 'suggestions' ? ' hot' : ''}" data-ch="${x.id}"${x.special ? ` data-sp="${x.special}"` : ''}>${chIcon(x)}<span>${esc(x.name)}</span>${S.chUnread[x.id] ? `<span class="pill red">${S.chUnread[x.id] > 99 ? '99+' : S.chUnread[x.id]}</span>` : ''}</button>`).join('');
   return `<div class="sect">Channels</div>${list}${voiceList()}`;
 }
 /* voice channels: always listed under Chat so anyone can tap one to join the call */
@@ -1033,7 +1034,7 @@ function serverList() {
   if (!sv) return `<p class="empty">${S.loaded ? 'You are not in the server yet.' : 'Loading…'}</p>`;
   const row = c => c.kind === 'voice'
     ? voiceRow(c)
-    : `<button class="ch ${(c.special === 'suggestions' ? S.view === 'suggestions' : c.special === 'videos' ? S.view === 'tutorials' : c.special === 'gms' ? S.view === 'gms' : c.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[c.id] ? 'unr' : ''}" data-ch="${c.id}"${c.special ? ` data-sp="${c.special}"` : ''}>${chIcon(c)}<span>${esc(c.name)}</span>${S.chUnread[c.id] ? `<span class="pill red">${S.chUnread[c.id] > 99 ? '99+' : S.chUnread[c.id]}</span>` : ''}</button>`;
+    : `<button class="ch ${(c.special === 'suggestions' ? S.view === 'suggestions' : c.special === 'videos' ? S.view === 'tutorials' : c.special === 'gms' ? S.view === 'gms' : c.name === 'tesd-calendar' ? S.view === 'tesd-calendar' : c.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[c.id] ? 'unr' : ''}" data-ch="${c.id}"${c.special ? ` data-sp="${c.special}"` : ''}>${chIcon(c)}<span>${esc(c.name)}</span>${S.chUnread[c.id] ? `<span class="pill red">${S.chUnread[c.id] > 99 ? '99+' : S.chUnread[c.id]}</span>` : ''}</button>`;
   const groups = [...S.cats.map(k => [k, S.chans.filter(c => c.category_id === k.id)]), [{ id: '_other', name: 'Channels' }, S.chans.filter(c => !c.category_id)]].filter(([, cs]) => cs.length);
   return `<div class="sect">Your server</div>
   <button class="srv" id="sm" aria-label="Server menu">${svIcon(sv)}<span class="t"><b>${esc(sv.name)}</b><small>${S.members.length ? S.members.length + ' members' : ''}</small></span>${ic('chev', 18)}</button>
@@ -1485,6 +1486,7 @@ function renderMainInner(loading) {
   if (S.view === 'suggestions') return renderSuggestions(main);
   if (S.view === 'tutorials') return renderTutorials(main);
   if (S.view === 'gms') return renderGms(main);
+  if (S.view === 'tesd-calendar') return renderTesdCalendar(main);
   if (S.view === 'unblocked') return UB.render(main);
   if (S.view === 'intelligence') return INT.render(main);
   if (S.view === 'leaderboard') return renderLeaderboard(main);
@@ -2026,6 +2028,7 @@ async function openChan(id) {
   if (ch.special === 'suggestions') return navTo('suggestions');   // #suggestions is the Suggestions board
   if (ch.special === 'videos') return navTo('tutorials');
   if (ch.special === 'gms') return navTo('gms');          // #tutorials is the Tutorials page (add videos, no chat)
+  if (ch.name === 'tesd-calendar') return navTo('tesd-calendar');
   clearPending();
   Object.assign(S, { view: 'server', ch, active: id, list: [], rx: new Map(), hasMore: true, replyTo: null, readMark: getLr(id), typingUntil: 0, pins: new Set(), pinRows: [], polls: new Map(), typers: new Map() }); S.chUnread[id] = 0;
   renderSide(); renderMain(true); renderMembers();
@@ -3567,6 +3570,27 @@ function renderGms(main) {
       ${S.gmsErr ? `<p class="err">Could not load GMS updates: ${esc(S.gmsErr)}</p>` : cards || '<p class="empty">No GMS summaries published yet. Check back after the next broadcast is reviewed.</p>'}
       <p class="muted gms-disclaimer">Summaries are AI-assisted. Every recap includes its original broadcast video; additional pictures show verified moments from that episode.</p>
     </div>`;
+  bindMenu();
+}
+
+/* ───────── #tesd-calendar: official school district calendar reference ───────── */
+const TESD_CALENDAR_2627 = 'https://resources.finalsite.net/images/v1761669279/tesdnet/agvte4snljwnygfcyki0/2627calendar.pdf';
+function renderTesdCalendar(main) {
+  const pdf = TESD_CALENDAR_2627;
+  main.innerHTML = '<div class="top">' + menuBtn() +
+    '<span class="hashi">' + ic('hash', 20) + '</span><b class="title">tesd-calendar</b><span class="grow"></span>' +
+    '<span class="muted gms-readonly">' + ic('lock', 15) + ' Reference</span></div>' +
+    '<div class="panel tesd-calendar-page"><section class="tesd-calendar-intro">' +
+      '<div class="tesd-calendar-overline">' + ic('calendar', 18) + ' OFFICIAL DISTRICT CALENDAR</div>' +
+      '<h1>2026–2027 TESD Calendar</h1>' +
+      '<p>View the official Tredyffrin/Easttown School District calendar, including school days, holidays, conferences and scheduled closures.</p>' +
+      '<div class="tesd-calendar-actions">' +
+        '<a class="btn" href="' + pdf + '" target="_blank" rel="noopener noreferrer">' + ic('arrow', 16) + ' Open Official PDF</a>' +
+        '<a class="btn ghost" href="' + pdf + '" target="_blank" rel="noopener noreferrer">View / Save on Phone</a>' +
+      '</div></section>' +
+      '<div class="tesd-calendar-frame"><iframe src="' + pdf + '#view=FitH" title="Official 2026–2027 TESD school calendar PDF" loading="lazy" referrerpolicy="no-referrer"></iframe></div>' +
+      '<p class="muted tesd-calendar-note">Source: Tredyffrin/Easttown School District. If the PDF preview does not display on your device, use the Open Official PDF button. Emergency closing and make-up dates may change.</p>' +
+    '</div>';
   bindMenu();
 }
 
