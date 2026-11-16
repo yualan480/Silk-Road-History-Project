@@ -283,6 +283,7 @@ export function initOrbit(c) {
       <button class="otb oav" data-x="me" aria-label="Your profile">${av(S.me)}</button></div></div>
     <div class="panel orbithome${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">
       <canvas class="ostars" aria-hidden="true"></canvas>
+      <div class="oh-day-position" aria-label="Today’s school day">${c.renderDayBadge()}</div>
       <section class="ohero"><div class="ologo"><img class="ohero-logo" src="orbit-logo-planet.png" alt=""><i class="op op-a"></i><i class="op op-b"></i></div><h1 class="owt"><img class="owm" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></h1><p class="otag">Stay in the Loop.</p><div class="ohbtns">${top !== self && typeof top.OpenOrbitTab === 'function' ? `<button class="obtn" data-ob="blank">${ic('arrow',16)}<span>Open Orbit in new tab</span></button>` : ''}${top !== self ? `<button class="obtn" data-ob="back">${ic('arrow', 16)}<span>Back to Silk Road</span></button>` : ''}</div></section>
       ${annCard(a0)}
       <section class="oquick"><h3>${ic('sparkle', 20)} Quick links</h3><div class="qlinks">${links.map(([k, i, t, s]) => `<button class="qlink" data-o="go" data-k="${k}">${ic(i, 24)}<span class="t"><b>${t}</b><small>${esc(s)}</small></span>${ic('arrow', 16)}</button>`).join('')}</div></section>

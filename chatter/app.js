@@ -8,7 +8,7 @@ import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js';
-import { initOrbit } from './orbit.js?v=22';
+import { initOrbit } from './orbit.js?v=23';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
@@ -280,7 +280,7 @@ const grpErr = e => /could not find the function|schema cache/i.test(e?.message 
 const O = initOrbit({ setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, md, plain, menuBtn, bindMenu, gamerUrl: GAMER_URL, collectibles: () => SHOP?.collectibles?.() || [],
   needProfiles: ids => needProfiles(ids), renderMain: () => renderMain(), renderSide: () => renderSide(), closeSide: () => closeSide(), navTo: k => navTo(k),
   openChan: id => openChan(id), openFirstChannel: () => openFirstChannel(), profileModal: id => profileModal(id), send: () => send(), osNotify: (t, b, g) => osNotify(t, b, g),
-  chooseGuide: () => GUIDE.chooseGuide(), searchModal: () => searchModal(), bindSearch: (i, o) => bindOrbitSearch(i, o), onlineCount: () => onlineCount(), unreadDms: () => S.convs.filter(unread).length, isStaff: () => isStaff(), classRoles: () => crOf(S.me.id) });
+  chooseGuide: () => GUIDE.chooseGuide(), searchModal: () => searchModal(), bindSearch: (i, o) => bindOrbitSearch(i, o), onlineCount: () => onlineCount(), unreadDms: () => S.convs.filter(unread).length, isStaff: () => isStaff(), classRoles: () => crOf(S.me.id), renderDayBadge: () => homeDayBadge() });
 
 const CM = initCommunities({ S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, menuBtn, bindMenu,
   needProfiles: ids => needProfiles(ids), navTo: k => navTo(k), renderSide: () => renderSide(), profileModal: id => profileModal(id), isStaff: () => isStaff(), onJoined: () => GUIDE.milestone('community') });
@@ -1408,8 +1408,7 @@ async function loadHomeSchedule() {
 if (!window.__orbitHomeScheduleTimer) window.__orbitHomeScheduleTimer = setInterval(() => {
   if (S.me && S.view === 'home') loadHomeSchedule();
 }, 15 * 60 * 1000);
-function renderHome(main) {
-  const sv = S.sv, text = S.chans.filter(c => c.kind === 'text');
+function homeDayBadge() {
   const day = stogaToday(), current = S.homeScheduleChecked === day;
   const schedule = current ? S.homeSchedule : null;
   const confirmed = schedule?.status === 'confirmed', predicted = schedule?.status === 'predicted';
@@ -1424,13 +1423,17 @@ function renderHome(main) {
     predicted ? 'Provisional color based on the previous verified GMS day and TESD calendar. May change. Open #gms.' :
     closed ? 'No school according to the published TESD 2026–27 calendar.' :
     'Waiting for today’s GMS announcement. Open #gms.';
-  const dayBadge = '<button type="button" id="homeDayBadge" class="home-day-badge ' +
+  return '<button type="button" id="homeDayBadge" data-o="go" data-k="gms" class="home-day-badge ' +
     (dayKind ? 'day-' + dayKind : closed ? 'day-closed' : 'day-pending') +
     (predicted ? ' day-predicted' : '') + '" title="' + esc(title) +
     '" aria-label="Today\'s school schedule: ' + esc(label) +
     '. Open GMS channel"><span class="home-day-icon">' + dayIcon +
     '</span><span class="home-day-words"><b>' + esc(label) +
     '</b><small>' + esc(detail) + '</small></span></button>';
+}
+function renderHome(main) {
+  const sv = S.sv, text = S.chans.filter(c => c.kind === 'text');
+  const dayBadge = homeDayBadge();
   const quickLinks = [
     { key: 'events', name: 'Events', desc: 'School calendar', icon: 'tag' },
     { key: 'tournaments', name: 'Tournaments', desc: 'Compete with others', icon: 'trophy' },
