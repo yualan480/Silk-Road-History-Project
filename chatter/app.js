@@ -212,7 +212,7 @@ Object.assign(I, {
 });
 const ic = (k, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
 /* every channel's icon: Suggestions and Tutorials use the # like the other channels, locked and private ones a padlock */
-const chIcon = (c, size = 18) => ic(c.special === 'suggestions' || c.special === 'videos' ? 'hash' : c.is_private || c.locked ? 'lock' : 'hash', size);
+const chIcon = (c, size = 18) => ic(c.special === 'suggestions' || c.special === 'videos' || c.special === 'gms' ? 'hash' : c.is_private || c.locked ? 'lock' : 'hash', size);
 const logoMark = `<img src="logo.svg" width="38" height="38" alt="" style="border-radius:10px">`;
 const menuBtn = () => `<button class="ib menu" id="mb" aria-label="Open sidebar">${ic('menu')}</button>`;
 const toggleSide = () => setSidebarOpen(!$('#app')?.classList.contains('open'));
@@ -234,7 +234,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSessio
 /* ───────── state ───────── */
 const S = { me: null, profiles: new Map(), convs: [], active: null, list: [], rx: new Map(), view: 'server', replyTo: null, hasMore: true, loadingOlder: false,
   readMark: null, friends: [], incoming: [], outgoing: [], tab: 'online', online: new Map(), filter: '', typingUntil: 0, lastActive: Date.now(), channels: [], servers: [], chans: [], cats: [], members: [], sv: null, ch: null, showMem: innerWidth > 1000, chUnread: {}, collapsed: new Set(), loaded: false, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null };
-S.pending = []; S.voiceUsers = new Map(); S.voiceMeta = new Map(); S.croles = []; S.cmem = new Map(); S.crErr = null; S.rolesEdit = false; S.sending = false; S.revealed = new Set(); S.polls = new Map(); S.typers = new Map(); S.sugs = []; S.sugErr = ''; S.sugFilter = 'all'; S.sugSort = 'top';
+S.pending = []; S.voiceUsers = new Map(); S.voiceMeta = new Map(); S.croles = []; S.cmem = new Map(); S.crErr = null; S.rolesEdit = false; S.sending = false; S.revealed = new Set(); S.polls = new Map(); S.typers = new Map(); S.sugs = []; S.sugErr = ''; S.sugFilter = 'all'; S.sugSort = 'top'; S.gmsPosts = []; S.gmsErr = '';
 const prof = id => S.profiles.get(id) || { id, username: 'unknown', display_name: 'Unknown user', avatar_color: '#6b6b7b' };
 /* 'playing' (orange dot) = online or idle and inside Orbit Games; Do not disturb and Invisible are never overridden */
 const myStatus = () => S.me.status === 'invisible' ? 'offline' : S.view === 'gamer' && (S.me.status === 'online' || S.me.status === 'idle') ? 'playing' : S.me.status;
@@ -899,7 +899,7 @@ function navTo(k) {
     if (id) return openConv(id); S.active = null; return renderAll();
   }
   const wasGamer = S.view === 'gamer'; S.view = k; if (wasGamer || k === 'gamer') trackStatus();   // the orange "playing" dot follows the person in and out of Orbit Games
-  renderAll(); UB.onNav(k); INT.onNav(k); O.onNav(k); CM.onNav(k); TN.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
+  renderAll(); UB.onNav(k); INT.onNav(k); O.onNav(k); CM.onNav(k); TN.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'gms') loadGms(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
   if (k === 'roles') loadClassRoles().then(() => S.view === 'roles' && renderMain());
 }
 function dmList() {
@@ -944,7 +944,7 @@ function socialList() {
   const c = S.chans.find(x => x.kind === 'text' && !isRulesCh(x)) || S.chans.find(x => x.kind === 'text');
   if (!c) return `<p class="empty">${S.loaded ? 'No chat yet.' : 'Loading...'}</p>`;
   const all = S.chans.filter(x => x.kind === 'text');
-  const list = all.map(x => `<button class="ch ${(x.special === 'suggestions' ? S.view === 'suggestions' : x.special === 'videos' ? S.view === 'tutorials' : x.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[x.id] ? 'unr' : ''}${x.special === 'suggestions' && S.hot?.sug && S.view !== 'suggestions' ? ' hot' : ''}" data-ch="${x.id}"${x.special ? ` data-sp="${x.special}"` : ''}>${chIcon(x)}<span>${esc(x.name)}</span>${S.chUnread[x.id] ? `<span class="pill red">${S.chUnread[x.id] > 99 ? '99+' : S.chUnread[x.id]}</span>` : ''}</button>`).join('');
+  const list = all.map(x => `<button class="ch ${(x.special === 'suggestions' ? S.view === 'suggestions' : x.special === 'videos' ? S.view === 'tutorials' : x.special === 'gms' ? S.view === 'gms' : x.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[x.id] ? 'unr' : ''}${x.special === 'suggestions' && S.hot?.sug && S.view !== 'suggestions' ? ' hot' : ''}" data-ch="${x.id}"${x.special ? ` data-sp="${x.special}"` : ''}>${chIcon(x)}<span>${esc(x.name)}</span>${S.chUnread[x.id] ? `<span class="pill red">${S.chUnread[x.id] > 99 ? '99+' : S.chUnread[x.id]}</span>` : ''}</button>`).join('');
   return `<div class="sect">Channels</div>${list}${voiceList()}`;
 }
 /* voice channels: always listed under Chat so anyone can tap one to join the call */
@@ -1032,7 +1032,7 @@ function serverList() {
   if (!sv) return `<p class="empty">${S.loaded ? 'You are not in the server yet.' : 'Loading…'}</p>`;
   const row = c => c.kind === 'voice'
     ? voiceRow(c)
-    : `<button class="ch ${(c.special === 'suggestions' ? S.view === 'suggestions' : c.special === 'videos' ? S.view === 'tutorials' : c.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[c.id] ? 'unr' : ''}" data-ch="${c.id}"${c.special ? ` data-sp="${c.special}"` : ''}>${chIcon(c)}<span>${esc(c.name)}</span>${S.chUnread[c.id] ? `<span class="pill red">${S.chUnread[c.id] > 99 ? '99+' : S.chUnread[c.id]}</span>` : ''}</button>`;
+    : `<button class="ch ${(c.special === 'suggestions' ? S.view === 'suggestions' : c.special === 'videos' ? S.view === 'tutorials' : c.special === 'gms' ? S.view === 'gms' : c.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[c.id] ? 'unr' : ''}" data-ch="${c.id}"${c.special ? ` data-sp="${c.special}"` : ''}>${chIcon(c)}<span>${esc(c.name)}</span>${S.chUnread[c.id] ? `<span class="pill red">${S.chUnread[c.id] > 99 ? '99+' : S.chUnread[c.id]}</span>` : ''}</button>`;
   const groups = [...S.cats.map(k => [k, S.chans.filter(c => c.category_id === k.id)]), [{ id: '_other', name: 'Channels' }, S.chans.filter(c => !c.category_id)]].filter(([, cs]) => cs.length);
   return `<div class="sect">Your server</div>
   <button class="srv" id="sm" aria-label="Server menu">${svIcon(sv)}<span class="t"><b>${esc(sv.name)}</b><small>${S.members.length ? S.members.length + ' members' : ''}</small></span>${ic('chev', 18)}</button>
@@ -1084,7 +1084,7 @@ function renderSide() {
   O.bindSide(side);
   side.querySelectorAll('[data-ext="gamer"]').forEach(b => b.onclick = () => openGamer());
   side.querySelectorAll('[data-ext="install"]').forEach(b => b.onclick = installApp);
-  side.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { if (b.dataset.sp === 'suggestions') return navTo('suggestions'); if (b.dataset.sp === 'videos') return navTo('tutorials'); closeSide(); openChan(b.dataset.ch); });
+  side.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { if (b.dataset.sp === 'suggestions') return navTo('suggestions'); if (b.dataset.sp === 'videos') return navTo('tutorials'); if (b.dataset.sp === 'gms') return navTo('gms'); closeSide(); openChan(b.dataset.ch); });
   side.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { S.view = 'dm'; closeSide(); openConv(b.dataset.c); });
   side.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { const k = b.dataset.cat; S.collapsed.has(k) ? S.collapsed.delete(k) : S.collapsed.add(k); renderSide(); });
   side.querySelectorAll('[data-add]').forEach(b => b.onclick = channelModal);
@@ -1376,6 +1376,7 @@ function renderMainInner(loading) {
   if (S.view === 'home') return renderHome(main);
   if (S.view === 'suggestions') return renderSuggestions(main);
   if (S.view === 'tutorials') return renderTutorials(main);
+  if (S.view === 'gms') return renderGms(main);
   if (S.view === 'unblocked') return UB.render(main);
   if (S.view === 'intelligence') return INT.render(main);
   if (S.view === 'leaderboard') return renderLeaderboard(main);
@@ -1915,7 +1916,8 @@ function tutHtml(m) {
 async function openChan(id) {
   const ch = S.chans.find(x => x.id === id); if (!ch || ch.kind === 'voice') return;
   if (ch.special === 'suggestions') return navTo('suggestions');   // #suggestions is the Suggestions board
-  if (ch.special === 'videos') return navTo('tutorials');          // #tutorials is the Tutorials page (add videos, no chat)
+  if (ch.special === 'videos') return navTo('tutorials');
+  if (ch.special === 'gms') return navTo('gms');          // #tutorials is the Tutorials page (add videos, no chat)
   clearPending();
   Object.assign(S, { view: 'server', ch, active: id, list: [], rx: new Map(), hasMore: true, replyTo: null, readMark: getLr(id), typingUntil: 0, pins: new Set(), pinRows: [], polls: new Map(), typers: new Map() }); S.chUnread[id] = 0;
   renderSide(); renderMain(true); renderMembers();
@@ -3407,6 +3409,45 @@ function ticketForm() {
       const { data, error } = await sb.rpc('submit_ticket', { p_category: $('#tkc', bg).value, p_subject: sbj, p_body: body }); if (error) { toast(error.message, true); return false; }
       toast('Ticket sent. Support will reply here.'); S.tixTab = 'mine'; S.tixFilter = 'active'; await loadTickets(); openTicket(data); } }]);
 }
+/* ───────── #gms: official Good Morning 'Stoga recaps, published only by the daily assistant task ───────── */
+async function loadGms() {
+  const { data, error } = await sb.from('gms_posts')
+    .select('id,video_id,title,published_on,summary,created_at')
+    .order('published_on', { ascending: false })
+    .order('created_at', { ascending: false }).limit(200);
+  S.gmsErr = error ? error.message : ''; S.gmsPosts = data || [];
+  if (S.view === 'gms') renderMain();
+}
+function renderGms(main) {
+  const dateText = value => {
+    const d = new Date(String(value) + 'T12:00:00');
+    return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+  const cards = S.gmsPosts.map(p => {
+    if (!/^[A-Za-z0-9_-]{11}$/.test(p.video_id)) return '';
+    const url = 'https://www.youtube.com/watch?v=' + p.video_id;
+    const paras = String(p.summary || '').split(/\n+/).map(s => s.trim()).filter(Boolean);
+    return `<article class="gms-card">
+      <a href="${url}" target="_blank" rel="noopener noreferrer" class="gms-thumb" title="Watch the full broadcast"><img src="https://i.ytimg.com/vi/${p.video_id}/hqdefault.jpg" alt="GMS broadcast thumbnail" loading="lazy"></a>
+      <div class="gms-copy">
+        <div class="gms-date">${ic('calendar', 15)} <time datetime="${esc(p.published_on)}">${esc(dateText(p.published_on))}</time><span class="gms-pill">Published date</span></div>
+        <h2>${esc(p.title)}</h2>
+        <div class="gms-summary">${paras.map(s => `<p>${esc(s)}</p>`).join('')}</div>
+        <a class="gms-watch" href="${url}" target="_blank" rel="noopener noreferrer">${ic('video', 16)} Watch the original broadcast ${ic('arrow', 15)}</a>
+      </div>
+    </article>`;
+  }).join('');
+  main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${ic('hash', 20)}</span><b class="title">gms</b><span class="grow"></span><span class="muted gms-readonly">${ic('lock', 15)} Read-only</span></div>
+    <div class="panel gms-page">
+      <div class="gms-intro"><h1>Good Morning 'Stoga</h1><p>Daily summaries of T/E TV's official GMS broadcasts, newest first. The date on each post is the broadcast's actual YouTube publication date.</p>
+        <a href="https://www.youtube.com/@T-E-TV/streams" target="_blank" rel="noopener noreferrer">Official T/E TV livestreams ${ic('arrow', 14)}</a>
+      </div>
+      ${S.gmsErr ? `<p class="err">Could not load GMS updates: ${esc(S.gmsErr)}</p>` : cards || '<p class="empty">No GMS summaries published yet. Check back after the next broadcast is reviewed.</p>'}
+      <p class="muted gms-disclaimer">Summaries are AI-assisted. Check the linked video for full context and announcements.</p>
+    </div>`;
+  bindMenu();
+}
+
 /* ───────── Tutorials page: members add tutorial videos (not a chat). Videos live in the attachments bucket under the #tutorials folder. ───────── */
 S.tuts = []; S.tutErr = ''; S.tutQ = '';
 async function loadTuts() {
