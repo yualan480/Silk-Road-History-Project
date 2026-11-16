@@ -3430,7 +3430,7 @@ function renderGms(main) {
     return `<article class="gms-card">
       <a href="${url}" target="_blank" rel="noopener noreferrer" class="gms-thumb" title="Watch the full broadcast"><img src="https://i.ytimg.com/vi/${p.video_id}/hqdefault.jpg" alt="GMS broadcast thumbnail" loading="lazy"></a>
       <div class="gms-copy">
-        <div class="gms-date">${ic('calendar', 15)} <time datetime="${esc(p.published_on)}">${esc(dateText(p.published_on))}</time><span class="gms-pill">Published date</span></div>
+        <div class="gms-date">📅 <time datetime="${esc(p.published_on)}">${esc(dateText(p.published_on))}</time><span class="gms-pill">Published date</span></div>
         <h2>${esc(p.title)}</h2>
         <div class="gms-summary">${paras.map(s => `<p>${esc(s)}</p>`).join('')}</div>
         <a class="gms-watch" href="${url}" target="_blank" rel="noopener noreferrer">${ic('video', 16)} Watch the original broadcast ${ic('arrow', 15)}</a>
