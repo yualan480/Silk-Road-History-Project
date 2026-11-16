@@ -8,7 +8,7 @@ import { classifyCalendarEvent, prioritizeCalendarEvents } from './calendar-role
 import { createBackdrop } from './orbit-bg.js?v=4';
 import { ambient, cycleTime } from './ambient.js?v=6';
 import { createDrift } from './orbit-drift.js?v=3';
-import { mountFloaters } from './collectible-float.js?v=2';
+import { mountFloaters } from './collectible-float.js?v=3';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX = /^#[0-9a-fA-F]{6}$/;

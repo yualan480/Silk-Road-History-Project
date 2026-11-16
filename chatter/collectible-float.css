@@ -2,10 +2,7 @@
 .cfloat{position:sticky;top:0;left:0;width:100%;height:0;z-index:3;pointer-events:none;overflow:visible;align-self:stretch}
 .cf{position:absolute;left:0;top:0;width:58px;height:58px;margin:-29px 0 0 -29px;padding:0;border:0;background:none;border-radius:50%;pointer-events:auto;cursor:var(--cur-pointer,pointer);will-change:transform;-webkit-tap-highlight-color:transparent}
 .cf::before{content:"";position:absolute;inset:-8px;border-radius:50%}   /* a bigger hit area than the picture: easy to tap on a phone */
-.cf .cfi{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;font-size:30px;line-height:1;transition:transform .18s;
-  background:radial-gradient(circle at 34% 28%,#ffffff44,transparent 52%),color-mix(in srgb,var(--k1) 28%,#0a1450 72%);
-  border:1px solid color-mix(in srgb,var(--k1) 60%,transparent);
-  box-shadow:0 0 18px color-mix(in srgb,var(--k2) 55%,transparent),inset 0 0 10px #ffffff22}
+.cf .cfi{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;line-height:1;transition:transform .18s;background:none;border:0;box-shadow:none}
 .cf:hover .cfi{transform:scale(1.12)}
 .cf:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .cf.cfpop .cfi{animation:cfPop .55s cubic-bezier(.2,1.4,.4,1)}
