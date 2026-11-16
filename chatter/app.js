@@ -234,7 +234,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSessio
 /* ───────── state ───────── */
 const S = { me: null, profiles: new Map(), convs: [], active: null, list: [], rx: new Map(), view: 'server', replyTo: null, hasMore: true, loadingOlder: false,
   readMark: null, friends: [], incoming: [], outgoing: [], tab: 'online', online: new Map(), filter: '', typingUntil: 0, lastActive: Date.now(), channels: [], servers: [], chans: [], cats: [], members: [], sv: null, ch: null, showMem: innerWidth > 1000, chUnread: {}, collapsed: new Set(), loaded: false, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null };
-S.pending = []; S.voiceUsers = new Map(); S.voiceMeta = new Map(); S.croles = []; S.cmem = new Map(); S.crErr = null; S.rolesEdit = false; S.sending = false; S.revealed = new Set(); S.polls = new Map(); S.typers = new Map(); S.sugs = []; S.sugErr = ''; S.sugFilter = 'all'; S.sugSort = 'top'; S.gmsPosts = []; S.gmsErr = '';
+S.pending = []; S.voiceUsers = new Map(); S.voiceMeta = new Map(); S.croles = []; S.cmem = new Map(); S.crErr = null; S.rolesEdit = false; S.sending = false; S.revealed = new Set(); S.polls = new Map(); S.typers = new Map(); S.sugs = []; S.sugErr = ''; S.sugFilter = 'all'; S.sugSort = 'top'; S.gmsPosts = []; S.gmsErr = ''; S.homeSchedule = null; S.homeScheduleChecked = ''; S.homeScheduleError = '';
 const prof = id => S.profiles.get(id) || { id, username: 'unknown', display_name: 'Unknown user', avatar_color: '#6b6b7b' };
 /* 'playing' (orange dot) = online or idle and inside Orbit Games; Do not disturb and Invisible are never overridden */
 const myStatus = () => S.me.status === 'invisible' ? 'offline' : S.view === 'gamer' && (S.me.status === 'online' || S.me.status === 'idle') ? 'playing' : S.me.status;
@@ -901,6 +901,7 @@ function navTo(k) {
   const wasGamer = S.view === 'gamer'; S.view = k; if (wasGamer || k === 'gamer') trackStatus();   // the orange "playing" dot follows the person in and out of Orbit Games
   renderAll(); UB.onNav(k); INT.onNav(k); O.onNav(k); CM.onNav(k); TN.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'gms') loadGms(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
   if (k === 'roles') loadClassRoles().then(() => S.view === 'roles' && renderMain());
+  if (k === 'home') loadHomeSchedule();
 }
 function dmList() {
   const f = S.filter.toLowerCase();
@@ -1329,19 +1330,52 @@ function renderHead0() {
   }
   bindMenu(); bindMsgSearch(); $('#dmcontacts')?.addEventListener('click', openMobileDmContacts);
 }
+/* School-day label comes only from the matching date's official GMS recap.
+   Use Eastern time, not the visitor's device timezone, and never guess from a cycle. */
+function stogaToday() {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const part = type => parts.find(p => p.type === type)?.value || '';
+  return part('year') + '-' + part('month') + '-' + part('day');
+}
+function gmsDayFromSummary(summary) {
+  const schedule = String(summary || '').split(/\n/).find(s => /^\s*(?:schedule|school(?:-day| day)? schedule|today(?:'s)? schedule)\s*:/i.test(s));
+  if (!schedule) return null;
+  const gray = /\bgr[ae]y\b/i.test(schedule), garnet = /\bgarnet\b/i.test(schedule);
+  return gray === garnet ? null : gray ? 'gray' : 'garnet';
+}
+async function loadHomeSchedule() {
+  if (!S.me || !S.sv) return;
+  const day = stogaToday();
+  const { data, error } = await sb.from('gms_posts').select('video_id,published_on,summary')
+    .eq('published_on', day).order('created_at', { ascending: false }).limit(10);
+  if (!S.me || day !== stogaToday()) return;
+  S.homeScheduleChecked = day;
+  S.homeScheduleError = error ? error.message : '';
+  const match = !error && (data || []).map(p => ({ videoId: p.video_id, kind: gmsDayFromSummary(p.summary) })).find(p => p.kind);
+  S.homeSchedule = match || null;
+  if (S.view === 'home') renderMain();
+}
+if (!window.__orbitHomeScheduleTimer) window.__orbitHomeScheduleTimer = setInterval(() => {
+  if (S.me && S.view === 'home') loadHomeSchedule();
+}, 15 * 60 * 1000);
 function renderHome(main) {
   const sv = S.sv, text = S.chans.filter(c => c.kind === 'text');
+  const day = stogaToday(), current = S.homeScheduleChecked === day, confirmed = current && S.homeSchedule;
+  const label = confirmed ? (confirmed.kind === 'gray' ? 'Gray Day' : 'Garnet Day') : !current ? 'Checking schedule…' : S.homeScheduleError ? 'Schedule unavailable' : 'Not announced yet';
+  const dayIcon = confirmed ? (confirmed.kind === 'gray' ? '⚪' : '🔴') : '📅';
+  const dayBadge = `<button type="button" id="homeDayBadge" class="home-day-badge ${confirmed ? 'day-' + confirmed.kind : 'day-pending'}" title="${confirmed ? 'Verified from today\'s GMS announcement. Open #gms.' : 'Waiting for a confirmed day type from today\'s GMS announcement. Open #gms.'}" aria-label="Today\'s school schedule: ${label}. Open GMS channel"><span class="home-day-icon">${dayIcon}</span><span class="home-day-words"><b>${label}</b><small>${confirmed ? 'Today’s GMS announcement' : 'Today’s GMS not confirmed'}</small></span></button>`;
   const quickLinks = [
     { key: 'events', name: 'Events', desc: 'School calendar', icon: 'tag' },
     { key: 'tournaments', name: 'Tournaments', desc: 'Compete with others', icon: 'trophy' },
     { key: 'gamer', name: 'Orbit Games', desc: 'Play and earn Orbits', icon: 'gamepad' },
     { key: 'leaderboard', name: 'Leaderboard', desc: 'See player rankings', icon: 'compass' }
   ];
-  main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${ic('home', 20)}</span><b class="title">Home</b></div><div class="panel">${sv ? `<div class="hero">${svIcon(sv, 'big')}<div><h1>${esc(sv.name)}</h1><p class="muted">${esc(sv.description || 'Conestoga 2030')}</p><p class="muted">${S.members.length} members, ${onlineCount()} online</p></div></div>
+  main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${ic('home', 20)}</span><b class="title">Home</b><span class="grow"></span>${dayBadge}</div><div class="panel">${sv ? `<div class="hero">${svIcon(sv, 'big')}<div><h1>${esc(sv.name)}</h1><p class="muted">${esc(sv.description || 'Conestoga 2030')}</p><p class="muted">${S.members.length} members, ${onlineCount()} online</p></div></div>
   <h3 class="lbl">Quick Links</h3><div class="home-quick-links">${quickLinks.map(l => `<button type="button" class="home-quick-link" data-hq="${l.key}" aria-label="Go to ${l.name}"><span class="home-quick-icon">${ic(l.icon, 22)}</span><span class="home-quick-copy"><b>${l.name}</b><small>${l.desc}</small></span>${ic('arrow', 17)}</button>`).join('')}</div>
   <h3 class="lbl">Channels</h3>${text.map(c => `<button class="row" data-ch="${c.id}">${chIcon(c)}<span class="t"><b>${esc(c.name)}</b><small>${esc(c.description || 'No description')}</small></span>${S.chUnread[c.id] ? `<span class="pill red">${S.chUnread[c.id]}</span>` : ''}</button>`).join('') || '<p class="muted">No channels yet.</p>'}` : `<p class="empty">${S.loaded ? 'You are not in the server yet.' : 'Loading…'}</p>`}</div>`;
   bindMenu(); main.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => openChan(b.dataset.ch));
   main.querySelectorAll('[data-hq]').forEach(b => b.onclick = () => navTo(b.dataset.hq));
+  $('#homeDayBadge', main)?.addEventListener('click', () => navTo('gms'));
 }
 function emojiPicker(ta, btn) {
   const old = $('.emoji'); if (old) return old.remove();
@@ -1859,7 +1893,7 @@ async function openServer(id, cid, home) {
   if (S.sv?.id !== id) return; if (c.error) return toast('Could not load channels: ' + c.error.message, true);
   S.chans = c.data; S.cats = k.data || []; loadChanUnread(); S.members = m.data || []; S.members.forEach(x => x.profile && S.profiles.set(x.user_id, x.profile));
   const first = S.chans.find(x => x.id === cid) || S.chans.find(x => x.name === 'chat' && x.kind === 'text') || S.chans.find(x => x.kind === 'text');
-  renderSide(); renderMembers(); if (home) renderMain(); else first ? openChan(first.id) : renderMain();
+  renderSide(); renderMembers(); if (home) { renderMain(); loadHomeSchedule(); } else first ? openChan(first.id) : renderMain();
   maybeWelcome();
 }
 function openFirstChannel() { const ch = (S.ch && S.chans.find(x => x.id === S.ch.id)) || S.chans.find(x => x.name === 'chat' && x.kind === 'text') || S.chans.find(x => x.kind === 'text'); if (ch) openChan(ch.id); }
