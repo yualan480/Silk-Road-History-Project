@@ -98,3 +98,9 @@
 
 @media (max-width:620px){.aicards{grid-template-columns:1fr}.aicard:last-child:nth-child(odd){grid-column:auto}.aim .aib{font-size:14.5px}.aiav{display:none}.aistat{display:none}}
 @media (prefers-reduced-motion:reduce){html:not(.force-motion) :is(.aiorb2,.aiorb2 *,.aigrad,.aihello,.aicard,.aim.new,.aistat i,.aiwave i,.aishim,.aistep,.aibox,.aibox::before,.aidown,.aicard .aic-i){animation:none!important;transition:none!important}html:not(.force-motion) .aicard{opacity:1}html:not(.force-motion) .aistep.s2,html:not(.force-motion) .aistep.s3{display:none}html:not(.force-motion) .aistep.s1{opacity:1}}
+
+/* The selected guide is the face of the assistant, including chat bubbles. */
+.ai-guide-avatar{display:inline-grid;place-items:center;width:var(--guide-size);height:var(--guide-size);flex:none;vertical-align:middle;border-radius:50%;background:radial-gradient(circle,#353e92 20%,#111942 75%);border:1px solid #7f80e266;box-shadow:0 0 16px #6b61e34d;overflow:hidden}
+.ai-guide-avatar .orbit-guide-portrait{width:100%;height:100%;filter:none}
+.aihello>.ai-guide-avatar{margin:0 auto 6px;box-shadow:0 0 38px #6c53f55a}
+.aim.assistant>.ai-guide-avatar{align-self:flex-start;margin-top:2px}

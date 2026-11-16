@@ -3,6 +3,38 @@
 const $ = id => document.getElementById(id);
 const status = $('status');
 let gba = null, ready = false, loading = false;
+const gameMenu = document.createElement('button');
+gameMenu.id = 'game-menu-toggle';
+gameMenu.type = 'button';
+gameMenu.textContent = '⚙';
+gameMenu.title = 'Game options (press Escape)';
+gameMenu.setAttribute('aria-label', 'Show game options');
+gameMenu.setAttribute('aria-controls', 'player');
+gameMenu.setAttribute('aria-expanded', 'false');
+document.body.append(gameMenu);
+const exitGame = document.createElement('button');
+exitGame.type = 'button';
+exitGame.textContent = '‹ Back to Games';
+exitGame.onclick = () => {
+  persist();
+  pause();
+  try { window.parent.document.getElementById('ub-back')?.click(); }
+  catch (_) { window.parent.postMessage({type: 'orbit-leafgreen-exit'}, window.location.origin); }
+};
+document.querySelector('.toolbar').prepend(exitGame);
+function setMenu(open) {
+  document.body.classList.toggle('game-options-open', Boolean(open));
+  gameMenu.setAttribute('aria-expanded', String(Boolean(open)));
+  gameMenu.setAttribute('aria-label', open ? 'Hide game options' : 'Show game options');
+}
+function markParentPlaying(active) {
+  try { window.parent.document.querySelector('.ub-leafgreen')?.classList.toggle('ub-leafgreen-running', active); }
+  catch (_) { /* The standalone emulator works outside Orbit too. */ }
+}
+gameMenu.onclick = () => setMenu(!document.body.classList.contains('game-options-open'));
+window.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && ready) { setMenu(!document.body.classList.contains('game-options-open')); event.preventDefault(); }
+});
 const DB_NAME = 'orbit-leafgreen-local-game-v1', DB_STORE = 'local-games', DB_KEY = 'leafgreen';
 const bios = fetch('resources/bios.bin').then(r => {
   if (!r.ok) throw Error('The emulator firmware could not load. Please refresh.');
@@ -81,6 +113,9 @@ async function bootGame(data, fromStorage = false) {
     ready = true;
     $('setup').hidden = true;
     $('player').hidden = false;
+    document.body.classList.add('leafgreen-playing');
+    markParentPlaying(true);
+    setMenu(false);
     $('pause').textContent = 'Pause';
     gba.runStable();
     say(fromStorage ? 'Your LeafGreen game resumed from this device.' : 'LeafGreen loaded. Your game file stays on this device.');
@@ -116,6 +151,9 @@ $('forget-rom').onclick = async () => {
     ready = false;
     $('player').hidden = true;
     $('setup').hidden = false;
+    document.body.classList.remove('leafgreen-playing');
+    markParentPlaying(false);
+    setMenu(false);
     say('This browser has forgotten the game file. Choose a LeafGreen .gba file to play again.');
   } catch (error) { say(error?.message || 'Could not remove the stored game file.'); }
 };

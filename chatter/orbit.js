@@ -91,8 +91,9 @@ export function initOrbit(c) {
   const toLocalInput = d => { d = new Date(d); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   const upcoming = () => O.events.filter(e => evEnd(e) >= Date.now()).sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at));
   const myRoleIds = () => new Set((c.classRoles?.() || []).map(r => String(r.id)));
-  const roleLegend = () => '<div class="role-legend"><span class="role-legend-me">● Your roles</span><span class="role-legend-other">● Other classes/clubs (gray)</span></div>';
-  const byDay = () => { const m = new Map(); for (const e of O.events) { const k = dayKey(e.starts_at); (m.get(k) || m.set(k, []).get(k)).push(e); } return m; };
+  const roleLegend = () => '<div class="role-legend"><span class="role-legend-me">● Events for your classes/clubs and everyone</span></div>';
+  const visibleCalendarEvent = (event, selectedIds = myRoleIds()) => classifyCalendarEvent(event, selectedIds) !== 'unmatched';
+  const byDay = () => { const m = new Map(), roles = myRoleIds(); for (const e of O.events.filter(item => visibleCalendarEvent(item, roles))) { const k = dayKey(e.starts_at); (m.get(k) || m.set(k, []).get(k)).push(e); } return m; };
   const going = e => (e.rsvps || []).filter(r => r.status === 'going');
   const maybe = e => (e.rsvps || []).filter(r => r.status === 'maybe');
   const myRsvp = e => (e.rsvps || []).find(r => r.user_id === S.me.id)?.status || '';
@@ -347,7 +348,7 @@ export function initOrbit(c) {
     const { y, m } = O.bigCal, map = byDay(), tk = dayKey(new Date()), selectedIds = myRoleIds();
     return `<div class="bcal"><div class="bcalh"><button class="ib" data-o="bcal" data-d="-1" aria-label="Previous month">${ic('chevL')}</button><b>${esc(monthName(y, m))}</b><button class="ib" data-o="bcal" data-d="1" aria-label="Next month">${ic('chevR')}</button><button class="btn sm ghost" data-o="bcal" data-d="0">Today</button></div>
       <div class="bgrid">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="bdow">${d}</div>`).join('')}
-      ${monthCells(y, m).map(({ d, k, inMonth }) => { const es = map.get(k) || [];
+      ${monthCells(y, m).map(({ d, k, inMonth }) => { const es = (map.get(k) || []).filter(e => visibleCalendarEvent(e, selectedIds));
         return `<div class="bday ${inMonth ? '' : 'out'} ${k === tk ? 'today' : ''}"><button class="bnum" data-o="day" data-k="${k}" aria-label="${esc(d.toLocaleDateString([], { month: 'long', day: 'numeric' }))}${es.length ? ', ' + es.length + ' events' : ''}">${d.getDate()}</button>
           ${prioritizeCalendarEvents(es, selectedIds).slice(0, 3).map(e => `<button class="bchip k-${esc(e.kind)}${e.class_role_id ? ' role-' + classifyCalendarEvent(e, selectedIds) : ''}" data-o="event" data-id="${e.id}" title="${esc((e.class_role_label ? e.class_role_label + ' · ' : '') + e.title)}">${kindOf(e).emoji} ${esc(e.class_role_label ? e.class_role_label + ' · ' + e.title : e.title)}</button>`).join('')}${es.length > 3 ? `<button class="bmore" data-o="day" data-k="${k}">+${es.length - 3} more</button>` : ''}</div>`; }).join('')}</div></div>`;
   }
@@ -360,6 +361,7 @@ export function initOrbit(c) {
     else {
       let list = tab === 'past' ? O.events.filter(e => evEnd(e) < Date.now()).sort((a, b) => +new Date(b.starts_at) - +new Date(a.starts_at)) : upcoming();
       if (day) list = O.events.filter(e => dayKey(e.starts_at) === day).sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at));
+      list = list.filter(e => visibleCalendarEvent(e, selectedIds));
       const groups = []; for (const e of list) { const k = dayKey(e.starts_at), g = groups[groups.length - 1]; if (g && g.k === k) g.es.push(e); else groups.push({ k, es: [e] }); }
       body = `${day ? `<p class="chip dayf">Showing ${esc(fmtDay(day + 'T12:00'))} <button class="ib sm" data-o="clearday" aria-label="Show all events">${ic('x', 14)}</button></p>` : ''}
         ${groups.map(g => `<h3 class="lbl">${esc(fmtDay(g.k + 'T12:00'))}</h3>${g.es.map(e => evCard(e, selectedIds)).join('')}`).join('') ||
@@ -431,7 +433,7 @@ export function initOrbit(c) {
   /* ───────── calendar in the sidebar ───────── */
   function sideCal() {
     if (!S.sv) return '';
-    const selectedIds = myRoleIds(), allUpcoming = upcoming(), next = allUpcoming.find(e => classifyCalendarEvent(e, selectedIds) !== 'unmatched') || allUpcoming[0];
+    const selectedIds = myRoleIds(), next = upcoming().find(e => visibleCalendarEvent(e, selectedIds));
     const { y, m } = O.cal, map = byDay(), tk = dayKey(new Date());
     const label = O.err ? 'Not set up yet' : !O.loaded ? 'Loading…' : next ? `${kindOf(next).emoji} ${next.title} · ${fmtWhen(next.starts_at)}` : 'Nothing scheduled';
     return `<div class="scal"><button class="scal-h" data-o="calt" aria-expanded="${O.calOpen}">${ic('calendar', 18)}<span class="t"><b>Calendar</b><small>${esc(label)}</small></span>${ic('chev', 16)}</button>
@@ -814,7 +816,8 @@ export function initOrbit(c) {
     return O.ai.rules;
   }
   async function buildContext() {
-    const L = [`Now: ${new Date().toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}`, `Community: ${S.sv?.name || 'Orbit'}${S.sv?.description ? ' (' + S.sv.description + ')' : ''}`, `Person asking: ${S.me.display_name}`];
+    const guide = c.selectedGuide?.(), guideName = c.guideName?.();
+    const L = [guideName ? `You are ${guideName}, the user's chosen personal Orbit guide. Speak as ${guideName} in first person, never introduce yourself as Orbit AI. ${guide === 'elara' ? 'Elara is the curious, thoughtful and encouraging sister; help users explore ideas with warmth and wonder.' : 'Stellan is the friendly, adventurous brother; be upbeat, practical and supportive.'} Be honest about what you know, avoid inventing facts, and provide useful help.` : 'The user has not chosen an Orbit guide.', `Now: ${new Date().toLocaleString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}`, `Community: ${S.sv?.name || 'Orbit'}${S.sv?.description ? ' (' + S.sv.description + ')' : ''}`, `Person asking: ${S.me.display_name}`];
     L.push('', 'Channels:', ...S.chans.filter(x => x.kind === 'text').map(x => `#${x.name}${x.description ? ' - ' + x.description : ''}`));
     const up = upcoming().slice(0, 12);
     L.push('', 'Upcoming events:', ...(up.length ? up.map(e => `- ${e.title} (${kindOf(e).label}) ${fmtWhen(e.starts_at)}${e.host_id ? ', host ' + person(e.host_id) : ''}${e.location ? ', where: ' + e.location : ''}, ${going(e).length} going${e.description ? '. ' + e.description.slice(0, 200) : ''}`) : ['(none scheduled)']));
@@ -856,19 +859,21 @@ export function initOrbit(c) {
     const a = O.ai, prev = $('#aiin'); if (prev) a.draft = prev.value;
     const fresh = a.fresh; a.fresh = null;   // only the newest message animates in; later redraws stay still
     const me = S.me, first = esc((me.display_name || '').split(' ')[0] || 'there');
+    const chosen = c.selectedGuide?.(), guideName = c.guideName?.() || 'your guide';
+    const guideAvatar = (size, expression = 'happy') => chosen ? `<span class="ai-guide-avatar" style="--guide-size:${size}px">${c.guidePortrait(chosen, expression)}</span>` : aiOrb(size, size > 60 ? 'hero' : 'sm');
     const lastA = (() => { for (let k = a.msgs.length - 1; k >= 0; k--) if (a.msgs[k].role === 'assistant') return k; return -1; })();
     const msg = (m, i) => m.role === 'user'
       ? `<div class="aim user${fresh === i ? ' new' : ''}"><div class="aib">${esc(m.text).replace(/\n/g, '<br>')}</div><span class="aiav">${av(me)}</span></div>`
-      : `<div class="aim assistant${fresh === i ? ' new' : ''}">${aiOrb(30, 'sm')}<div class="aicol"><div class="aib ${m.err ? 'err' : ''}" data-ai="${i}">${md(m.text, 'ai' + i)}</div>
+      : `<div class="aim assistant${fresh === i ? ' new' : ''}">${guideAvatar(34, 'thoughtful')}<div class="aicol"><div class="aib ${m.err ? 'err' : ''}" data-ai="${i}">${md(m.text, 'ai' + i)}</div>
           <div class="aiact">${m.err ? '' : `<button class="aiact-b" data-o="aicopy" data-i="${i}" title="Copy answer" aria-label="Copy answer">${ic('copy', 14)}<span>Copy</span></button>`}${i === lastA && !a.busy ? `<button class="aiact-b" data-o="airetry" title="Try again" aria-label="Try again">${ic('redo', 14)}<span>${m.err ? 'Try again' : 'Regenerate'}</span></button>` : ''}</div></div></div>`;
-    main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${aiOrb(26, 'xs')}</span><b class="title">Ask Orbit AI</b><span class="aistat"><i></i>${a.busy ? 'Thinking' : 'Online'}</span><span class="grow"></span>${a.msgs.length ? `<button class="btn sm ghost" data-o="aiclear">${ic('plus', 14)} New chat</button>` : ''}</div>
+    main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${guideAvatar(32)}</span><b class="title">${chosen ? `Ask ${esc(guideName)}` : 'Choose Your Guide'}</b><span class="aistat"><i></i>${a.busy ? 'Thinking' : 'Online'}</span><span class="grow"></span>${a.msgs.length ? `<button class="btn sm ghost" data-o="aiclear">${ic('plus', 14)} New chat</button>` : ''}</div>
       <div class="aiscreen"><div class="aiwrap"><div class="aimsgs" id="aimsgs" aria-live="polite">
         ${a.msgs.length ? a.msgs.map(msg).join('')
-          : `<div class="aihello">${aiOrb(92, 'hero')}<h2>Hi ${first}! I'm <span class="aigrad">Orbit AI</span>.</h2><p class="muted">Ask me anything, get conversation starters, or find out what's going on: events, channels, rules.</p>
-            <div class="aicards">${AI_CARDS.map(([k, t, sub], n) => `<button class="aicard" style="--n:${n}" data-o="aichip" data-t="${esc(t)}"><span class="aic-i">${ic(k, 18)}</span><span class="aic-t"><b>${esc(t)}</b><small>${esc(sub)}</small></span></button>`).join('')}</div></div>`}
-        ${a.busy ? `<div class="aim assistant new">${aiOrb(30, 'sm busy')}<div class="aicol"><div class="aib thinking" role="status" aria-label="Orbit AI is thinking"><span class="aiwave"><i></i><i></i><i></i></span><span class="aishim">Thinking<span class="aistep s1"> about your question</span><span class="aistep s2"> with Orbit's info</span><span class="aistep s3"> and writing it up</span></span></div></div></div>` : ''}</div>
+          : `<div class="aihello">${guideAvatar(110)}<h2>Hi ${first}! ${chosen ? `I'm <span class="aigrad">${esc(guideName)}</span>.` : 'Meet your personal Orbit guide!'}</h2><p class="muted">${chosen ? 'Ask me anything, get conversation starters, or find out what’s going on: events, channels, rules.' : 'Choose Elara or Stellan to start chatting with your guide.'}</p>
+            ${chosen ? `<div class="aicards">${AI_CARDS.map(([k, t, sub], n) => `<button class="aicard" style="--n:${n}" data-o="aichip" data-t="${esc(t)}"><span class="aic-i">${ic(k, 18)}</span><span class="aic-t"><b>${esc(t)}</b><small>${esc(sub)}</small></span></button>`).join('')}</div>` : '<button class="btn" data-o="guide">Choose Elara or Stellan</button>'}</div>`}
+        ${a.busy ? `<div class="aim assistant new">${guideAvatar(34, 'thoughtful')}<div class="aicol"><div class="aib thinking" role="status" aria-label="${esc(guideName)} is thinking"><span class="aiwave"><i></i><i></i><i></i></span><span class="aishim">Thinking<span class="aistep s1"> about your question</span><span class="aistep s2"> with Orbit's info</span><span class="aistep s3"> and writing it up</span></span></div></div></div>` : ''}</div>
         <button class="aidown" id="aidown" type="button" title="Jump to the latest message" aria-label="Jump to the latest message" hidden>${ic('down', 18)}</button>
-        <div class="aibox"><textarea id="aiin" rows="1" maxlength="1500" placeholder="Ask Orbit AI…" aria-label="Message Orbit AI"></textarea><span class="aicount" id="aicount" hidden></span><button class="send" id="aisend" title="Send" aria-label="Send" ${a.busy ? 'disabled' : ''}>${a.busy ? '<span class="aispin"></span>' : ic('send', 18)}</button></div>
+        <div class="aibox"><textarea id="aiin" rows="1" maxlength="1500" placeholder="${chosen ? 'Ask ' + esc(guideName) + '…' : 'Choose your guide to start…'}" aria-label="Message ${esc(guideName)}" ${chosen ? '' : 'disabled'}></textarea><span class="aicount" id="aicount" hidden></span><button class="send" id="aisend" title="Send" aria-label="Send" ${a.busy || !chosen ? 'disabled' : ''}>${a.busy ? '<span class="aispin"></span>' : ic('send', 18)}</button></div>
         <p class="muted ainote">AI can make mistakes. Don't share private info. Your questions are sent to an AI service to get an answer.</p></div></div>`;
     bindMenu();
     const ta = $('#aiin'), box = $('#aimsgs'), send = $('#aisend'), cnt = $('#aicount'), down = $('#aidown');
@@ -890,9 +895,10 @@ export function initOrbit(c) {
   }
   async function aiSend(text) {
     const a = O.ai; text = (text || '').trim(); if (!text || a.busy) return;
+    const guide = c.selectedGuide?.(); if (!guide) { c.chooseGuide?.(); return; }
     a.msgs.push({ role: 'user', text }); a.fresh = a.msgs.length - 1; a.busy = true; if (S.view === 'ai') c.renderMain();
     try {
-      const r = await aiCall({ mode: 'chat', messages: a.msgs.filter(m => !m.err).slice(-12).map(m => ({ role: m.role, text: m.text })), context: await buildContext() });
+      const r = await aiCall({ mode: 'chat', guide, messages: a.msgs.filter(m => !m.err).slice(-12).map(m => ({ role: m.role, text: m.text })), context: await buildContext() });
       a.msgs.push({ role: 'assistant', text: r.text || 'I could not think of an answer.' });
     } catch (e) { a.msgs.push({ role: 'assistant', text: e.message, err: true }); }
     a.busy = false; a.fresh = a.msgs.length - 1; if (S.view === 'ai') c.renderMain();

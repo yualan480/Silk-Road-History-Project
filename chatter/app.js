@@ -280,7 +280,7 @@ const grpErr = e => /could not find the function|schema cache/i.test(e?.message 
 const O = initOrbit({ setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, md, plain, menuBtn, bindMenu, gamerUrl: GAMER_URL, collectibles: () => SHOP?.collectibles?.() || [],
   needProfiles: ids => needProfiles(ids), renderMain: () => renderMain(), renderSide: () => renderSide(), closeSide: () => closeSide(), navTo: k => navTo(k),
   openChan: id => openChan(id), openFirstChannel: () => openFirstChannel(), profileModal: id => profileModal(id), send: () => send(), osNotify: (t, b, g) => osNotify(t, b, g),
-  chooseGuide: () => GUIDE.chooseGuide(), searchModal: () => searchModal(), bindSearch: (i, o) => bindOrbitSearch(i, o), onlineCount: () => onlineCount(), unreadDms: () => S.convs.filter(unread).length, isStaff: () => isStaff(), classRoles: () => crOf(S.me.id), renderDayBadge: () => homeDayBadge() });
+  chooseGuide: () => GUIDE.chooseGuide(), selectedGuide: () => GUIDE.selected(), guideName: () => GUIDE.selectedName(), guidePortrait: (who, expression) => GUIDE.portrait(who, expression), searchModal: () => searchModal(), bindSearch: (i, o) => bindOrbitSearch(i, o), onlineCount: () => onlineCount(), unreadDms: () => S.convs.filter(unread).length, isStaff: () => isStaff(), classRoles: () => crOf(S.me.id), renderDayBadge: () => homeDayBadge() });
 
 const CM = initCommunities({ S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, menuBtn, bindMenu,
   needProfiles: ids => needProfiles(ids), navTo: k => navTo(k), renderSide: () => renderSide(), profileModal: id => profileModal(id), isStaff: () => isStaff(), onJoined: () => GUIDE.milestone('community') });
@@ -291,7 +291,7 @@ const GB = !initGamble ? NO_GB : initGamble({ S, sb, esc, ic, I, toast, menuBtn,
 const AR = !initArena ? NO_AR : initArena({ S, sb, esc, ic, I, modal, toast, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), openChan: id => { S.view = 'server'; openChan(id); }, openIntelligence: text => { if(text) INT.setDraft(text); navTo('intelligence'); } });
 const UB = initUnblockedGames({menuBtn,bindMenu,ic,onPlaying: active => O.gameOpen(active)});
 const INT = initIntelligence({ S, sb, esc, modal, toast, menuBtn, bindMenu, onViewItems: () => AR.openGear?.() });
-const GUIDE = initGuides({ S, sb, esc, toast, navTo: k => navTo(k) });
+const GUIDE = initGuides({ S, sb, esc, toast, navTo: k => navTo(k), onChange: () => { if (S.me) { renderSide(); if (S.view === 'ai') renderMain(); } } });
 
 /* ───────── device lock: the first account to sign in on a browser owns it ───────── */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, BOUND_KEY = 'chatter-bound-email';
@@ -1072,7 +1072,7 @@ function renderSide() {
   const funNav = `<div class="nav-grp${funOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inFun && !funOpen ? ' on' : ''}" data-fun aria-expanded="${funOpen}" aria-controls="navfun">${ic('smile')}<span>Explore</span><span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
     <div class="nav-sub" id="navfun" role="group" aria-label="Explore"${funOpen ? '' : ' hidden'}>${nav('unblocked', 'Unblocked Games', 'compass')}${nav('gamer', 'Orbit Games', 'gamepad')}${nav('shop', 'Orbit Shop', 'shop')}${nav('gamble', 'Orbit Casino', 'dice')}${nav('orbitcraft', 'Orbitcraft', 'gamepad')}</div></div>`;
   side.innerHTML = `<div class="brand"><a class="bwrap sidebar-orbit-logo" href="./" aria-label="Refresh Orbit" title="Refresh Orbit"><span class="sbplanet" aria-hidden="true"><img src="orbit-logo-planet.png" alt="" width="660" height="444"><span class="sbmoon-orbits"><span class="sbmoon-track sbmoon-track-a"><i class="sbmoon sbmoon-a"></i></span><span class="sbmoon-track sbmoon-track-b"><i class="sbmoon sbmoon-b"></i></span></span></span><img class="sbword" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></a><button type="button" class="ib sidebar-close" data-sidebar-close aria-label="Close sidebar">${ic('x')}</button></div>
-  <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${nav('tournaments', 'Tournaments', 'trophy')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('intelligence', 'Orbit Intelligence', 'crosshair')}${nav('ai', 'Ask Orbit AI', 'sparkle')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
+  <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${nav('tournaments', 'Tournaments', 'trophy')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('intelligence', 'Orbit Intelligence', 'crosshair')}${nav('ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide', 'sparkle')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
   ${O.sideCal()}
   <div class="scroll">${S.view === 'dm' ? dmList() : socialList()}</div>
   ${V.ch ? `<div class="vpanel" id="vp"><button class="t" id="vo" title="Open call" aria-label="Open call screen"><b>Voice connected</b><small></small></button><button class="ib" id="vl" title="Leave voice" aria-label="Leave voice channel">${ic('phoneOff', 18)}</button></div>` : ''}
@@ -1815,7 +1815,7 @@ function manageProfileClassRoles(uid) {
 }
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && S.me) { e.preventDefault(); if (S.view !== 'home') navTo('home'); setTimeout(() => $('#oq')?.focus(), 60); } });
 function bindOrbitSearch(inp, out) {
-  const pages = [['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', 'Ask Orbit AI'], ['leaderboard', 'Orbit Leaderboard'], ['intelligence', 'Orbit Intelligence'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['unblocked', 'Unblocked Games'], ['gamer', 'Orbit Games'], ['tournaments', 'Tournaments'], ['roles', 'Roles'], ];
+  const pages = [['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide'], ['leaderboard', 'Orbit Leaderboard'], ['intelligence', 'Orbit Intelligence'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['unblocked', 'Unblocked Games'], ['gamer', 'Orbit Games'], ['tournaments', 'Tournaments'], ['roles', 'Roles'], ];
   const item = (kind, id, t, s) => `<button class="ores-i" data-k="${kind}" data-id="${esc(id)}"><span class="t"><b>${esc(t)}</b>${s ? `<small>${esc(s)}</small>` : ''}</span></button>`;
   const group = (h, items) => items.length ? `<div class="ores-h">${h}</div>${items.join('')}` : '';
   let seq = 0;
