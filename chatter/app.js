@@ -1330,8 +1330,9 @@ function renderHead0() {
   }
   bindMenu(); bindMsgSearch(); $('#dmcontacts')?.addEventListener('click', openMobileDmContacts);
 }
-/* School-day label comes only from the matching date's official GMS recap.
-   Use Eastern time, not the visitor's device timezone, and never guess from a cycle. */
+/* Show the official same-day GMS day type when available; otherwise predict from
+   the most recently VERIFIED GMS type, following the published 2026-27 TESD calendar.
+   Predictions are not official and must never be presented as announcements. */
 function stogaToday() {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
   const part = type => parts.find(p => p.type === type)?.value || '';
@@ -1343,16 +1344,64 @@ function gmsDayFromSummary(summary) {
   const gray = /\bgr[ae]y\b/i.test(schedule), garnet = /\bgarnet\b/i.test(schedule);
   return gray === garnet ? null : gray ? 'gray' : 'garnet';
 }
+/* TESD student closures: https://resources.finalsite.net/images/v1761669279/tesdnet/agvte4snljwnygfcyki0/2627calendar.pdf
+   This is the high-school calendar. Elementary-only half-days are NOT closures.
+   Emergency make-up dates can change, so predicted badges remain provisional. */
+const stogaClosures = new Set([
+  '2026-09-07', '2026-09-21', '2026-11-03',
+  '2026-11-23', '2026-11-25', '2026-11-26', '2026-11-27', '2026-11-30',
+  '2026-12-24', '2026-12-25', '2026-12-28', '2026-12-29', '2026-12-30', '2026-12-31',
+  '2027-01-01', '2027-01-18', '2027-02-05', '2027-02-15',
+  '2027-03-10', '2027-03-22', '2027-03-23', '2027-03-24', '2027-03-25', '2027-03-26',
+  '2027-05-18', '2027-05-31'
+]);
+function stogaDateUTC(iso) { return new Date(iso + 'T12:00:00Z'); }
+function stogaIsSchoolDay(iso) {
+  if (iso < '2026-08-31' || iso > '2027-06-15' || stogaClosures.has(iso)) return false;
+  const weekday = stogaDateUTC(iso).getUTCDay();
+  return weekday !== 0 && weekday !== 6;
+}
+function stogaPredictDay(anchorDate, anchorKind, targetDate) {
+  if (!anchorDate || !anchorKind || anchorDate >= targetDate || !stogaIsSchoolDay(targetDate)) return null;
+  let cursor = stogaDateUTC(anchorDate), schoolDayBefore = anchorDate, kind = anchorKind;
+  // Stop rather than guessing indefinitely after a long gap in verified announcements.
+  let count = 0;
+  while (count < 370) {
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    const iso = cursor.toISOString().slice(0, 10);
+    if (iso > targetDate) break;
+    if (!stogaIsSchoolDay(iso)) { count++; continue; }
+    // Wednesday and Thursday share their Gray/Garnet day when both are school days.
+    const thursdayInWedPair = cursor.getUTCDay() === 4 &&
+      schoolDayBefore === new Date(cursor.getTime() - 86400000).toISOString().slice(0, 10);
+    if (!thursdayInWedPair) kind = kind === 'gray' ? 'garnet' : 'gray';
+    schoolDayBefore = iso;
+    if (iso === targetDate) return kind;
+    count++;
+  }
+  return null;
+}
 async function loadHomeSchedule() {
   if (!S.me || !S.sv) return;
   const day = stogaToday();
   const { data, error } = await sb.from('gms_posts').select('video_id,published_on,summary')
-    .eq('published_on', day).order('created_at', { ascending: false }).limit(10);
+    .lte('published_on', day).order('published_on', { ascending: false }).limit(120);
   if (!S.me || day !== stogaToday()) return;
   S.homeScheduleChecked = day;
   S.homeScheduleError = error ? error.message : '';
-  const match = !error && (data || []).map(p => ({ videoId: p.video_id, kind: gmsDayFromSummary(p.summary) })).find(p => p.kind);
-  S.homeSchedule = match || null;
+  const verified = !error && (data || []).map(p => ({
+    date: p.published_on, videoId: p.video_id, kind: gmsDayFromSummary(p.summary)
+  })).filter(p => p.kind);
+  const today = verified && verified.find(p => p.date === day);
+  if (today) {
+    S.homeSchedule = { ...today, status: 'confirmed' };
+  } else if (!stogaIsSchoolDay(day)) {
+    S.homeSchedule = { status: 'closed' };
+  } else {
+    const anchor = verified && verified.find(p => p.date < day);
+    const prediction = anchor && stogaPredictDay(anchor.date, anchor.kind, day);
+    S.homeSchedule = prediction ? { kind: prediction, status: 'predicted', basedOn: anchor.date } : null;
+  }
   if (S.view === 'home') renderMain();
 }
 if (!window.__orbitHomeScheduleTimer) window.__orbitHomeScheduleTimer = setInterval(() => {
@@ -1360,10 +1409,27 @@ if (!window.__orbitHomeScheduleTimer) window.__orbitHomeScheduleTimer = setInter
 }, 15 * 60 * 1000);
 function renderHome(main) {
   const sv = S.sv, text = S.chans.filter(c => c.kind === 'text');
-  const day = stogaToday(), current = S.homeScheduleChecked === day, confirmed = current && S.homeSchedule;
-  const label = confirmed ? (confirmed.kind === 'gray' ? 'Gray Day' : 'Garnet Day') : !current ? 'Checking schedule…' : S.homeScheduleError ? 'Schedule unavailable' : 'Not announced yet';
-  const dayIcon = confirmed ? (confirmed.kind === 'gray' ? '⚪' : '🔴') : '📅';
-  const dayBadge = `<button type="button" id="homeDayBadge" class="home-day-badge ${confirmed ? 'day-' + confirmed.kind : 'day-pending'}" title="${confirmed ? 'Verified from today\'s GMS announcement. Open #gms.' : 'Waiting for a confirmed day type from today\'s GMS announcement. Open #gms.'}" aria-label="Today\'s school schedule: ${label}. Open GMS channel"><span class="home-day-icon">${dayIcon}</span><span class="home-day-words"><b>${label}</b><small>${confirmed ? 'Today’s GMS announcement' : 'Today’s GMS not confirmed'}</small></span></button>`;
+  const day = stogaToday(), current = S.homeScheduleChecked === day;
+  const schedule = current ? S.homeSchedule : null;
+  const confirmed = schedule?.status === 'confirmed', predicted = schedule?.status === 'predicted';
+  const closed = schedule?.status === 'closed', dayKind = schedule?.kind;
+  const label = closed ? 'No School' : (confirmed || predicted)
+    ? (predicted ? 'Predicted ' : '') + (dayKind === 'gray' ? 'Gray Day' : 'Garnet Day')
+    : !current ? 'Checking schedule…' : S.homeScheduleError ? 'Schedule unavailable' : 'Awaiting GMS';
+  const dayIcon = closed ? '🏫' : dayKind === 'gray' ? '⚪' : dayKind === 'garnet' ? '🔴' : '📅';
+  const detail = confirmed ? 'Confirmed by today’s GMS' : predicted ? 'Pending today’s GMS' :
+    closed ? 'Scheduled district closure' : 'No verified day type yet';
+  const title = confirmed ? 'Verified from today’s GMS announcement. Open #gms.' :
+    predicted ? 'Provisional color based on the previous verified GMS day and TESD calendar. May change. Open #gms.' :
+    closed ? 'No school according to the published TESD 2026–27 calendar.' :
+    'Waiting for today’s GMS announcement. Open #gms.';
+  const dayBadge = '<button type="button" id="homeDayBadge" class="home-day-badge ' +
+    (dayKind ? 'day-' + dayKind : closed ? 'day-closed' : 'day-pending') +
+    (predicted ? ' day-predicted' : '') + '" title="' + esc(title) +
+    '" aria-label="Today\'s school schedule: ' + esc(label) +
+    '. Open GMS channel"><span class="home-day-icon">' + dayIcon +
+    '</span><span class="home-day-words"><b>' + esc(label) +
+    '</b><small>' + esc(detail) + '</small></span></button>';
   const quickLinks = [
     { key: 'events', name: 'Events', desc: 'School calendar', icon: 'tag' },
     { key: 'tournaments', name: 'Tournaments', desc: 'Compete with others', icon: 'trophy' },
