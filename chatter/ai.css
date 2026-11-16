@@ -104,3 +104,6 @@
 .ai-guide-avatar .orbit-guide-portrait{width:100%;height:100%;filter:none}
 .aihello>.ai-guide-avatar{margin:0 auto 6px;box-shadow:0 0 38px #6c53f55a}
 .aim.assistant>.ai-guide-avatar{align-self:flex-start;margin-top:2px}
+
+.ai-history-delete{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;flex:none}
+@media(max-width:600px){.ai-history-delete{min-width:44px;min-height:44px;padding:8px}.ai-history-delete span{display:none}}

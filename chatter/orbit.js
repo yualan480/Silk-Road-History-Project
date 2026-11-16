@@ -866,7 +866,7 @@ export function initOrbit(c) {
       ? `<div class="aim user${fresh === i ? ' new' : ''}"><div class="aib">${esc(m.text).replace(/\n/g, '<br>')}</div><span class="aiav">${av(me)}</span></div>`
       : `<div class="aim assistant${fresh === i ? ' new' : ''}">${guideAvatar(34, 'thoughtful')}<div class="aicol"><div class="aib ${m.err ? 'err' : ''}" data-ai="${i}">${md(m.text, 'ai' + i)}</div>
           <div class="aiact">${m.err ? '' : `<button class="aiact-b" data-o="aicopy" data-i="${i}" title="Copy answer" aria-label="Copy answer">${ic('copy', 14)}<span>Copy</span></button>`}${i === lastA && !a.busy ? `<button class="aiact-b" data-o="airetry" title="Try again" aria-label="Try again">${ic('redo', 14)}<span>${m.err ? 'Try again' : 'Regenerate'}</span></button>` : ''}</div></div></div>`;
-    main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${guideAvatar(32)}</span><b class="title">${chosen ? `Ask ${esc(guideName)}` : 'Choose Your Guide'}</b><span class="aistat"><i></i>${a.busy ? 'Thinking' : 'Online'}</span><span class="grow"></span>${a.msgs.length ? `<button class="btn sm ghost" data-o="aiclear">${ic('plus', 14)} New chat</button>` : ''}</div>
+    main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${guideAvatar(32)}</span><b class="title">${chosen ? `Ask ${esc(guideName)}` : 'Choose Your Guide'}</b><span class="aistat"><i></i>${a.busy ? 'Thinking' : 'Online'}</span><span class="grow"></span>${a.msgs.length ? `<button type="button" class="btn sm ghost ai-history-delete" data-o="aiclear" aria-label="Delete AI chat history" title="Delete AI chat history">${ic('trash', 14)}<span>Delete history</span></button>` : ''}</div>
       <div class="aiscreen"><div class="aiwrap"><div class="aimsgs" id="aimsgs" aria-live="polite">
         ${a.msgs.length ? a.msgs.map(msg).join('')
           : `<div class="aihello">${guideAvatar(110)}<h2>Hi ${first}! ${chosen ? `I'm <span class="aigrad">${esc(guideName)}</span>.` : 'Meet your personal Orbit guide!'}</h2><p class="muted">${chosen ? 'Ask me anything, get conversation starters, or find out what’s going on: events, channels, rules.' : 'Choose Elara or Stellan to start chatting with your guide.'}</p>
@@ -893,14 +893,30 @@ export function initOrbit(c) {
     if (fresh != null && a.msgs[fresh]?.role === 'assistant') { const b = box.querySelector(`.aib[data-ai="${fresh}"]`); const act = b?.parentElement.querySelector('.aiact'); if (b && !a.msgs[fresh].err) { act?.classList.add('wait'); aiType(b, () => act?.classList.remove('wait')); } }
     if (innerWidth > 700 && !a.busy) ta.focus();
   }
+  function confirmAiClear() {
+    modal('Delete AI chat history?', '<p>Delete all messages in this AI conversation and clear your draft? This cannot be undone.</p>', [
+      { label: 'Cancel', cls: 'ghost' },
+      { label: 'Delete history', cls: 'danger', fn: () => {
+        const a = O.ai;
+        a.generation = (a.generation || 0) + 1;
+        a.msgs = []; a.draft = ''; a.busy = false; a.fresh = null;
+        const input = $('#aiin'); if (input) input.value = '';
+        if (S.view === 'ai') c.renderMain();
+        toast('AI chat history deleted.');
+      } }
+    ]);
+  }
   async function aiSend(text) {
     const a = O.ai; text = (text || '').trim(); if (!text || a.busy) return;
     const guide = c.selectedGuide?.(); if (!guide) { c.chooseGuide?.(); return; }
+    const generation = a.generation || 0, current = () => O.ai === a && (a.generation || 0) === generation;
     a.msgs.push({ role: 'user', text }); a.fresh = a.msgs.length - 1; a.busy = true; if (S.view === 'ai') c.renderMain();
     try {
-      const r = await aiCall({ mode: 'chat', guide, messages: a.msgs.filter(m => !m.err).slice(-12).map(m => ({ role: m.role, text: m.text })), context: await buildContext() });
+      const context = await buildContext(); if (!current()) return;
+      const r = await aiCall({ mode: 'chat', guide, messages: a.msgs.filter(m => !m.err).slice(-12).map(m => ({ role: m.role, text: m.text })), context });
+      if (!current()) return;
       a.msgs.push({ role: 'assistant', text: r.text || 'I could not think of an answer.' });
-    } catch (e) { a.msgs.push({ role: 'assistant', text: e.message, err: true }); }
+    } catch (e) { if (!current()) return; a.msgs.push({ role: 'assistant', text: e.message, err: true }); }
     a.busy = false; a.fresh = a.msgs.length - 1; if (S.view === 'ai') c.renderMain();
   }
   function aiRetry() {
@@ -1015,7 +1031,7 @@ export function initOrbit(c) {
       case 'voteentry': return voteEntry(d.u);
       case 'zoom': return zoomEntry(d.u);
       case 'aichip': return aiSend(d.t);
-      case 'aiclear': O.ai.msgs = []; O.ai.draft = ''; return c.renderMain();
+      case 'aiclear': return confirmAiClear();
       case 'airetry': return aiRetry();
       case 'aicopy': { const m = O.ai.msgs[+d.i]; if (!m) return; return navigator.clipboard?.writeText(m.text).then(() => { b.classList.add('ok'); b.querySelector('span').textContent = 'Copied'; setTimeout(() => { b.classList.remove('ok'); b.querySelector('span') && (b.querySelector('span').textContent = 'Copy'); }, 1600); }, () => toast('Could not copy.', true)); }
     }
