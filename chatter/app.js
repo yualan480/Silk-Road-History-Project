@@ -1349,7 +1349,10 @@ function renderMain(loading) {   // wraps the real renderer: page transition whe
   const m = $('#main');
   if (m) { if (S.view !== lastMainView) { if (lastMainView) pageSwap(m); lastMainView = S.view; } m.dataset.view = S.view; }
   renderMainInner(loading);
-  if (m) afterMain(m);
+  if (m) {
+    bindMenu(); // Every tab with a mobile menu button must have the sidebar handler.
+    afterMain(m);
+  }
 }
 function renderMainInner(loading) {
   GUIDE.onNav(S.view);
