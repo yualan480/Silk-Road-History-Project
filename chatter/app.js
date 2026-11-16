@@ -8,7 +8,7 @@ import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js';
-import { initOrbit } from './orbit.js?v=21';
+import { initOrbit } from './orbit.js?v=22';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
@@ -3545,8 +3545,13 @@ function renderGms(main) {
       }
       return `<p>${esc(s)}</p>`;
     }).join('');
+    // Every recap includes the actual source livestream as its required media attachment.
+    // Verified broadcast screenshots remain optional additions, never generic replacements.
+    const media = '<div class="gms-media"><iframe src="https://www.youtube-nocookie.com/embed/' + p.video_id +
+      '?rel=0" title="Original Good Morning Stoga broadcast: ' + esc(p.title) +
+      '" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';
     return `<article class="gms-card">
-      <div class="gms-copy">
+      <div class="gms-copy">${media}
         <div class="gms-date">📅 <time datetime="${esc(p.published_on)}">${esc(dateText(p.published_on))}</time><span class="gms-pill">Published date</span></div>
         <h2>${esc(p.title)}</h2>
         <div class="gms-summary">${content}</div>
@@ -3560,7 +3565,7 @@ function renderGms(main) {
         <a href="https://www.youtube.com/@T-E-TV/streams" target="_blank" rel="noopener noreferrer">Official T/E TV livestreams ${ic('arrow', 14)}</a>
       </div>
       ${S.gmsErr ? `<p class="err">Could not load GMS updates: ${esc(S.gmsErr)}</p>` : cards || '<p class="empty">No GMS summaries published yet. Check back after the next broadcast is reviewed.</p>'}
-      <p class="muted gms-disclaimer">Summaries are AI-assisted. Pictures appear only when they illustrate a verified moment in the linked broadcast.</p>
+      <p class="muted gms-disclaimer">Summaries are AI-assisted. Every recap includes its original broadcast video; additional pictures show verified moments from that episode.</p>
     </div>`;
   bindMenu();
 }

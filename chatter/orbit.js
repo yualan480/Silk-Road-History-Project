@@ -265,6 +265,10 @@ export function initOrbit(c) {
       ['gamer', 'gamepad', 'Orbit Games', 'Games · Leaderboards · Fun'],
       ['events', 'calendar', 'Upcoming Events', 'Events · Tournaments · More'],
       ['communities', 'compass', 'Explore Communities', 'Find your people'],
+      ['dm', 'dm', 'Direct Messages', 'Your conversations'],
+      ['roles', 'tag', 'School Roles', 'Your classes and groups'],
+      ['gms', 'video', 'GMS Recaps', 'Daily school announcements'],
+      ['shop', 'shop', 'Orbit Shop', 'Explore customizations'],
     ];
     const inN = (S.incoming || []).length, oq0 = main.querySelector('#oq'), oqVal = oq0 ? oq0.value : '', oqFocus = !!oq0 && document.activeElement === oq0;
     const enterMs = Math.round(performance.now() - O.homeAt), enter = enterMs < 1500;   // fade-in only when you arrive, not on every live refresh
