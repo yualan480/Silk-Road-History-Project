@@ -1433,3 +1433,10 @@ html:not(.force-motion) :is(.odhalo,.odring,.odcore,.odshine::after){}
 .lbactiveearn-total{text-align:right;flex-shrink:0}
 .lbactiveearn-total strong{font-size:1.35rem;color:#8aecc8}
 @media(max-width:540px){.lbactiveearn{align-items:flex-start;flex-direction:column;gap:12px;padding:15px}.lbactiveearn-total{text-align:left}}
+
+/* MOV files may use codecs unsupported by the viewer's browser; always offer the original. */
+.mov-clip{display:flex;flex-direction:column;gap:6px;width:100%;max-width:420px;min-width:0}
+.mov-clip>.att.vid{display:block;width:100%;max-width:100%}
+.mov-open{font-size:.8rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere;align-self:flex-start}
+.mov-open:hover{color:var(--text)}
+.tcard .mov-clip{max-width:none}

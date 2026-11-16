@@ -767,8 +767,9 @@ function layoutStage() {   // pick the biggest 16:9 tile size that fits every ti
 }
 
 /* ───────── attachments ───────── */
-const ATT_OK = /^(image\/(png|jpeg|webp|gif)|application\/pdf|text\/plain|application\/zip|audio\/(mpeg|ogg|wav|webm|mp4)|video\/(mp4|webm))$/;
-const ATT_FIX = { 'application/x-zip-compressed': 'application/zip', 'audio/x-wav': 'audio/wav', 'audio/mp3': 'audio/mpeg' };
+const ATT_OK = /^(image\/(png|jpeg|webp|gif)|application\/pdf|text\/plain|application\/zip|audio\/(mpeg|ogg|wav|webm|mp4)|video\/(mp4|webm|quicktime))$/;
+const ATT_FIX = { 'application/x-zip-compressed': 'application/zip', 'audio/x-wav': 'audio/wav', 'audio/mp3': 'audio/mpeg', 'video/x-quicktime': 'video/quicktime' };
+const attachmentType = f => { const type = ATT_FIX[f.type] || f.type; return /\.mov$/i.test(f.name || '') && (!type || type === 'application/octet-stream') ? 'video/quicktime' : type; };
 const MAX_FILE = 50 * 1024 * 1024, MAX_FILES = 5, URLS = new Map();
 const fmtSize = n => n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
 const cachedUrl = path => { const e = URLS.get(path); return e && e.exp > Date.now() + 6e4 ? e.url : ''; };
@@ -777,9 +778,9 @@ function addFiles(files) {
   for (const f of files) {
     if (S.pending.length >= MAX_FILES) { toast(`You can attach up to ${MAX_FILES} files per message.`, true); break; }
     if (f.size > MAX_FILE) { toast(`${f.name} is over 50 MB.`, true); continue; }
-    const type = ATT_FIX[f.type] || f.type;
+    const type = attachmentType(f);
     if (!ATT_OK.test(type)) { toast(`${f.name}: that file type isn't allowed.`, true); continue; }
-    if (isVidCh() && !type.startsWith('video/')) { toast(`${f.name}: #tutorials only takes videos (mp4 or webm).`, true); continue; }
+    if (isVidCh() && !type.startsWith('video/')) { toast(`${f.name}: #tutorials only takes videos (mp4, webm or mov).`, true); continue; }
     S.pending.push({ file: f, name: f.name || 'file', type, size: f.size, url: type.startsWith('image/') ? URL.createObjectURL(f) : null });
   }
   renderPending();
@@ -806,7 +807,7 @@ function attItem(f) {
   const u = cachedUrl(f.path), t = String(f.type || ''), n = esc(f.name || 'file'), p = esc(f.path), src = u ? ` src="${esc(u)}"` : '', href = u ? ` href="${esc(u)}"` : '';
   if (t.startsWith('image/')) return `<span class="attwrap"><a class="att img" data-att="${p}"${href} target="_blank" rel="noopener noreferrer"><img data-att-src="${p}" alt="${n}" loading="lazy"${src}></a>${t === 'image/gif' ? '' : `<button type="button" class="togif" data-a="togif" data-p="${p}" data-n="${n}" title="Turn this picture into a GIF" aria-label="Turn this picture into a GIF">GIF</button>`}</span>`;
   if (t.startsWith('audio/')) return `<div class="att aud"><span>${ic('mic', 16)} ${n}</span><audio controls preload="none" data-att-src="${p}"${src}></audio></div>`;
-  if (t.startsWith('video/')) return `<video class="att vid" controls preload="metadata" data-att-src="${p}"${src}></video>`;
+  if (t.startsWith('video/')) return t === 'video/quicktime' ? `<div class="mov-clip"><video class="att vid" controls preload="metadata" data-att-src="${p}"${src}></video><a class="att mov-open" data-att="${p}"${href} target="_blank" rel="noopener noreferrer">Open or download MOV if playback isn't supported</a></div>` : `<video class="att vid" controls preload="metadata" data-att-src="${p}"${src}></video>`;
   return `<a class="att file" data-att="${p}"${href} target="_blank" rel="noopener noreferrer">${ic('file', 20)}<span>${n}<small>${fmtSize(f.size || 0)}</small></span></a>`;
 }
 const attHtml = m => Array.isArray(m.attachments) && m.attachments.length ? `<div class="atts">${m.attachments.map(attItem).join('')}</div>` : '';
@@ -1384,7 +1385,7 @@ function renderMainInner(loading) {
   if (S.view === 'server' && !ch) { main.innerHTML = `<div class="top">${menuBtn()}<b class="title">${esc(S.sv?.name || 'Orbit')}</b></div><div class="empty"><h2>${S.sv ? 'No channel selected' : S.loaded ? 'You are not in the server yet' : 'Loading…'}</h2><p>${S.sv ? 'Pick a text channel from the list.' : S.loaded ? 'Try reloading the page. If this keeps happening, tell the site admin.' : ''}</p></div>`; bindMenu(); return; }
   if (!c && !ch) { main.innerHTML = `<div class="top">${menuBtn()}<b class="title">Direct messages</b><span class="grow"></span><button type="button" class="ib dm-mobile-toggle" id="dmcontacts" aria-label="Browse DM contacts" title="Conversations">${ic('friends')}</button></div><div class="empty"><h2>Find someone to talk to</h2><p>Start a conversation with the + button, or browse your existing contacts.</p><button class="btn" id="ne" style="width:auto">New message</button> <button class="btn ghost" id="ne2" style="width:auto">New group chat</button></div>`; bindMenu(); $('#dmcontacts').onclick = openMobileDmContacts; $('#ne').onclick = newDmModal; $('#ne2').onclick = () => groupPicker(); return; }
   main.innerHTML = `<div class="top" id="head"></div><button class="pinbar" id="pb" hidden></button><div class="msgs" id="msgs" tabindex="0" aria-live="polite">${loading ? '<div class="sk"></div>'.repeat(5) : ''}</div><div class="typing" id="typ"></div>
-  <div class="composer"><div class="replybar" id="rb" hidden></div><div class="pfiles" id="pf" hidden></div>${O.fmtBar()}<div class="box"><div class="ac" id="ac" role="listbox" aria-label="Suggestions" hidden></div><button class="ib" id="att" title="Attach files" aria-label="Attach files">${ic('paperclip')}</button><button class="ib" id="cam" title="Take a photo" aria-label="Take a photo">${ic('camera')}</button><input type="file" id="fi" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,application/zip,audio/*,video/mp4,video/webm"><button class="ib" id="pol" title="Create a poll" aria-label="Create a poll">${ic('poll')}</button><button class="ib" id="gft" title="Gift Orbits" aria-label="Gift Orbits">${ic('gift')}</button><textarea id="in" rows="1" enterkeyhint="enter" autocapitalize="sentences" spellcheck="true" placeholder="${esc(ch ? 'Message #' + ch.name : 'Message ' + convName(c))}" maxlength="4000" aria-label="Message"></textarea><button class="ib" id="spo" title="Spoiler: hide the selected text until someone clicks it" aria-label="Spoiler">${ic('eyeOff')}</button><button class="ib gifb" id="gif" title="Send a GIF" aria-label="Send a GIF">GIF</button><button class="ib" id="emo" title="Emoji" aria-label="Emoji">${ic('smile')}</button>${dictateBtn ? dictateBtn(ic) : ''}${O.fmtToggle()}${O.aiBtn()}<button class="send" id="snd" title="Send" aria-label="Send message">${ic('send', 18)}</button></div></div>`;
+  <div class="composer"><div class="replybar" id="rb" hidden></div><div class="pfiles" id="pf" hidden></div>${O.fmtBar()}<div class="box"><div class="ac" id="ac" role="listbox" aria-label="Suggestions" hidden></div><button class="ib" id="att" title="Attach files" aria-label="Attach files">${ic('paperclip')}</button><button class="ib" id="cam" title="Take a photo" aria-label="Take a photo">${ic('camera')}</button><input type="file" id="fi" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,application/zip,audio/*,video/mp4,video/webm,video/quicktime,.mov"><button class="ib" id="pol" title="Create a poll" aria-label="Create a poll">${ic('poll')}</button><button class="ib" id="gft" title="Gift Orbits" aria-label="Gift Orbits">${ic('gift')}</button><textarea id="in" rows="1" enterkeyhint="enter" autocapitalize="sentences" spellcheck="true" placeholder="${esc(ch ? 'Message #' + ch.name : 'Message ' + convName(c))}" maxlength="4000" aria-label="Message"></textarea><button class="ib" id="spo" title="Spoiler: hide the selected text until someone clicks it" aria-label="Spoiler">${ic('eyeOff')}</button><button class="ib gifb" id="gif" title="Send a GIF" aria-label="Send a GIF">GIF</button><button class="ib" id="emo" title="Emoji" aria-label="Emoji">${ic('smile')}</button>${dictateBtn ? dictateBtn(ic) : ''}${O.fmtToggle()}${O.aiBtn()}<button class="send" id="snd" title="Send" aria-label="Send message">${ic('send', 18)}</button></div></div>`;
   renderHead();
   const ta = $('#in'), wrap = f => { const s = ta.selectionStart, e = ta.selectionEnd; ta.setRangeText(f + ta.value.slice(s, e) + f, s, e, 'select'); };
   ta.onkeydown = e => {
@@ -1405,7 +1406,7 @@ function renderMainInner(loading) {
   const box = $('#msgs');
   box.onscroll = async () => { if (box.scrollTop < 60 && S.hasMore && !S.loadingOlder && S.list.length) { S.loadingOlder = true; const h = box.scrollHeight; await fetchMsgs(S.list[0].created_at); renderMsgs(false, true); box.scrollTop = box.scrollHeight - h; S.loadingOlder = false; } };
   box.onclick = onMsgClick; box.addEventListener('load', e => { if (box.dataset.stick === '1' && /^(IMG|VIDEO)$/.test(e.target.tagName)) box.scrollTop = box.scrollHeight; }, true);
-  if (isVidCh()) { $('#fi').accept = 'video/mp4,video/webm'; ['#pol', '#gif', '#spo', '#cam', '#gft', '#emo'].forEach(q => { const b = $(q); if (b) b.style.display = 'none'; }); ta.placeholder = 'Title your tutorial (for example: How to play Tetris), then attach the video'; }
+  if (isVidCh()) { $('#fi').accept = 'video/mp4,video/webm,video/quicktime,.mov'; ['#pol', '#gif', '#spo', '#cam', '#gft', '#emo'].forEach(q => { const b = $(q); if (b) b.style.display = 'none'; }); ta.placeholder = 'Title your tutorial (for example: How to play Tetris), then attach the video'; }
   if (!loading) renderMsgs(true);
   applyLimit(); scheduleLimit(); updatePinBar();
 }
@@ -3419,7 +3420,7 @@ function renderTutorials(main) {
   const card = t => { const p = prof(t.author_id), mine = t.author_id === S.me.id;
     return `<article class="tcard" data-id="${t.id}">${attItem(t.video)}<div class="tinfo"><b class="ttl">${esc(t.title)}</b>${t.game ? `<span class="chip">${esc(t.game)}</span>` : ''}<small>by <span class="tby" data-a="prof" data-u="${p.id}">${esc(p.display_name)}</span> · ${stamp(t.created_at)}</small>${mine || adm ? `<button type="button" class="ib" data-td="${t.id}" title="Delete tutorial" aria-label="Delete tutorial">${ic('x', 16)}</button>` : ''}</div></article>`; };
   main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${ic('hash', 20)}</span><b class="title">Tutorials</b><span class="grow"></span><button class="btn sm" id="tna">Add tutorial</button></div>
-  <div class="panel"><p class="muted" style="margin-top:0">Know how to play a game? Add a short video so others can learn. Videos only (mp4 or webm, up to 50 MB).</p>
+  <div class="panel"><p class="muted" style="margin-top:0">Know how to play a game? Add a short video so others can learn. Videos only (mp4, webm or mov, up to 50 MB).</p>
   <div class="tabs"><input id="tnq" class="inl" type="search" placeholder="Search tutorials or games" aria-label="Search tutorials" value="${esc(S.tutQ || '')}" autocomplete="off"></div>
   ${S.tutErr ? `<p class="err">${esc(S.tutErr)}</p>` : `<div class="tutgrid">${rows.map(card).join('') || `<p class="empty">${S.tuts.length ? 'No tutorials match your search.' : 'No tutorials yet. Be the first to add one!'}</p>`}</div>`}</div>`;
   bindMenu(); hydrateAtts(main);
@@ -3430,13 +3431,13 @@ function renderTutorials(main) {
 }
 function tutForm() {
   const ch = tutChannel(); if (!ch) return toast('The tutorials page is not set up yet.', true);
-  modal('Add a tutorial', `<label for="tt">Title</label><input id="tt" maxlength="100" placeholder="For example: How to play Tetris" autocomplete="off"><label for="tg">Game (optional)</label><input id="tg" maxlength="40" placeholder="For example: Tetris" autocomplete="off"><label for="tf">Video</label><input id="tf" type="file" accept="video/mp4,video/webm"><p class="muted" style="font-size:12px;margin:.4rem 0 0">mp4 or webm, up to 50 MB. You can add up to 10 a day.</p>`,
+  modal('Add a tutorial', `<label for="tt">Title</label><input id="tt" maxlength="100" placeholder="For example: How to play Tetris" autocomplete="off"><label for="tg">Game (optional)</label><input id="tg" maxlength="40" placeholder="For example: Tetris" autocomplete="off"><label for="tf">Video</label><input id="tf" type="file" accept="video/mp4,video/webm,video/quicktime,.mov"><p class="muted" style="font-size:12px;margin:.4rem 0 0">mp4, webm or mov, up to 50 MB. You can add up to 10 a day.</p>`,
     [cancelBtn, { label: 'Add tutorial', fn: async bg => {
       const title = $('#tt', bg).value.trim(), game = $('#tg', bg).value.trim(), f = $('#tf', bg).files[0];
       if (title.length < 3) { toast('Give your tutorial a title (at least 3 letters).', true); return false; }
       if (!f) { toast('Choose a video first.', true); return false; }
-      const type = ATT_FIX[f.type] || f.type;
-      if (type !== 'video/mp4' && type !== 'video/webm') { toast('Only mp4 or webm videos can be added.', true); return false; }
+      const type = attachmentType(f);
+      if (!['video/mp4', 'video/webm', 'video/quicktime'].includes(type)) { toast('Only mp4, webm or mov videos can be added.', true); return false; }
       if (f.size > MAX_FILE) { toast(`${f.name} is over 50 MB.`, true); return false; }
       toast('Uploading your video…');
       let up;
