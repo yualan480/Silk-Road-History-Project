@@ -39,7 +39,7 @@ export const UNBLOCKED_GAMES=[{
 },{
  id:'pokemon-leafgreen',title:'Pokémon LeafGreen',category:'Adventure',players:'Single player',
  description:'Browser-playable Game Boy Advance emulator for your authorized LeafGreen game file. Select it once; this browser can remember it for next time.',
- image:'../games/pokemon-leafgreen/cover.svg',src:'../games/pokemon-leafgreen/index.html?v=3',
+ image:'../games/pokemon-leafgreen/cover.svg',src:'../games/pokemon-leafgreen/index.html?v=4',
  tags:['pokemon','pokémon','leafgreen','gba','adventure','rpg'],
  controls:'Requires your own authorized Pokémon LeafGreen .gba file; the ROM is not bundled. Use arrow keys, Z/X, or touch controls. Save in-game and export backups before clearing browser data.'
 },{
