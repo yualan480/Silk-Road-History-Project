@@ -5,7 +5,7 @@ import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const mime={js:'application/javascript',css:'text/css',html:'text/html',png:'image/png',mp3:'audio/mpeg',wav:'audio/wav',svg:'image/svg+xml'};
-const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;res.setHeader('Content-Type',mime[path.split('.').pop()]||'application/octet-stream');res.end(path==='/chatter/quiz-test.html'?'<html><body></body></html>':await readFile(root+path));}catch{res.statusCode=404;res.end();}}).listen(0,'127.0.0.1');
+const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;res.setHeader('Content-Type',mime[path.split('.').pop()]||'application/octet-stream');res.end(path==='/chat/quiz-test.html'?'<html><body></body></html>':await readFile(root+path));}catch{res.statusCode=404;res.end();}}).listen(0,'127.0.0.1');
 await new Promise(r=>server.on('listening',r));
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
 try{
@@ -36,8 +36,8 @@ try{
  }
  assert.deepEqual(errors,[]);
  // Catalog and gallery integration use the same published modules as Orbit.
- await page.goto(base+'/chatter/quiz-test.html');
- await page.evaluate(async()=>{const {initUnblockedGames}=await import('/chatter/unblocked-games.js');document.body.innerHTML='<main></main>';initUnblockedGames({menuBtn:()=>'',bindMenu:()=>{},ic:()=>''}).render(document.querySelector('main'));});
+ await page.goto(base+'/chat/quiz-test.html');
+ await page.evaluate(async()=>{const {initUnblockedGames}=await import('/chat/unblocked-games.js');document.body.innerHTML='<main></main>';initUnblockedGames({menuBtn:()=>'',bindMenu:()=>{},ic:()=>''}).render(document.querySelector('main'));});
  for(const mode of ['Cry','Stats']){
   await page.getByRole('button',{name:`Play Guess the Pokémon (${mode})`,exact:true}).click();
   await page.frameLocator('#ub-game').locator('h1,h2').first().waitFor();

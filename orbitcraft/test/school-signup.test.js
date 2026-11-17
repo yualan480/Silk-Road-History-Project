@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {schoolSignupDetails} from '../../chatter/school-signup.js';
+import {schoolSignupDetails} from '../../chat/school-signup.js';
 test('school signup derives first initial and surname, ignoring numeric suffixes',()=>{
  for(const [email,name] of [[' 30yua@TESDK12.NET ','A Yu'],['30vuppalal2@tesdk12.net','L Vuppala']]){
   const d=schoolSignupDetails(email);assert.equal(d.metadata.full_name,name);assert.equal(d.metadata.name_source,'school_email');

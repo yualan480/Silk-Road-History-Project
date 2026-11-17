@@ -20,6 +20,7 @@ const game=new Dimensions(store);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.webp':'image/webp','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://local');
+  if(url.pathname==='/chatter'||url.pathname.startsWith('/chatter/')){res.writeHead(308,{Location:'/chat'+url.pathname.slice(8)+url.search});return res.end();}
   if(url.pathname==='/pokemon-showdown/action'){const parts=[];let size=0;for await(const part of req){size+=part.length;if(size>8192){res.writeHead(413);return res.end();}parts.push(part);}const request=new Request('http://'+req.headers.host+req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:Buffer.concat(parts)}:{})});const result=await showdownGuestAuth(request);res.writeHead(result.status,Object.fromEntries(result.headers));return res.end(await result.text());}
   if(url.pathname==='/orbitcraft/health'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({ok:true,players:game.players.size,world:'public',release:RELEASE,pvp:true,size:SIZE,height:HEIGHT,minY:MIN_Y,chunkHeight:CHUNK_HEIGHT,chunkSize:CHUNK,simulationDistance:2,dev}));}
   let path;try{path=decodeURIComponent(url.pathname);}catch{res.writeHead(400);return res.end();}

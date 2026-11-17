@@ -5,7 +5,7 @@ import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const mime={js:'application/javascript',css:'text/css',html:'text/html',png:'image/png',webp:'image/webp',ogg:'audio/ogg',svg:'image/svg+xml',txt:'text/plain'};
-const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;res.setHeader('Content-Type',mime[path.split('.').pop()]||'application/octet-stream');res.end(path==='/chatter/retro-test.html'?'<html><body></body></html>':await readFile(root+path));}catch{res.statusCode=404;res.end();}}).listen(0,'127.0.0.1');
+const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;res.setHeader('Content-Type',mime[path.split('.').pop()]||'application/octet-stream');res.end(path==='/chat/retro-test.html'?'<html><body></body></html>':await readFile(root+path));}catch{res.statusCode=404;res.end();}}).listen(0,'127.0.0.1');
 await new Promise(r=>server.on('listening',r));
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader']});
 try{
@@ -29,8 +29,8 @@ try{
  await page.screenshot({path:'/tmp/retro-bowl-after-click.png'});
  assert.notDeepEqual(await page.locator('canvas').screenshot(),before,'New Game should respond to input');
  assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);assert.deepEqual(external,[]);
- await page.goto(base+'/chatter/retro-test.html');
- await page.evaluate(async()=>{const {initUnblockedGames}=await import('/chatter/unblocked-games.js');document.body.innerHTML='<main></main>';initUnblockedGames({menuBtn:()=>'',bindMenu:()=>{},ic:()=>''}).render(document.querySelector('main'));});
+ await page.goto(base+'/chat/retro-test.html');
+ await page.evaluate(async()=>{const {initUnblockedGames}=await import('/chat/unblocked-games.js');document.body.innerHTML='<main></main>';initUnblockedGames({menuBtn:()=>'',bindMenu:()=>{},ic:()=>''}).render(document.querySelector('main'));});
  await page.getByRole('button',{name:'Play Retro Bowl',exact:true}).click();
  await page.frameLocator('#ub-game').locator('canvas').waitFor();
  await page.waitForTimeout(6000);assert.equal(await page.locator('#ub-game').getAttribute('src'),'../games/retro-bowl/index.html');

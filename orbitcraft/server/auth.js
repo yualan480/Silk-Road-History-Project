@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../chatter/config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../chat/config.js';
 // Names and IDs always come from verified Orbit identity, never from the client.
 export async function authenticate(token, { orbitName = false } = {}) {
   if(typeof token!=='string'||token.length>8192)throw new Error('Sign in to Orbit first.');

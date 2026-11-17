@@ -19,7 +19,7 @@
     } catch (e) { if (window.top !== window.self) return 1; }
     if (matchMedia('(pointer:coarse)').matches || !matchMedia('(min-width:801px)').matches) return 1;
     /* Keep Orbit's desktop experience compact, matching the wider dashboard view. */
-    var isOrbit = /^\/chatter(?:\/|$)/.test(window.location.pathname);
+    var isOrbit = /^\/chat(?:\/|$)/.test(window.location.pathname);
     var defaultScale = isOrbit ? 0.8 : 1;
     try { var o = parseFloat(localStorage.getItem('stg_pagescale')); if (o >= 0.4 && o <= 1) return o; } catch (e) { /* storage unavailable */ }
     /* browser zoom = window width (not affected by zoom) / page width (shrinks as you zoom in) */

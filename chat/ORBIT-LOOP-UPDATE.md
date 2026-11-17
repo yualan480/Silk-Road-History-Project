@@ -42,7 +42,7 @@ No live database mutation or site publishing was performed.
 
 ## Packaged-site correction
 
-The generated `orbitcraft/.site/chatter/shop.js` still contained the old purchase
+The generated `orbitcraft/.site/chat/shop.js` still contained the old purchase
 card after the source edit. That package has now been rebuilt. Wrangler now runs
 the asset build automatically for both `wrangler deploy` and `wrangler dev`,
 including when invoked from the repository root or the orbitcraft directory.

@@ -101,7 +101,7 @@
   }
 
   // Reuse Orbit's Supabase URL and key so there is only one place to change them.
-  import('./chatter/config.js').then(function (c) {
+  import('./chat/config.js').then(function (c) {
     if (!window.supabase) throw new Error('Supabase library did not load');
     init(window.supabase.createClient(c.SUPABASE_URL, c.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } }), c);
   }).catch(function () {

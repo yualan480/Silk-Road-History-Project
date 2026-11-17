@@ -17,7 +17,7 @@ function svg(d,st,c){var id='g'+Math.random().toString(36).slice(2,6),defs='',fi
  var body='<path d="'+d+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'" stroke-linejoin="round" stroke-linecap="round"'+(st==='neon'?' filter="url(#f)"':'')+'/>';
  return'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs>'+defs+fx+'</defs>'+(st==='solid'||st==='glass'?'<path d="'+d+'" fill="#000" fill-opacity=".28" transform="translate(.8 1.2)"/>':'')+halo+body+gloss+'</svg>'}
 function url(s,x,y,fb){return'url("data:image/svg+xml,'+encodeURIComponent(s)+'") '+x+' '+y+','+fb}
-/* a cursor bought in the Orbit Shop (saved by chatter/shop-cursors.js) wins over the settings below. Only a data: picture is accepted. */
+/* a cursor bought in the Orbit Shop (saved by chat/shop-cursors.js) wins over the settings below. Only a data: picture is accepted. */
 function shopCur(){try{var o=JSON.parse(localStorage.getItem(SKEY)),ok=/^url\("data:image\/svg\+xml,[^"]*"\) \d+ \d+,(auto|pointer)$/;if(o&&ok.test(o.a)&&ok.test(o.p))return o}catch(e){}return null}
 function apply(o){o=o||get();var r=document.documentElement.style,sc=shopCur();
  if(sc){r.setProperty('--cur-arrow',sc.a);r.setProperty('--cur-pointer',sc.p);return}
@@ -25,7 +25,7 @@ function apply(o){o=o||get();var r=document.documentElement.style,sc=shopCur();
  r.setProperty('--cur-arrow',url(svg(ARROW,o.style,o.color),5,3,'auto'));r.setProperty('--cur-pointer',url(svg(HAND,o.style,o.color),13,3,'pointer'))}
 function set(o){var n=Object.assign(get(),o);try{localStorage.setItem(KEY,JSON.stringify(n))}catch(e){}apply(n);return n}
 /* settings controls, reused by Orbit and the main site. Returns an element. */
-function panel(){var st=get(),base=/\/(chatter|games)\//.test(location.pathname)?'../':'',w=document.createElement('div');w.className='curset';
+function panel(){var st=get(),base=/\/(chat|games)\//.test(location.pathname)?'../':'',w=document.createElement('div');w.className='curset';
  var sel=document.createElement('select');sel.setAttribute('aria-label','Cursor style');
  STYLES.forEach(function(s){var o=document.createElement('option');o.value=s[0];o.textContent=s[1];sel.appendChild(o)});sel.value=st.style;
  var row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:.5rem 0';

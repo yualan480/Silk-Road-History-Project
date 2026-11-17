@@ -4,8 +4,8 @@ import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 const site=fileURLToPath(new URL('../../',import.meta.url));
-const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;if(path==='/test'){res.setHeader('Content-Type','text/html');res.end(`<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/chatter/style.css"><link rel="stylesheet" href="/chatter/intelligence.css"></head><body><main id="main" style="height:100vh"></main><script type="module">
-import {initIntelligence} from '/chatter/intelligence.js';
+const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;if(path==='/test'){res.setHeader('Content-Type','text/html');res.end(`<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/chat/style.css"><link rel="stylesheet" href="/chat/intelligence.css"></head><body><main id="main" style="height:100vh"></main><script type="module">
+import {initIntelligence} from '/chat/intelligence.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 window.sent=[];window.errors=[];
 window.WebSocket=class {readyState=1;constructor(){window.socket=this;setTimeout(()=>this.onopen?.(),10)}send(s){const m=JSON.parse(s);sent.push(m);if(m.type==='auth'){this.onmessage({data:JSON.stringify({type:'identity',id:'alice'})});this.onmessage({data:JSON.stringify({type:'snapshot',online:[{id:'alice'}],messages:[],stars:[],links:[]})});}}close(){this.onclose?.()}};

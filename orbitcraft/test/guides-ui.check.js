@@ -4,8 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../../',import.meta.url));
-const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;if(path==='/test'){res.setHeader('Content-Type','text/html');res.end(`<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/chatter/style.css"><link rel="stylesheet" href="/chatter/guides.css"></head><body><main style="padding:40px"><h1>Welcome to Orbit</h1><input id="typing" aria-label="Message"><button id="settings">Settings</button></main><script type="module">
-import {initGuides,guidePreferences} from '/chatter/guides.js';
+const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;if(path==='/test'){res.setHeader('Content-Type','text/html');res.end(`<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/chat/style.css"><link rel="stylesheet" href="/chat/guides.css"></head><body><main style="padding:40px"><h1>Welcome to Orbit</h1><input id="typing" aria-label="Message"><button id="settings">Settings</button></main><script type="module">
+import {initGuides,guidePreferences} from '/chat/guides.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 window.metadata={};window.now=10000;window.toasts=[];window.user='alice';window.S={me:{id:'alice'},loaded:true,view:'home'};
 window.sb={auth:{getUser:async()=>({data:{user:{id:user,user_metadata:metadata[user]||{}}}}),getSession:async()=>({data:{session:{user:{id:user}}}}),updateUser:async value=>{metadata[user]=value.data;return {data:{user:{id:user,user_metadata:value.data}}}}}};

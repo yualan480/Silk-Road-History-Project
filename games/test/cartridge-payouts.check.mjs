@@ -15,7 +15,7 @@ for(const score of [0,-1,NaN,Infinity,-Infinity,undefined,10000001])assert.equal
 for(let i=1;i<=1000;i++){const score=(i*9173)%10000000+1,rate=(i*1307)%100000+1;bank.rates.precision=rate/1000;assert.equal(bank.preview('precision',score),Number((BigInt(score)*BigInt(rate)+500n)/1000n));}
 assert.equal(bank.preview('unknown',1000000),0);assert.equal(bank.preview('__proto__',1000000),0);
 const {PGlite}=await import(process.env.PGLITE_MODULE||'@electric-sql/pglite'),db=new PGlite();
-const migration=await readFile(new URL('../../chatter/migration-game-payouts-uncapped.sql',import.meta.url),'utf8');
+const migration=await readFile(new URL('../../chat/migration-game-payouts-uncapped.sql',import.meta.url),'utf8');
 const user=n=>`00000000-0000-4000-a000-${String(n).padStart(12,'0')}`;
 async function claim(id,game,score,ref){await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);await db.exec('set role authenticated');try{return (await db.query('select public.claim_game_orbits($1,$2,$3) v',[game,score,ref])).rows[0].v;}finally{await db.exec('reset role');}}
 const scalar=async(sql,args=[])=>(await db.query(sql,args)).rows[0].v;

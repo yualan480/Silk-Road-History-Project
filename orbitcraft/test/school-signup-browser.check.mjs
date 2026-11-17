@@ -1,8 +1,8 @@
 import {chromium} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import {schoolSignupDetails} from '../../chatter/school-signup.js';
-const source=await readFile(new URL('../../chatter/app.js',import.meta.url),'utf8');
+import {schoolSignupDetails} from '../../chat/school-signup.js';
+const source=await readFile(new URL('../../chat/app.js',import.meta.url),'utf8');
 const view=source.slice(source.indexOf("function authView(mode = 'login')"),source.indexOf('function recoveryView()'));
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
 try {

@@ -866,7 +866,7 @@
       st.textContent = '.coin-toast{position:fixed;top:64px;right:14px;z-index:2147483000;max-width:260px;padding:.6rem .85rem .6rem .7rem;border-radius:10px;' +
         'background:#14142a;color:#ecebf5;border:2px solid #ffd166;box-shadow:0 6px 0 rgba(0,0,0,.35);font:600 14px/1.35 "Pixelify Sans","Courier New",monospace;' +
         'display:flex;gap:.6rem;align-items:flex-start;transform:translateY(-12px);opacity:0;transition:transform .25s,opacity .25s;pointer-events:none}' +
-        '.coin-toast.on{transform:none;opacity:1}.coin-toast .ct-coin{flex:none;width:26px;height:26px;border-radius:50%;background:url(../chatter/logo.svg) center/contain no-repeat}.coin-toast b{color:#ffd166;font-size:16px}.coin-toast small{display:block;color:#a9a8c4;font-size:12px;font-weight:500}' +
+        '.coin-toast.on{transform:none;opacity:1}.coin-toast .ct-coin{flex:none;width:26px;height:26px;border-radius:50%;background:url(../chat/logo.svg) center/contain no-repeat}.coin-toast b{color:#ffd166;font-size:16px}.coin-toast small{display:block;color:#a9a8c4;font-size:12px;font-weight:500}' +
         '@media (prefers-reduced-motion:reduce){.coin-toast{transition:none}}';
       document.head.appendChild(st);
     }

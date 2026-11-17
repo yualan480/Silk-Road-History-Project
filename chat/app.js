@@ -227,7 +227,7 @@ const setLr = id => { try { localStorage.setItem('chatter-lr-' + id, new Date().
 const EMOJI = ['😀', '😂', '😊', '😍', '🥹', '😎', '🤔', '😭', '😮', '😡', '👍', '👎', '👏', '🙏', '🔥', '🎉', '❤️', '💀', '✨', '👀', '🎮', '🍕', '☕', '🌈', '💯', '🤝', '😴', '🥳', '😅', '🙌'];
 
 if (SUPABASE_URL.includes('YOUR-PROJECT')) {
-  root.innerHTML = `<div class="authwrap"><div class="card">${logo}<h1>Setup needed</h1><p class="muted">Open <code>chatter/config.js</code> and paste your Supabase project URL and anon key. See README.md.</p></div></div>`;
+  root.innerHTML = `<div class="authwrap"><div class="card">${logo}<h1>Setup needed</h1><p class="muted">Open <code>chat/config.js</code> and paste your Supabase project URL and anon key. See README.md.</p></div></div>`;
   throw new Error('Orbit: config.js not filled in');
 }
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });

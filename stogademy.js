@@ -3,7 +3,7 @@
 // SHA-256 of the unlock code (default code is set below). To change it, replace this hash with the SHA-256 of your new code.
 const CODE_HASH='afe2b11fd4b1968a88cdd65fc26135a548a77db445e2cc080edd23c8131666c7';
 // Pages shown after the code is entered. Names are intentionally neutral; rename them however you like.
-const EXTRAS=[{name:'Orbit',desc:'Games and chat',ic:'●',view:'chat',src:'chatter/'}];
+const EXTRAS=[{name:'Orbit',desc:'Games and chat',ic:'●',view:'chat',src:'chat/'}];
 const TOOLS=[{id:'calc',name:'Calculator',desc:'Graphing, scientific, and advanced math tools.',ic:'🧮',route:'#/calc'},
 {id:'study',name:'Study Center',desc:'Flashcards, quizzes, and study guides.',ic:'🗂️',route:'#/study'},{id:'notes',name:'Notes & Writing',desc:'Take notes, write essays, and manage citations.',ic:'📝',route:'#/notes'},
 {id:'science',route:'#/science',name:'Science Tools',desc:'Chemistry, physics, and biology resources.',ic:'🧪'},{id:'ap',route:'#/ap',name:'AP & Exam Prep',desc:'AP reviews, practice tests, and timed quizzes.',ic:'🎓'},

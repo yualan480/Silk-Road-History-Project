@@ -141,7 +141,7 @@
   function listMine(t) {
     var uid = uidOf(t);
     return api('/rest/v1/recordings?select=*&user_id=eq.' + uid + '&order=id.desc', {}, t).then(function (r) {
-      if (!r.ok) return errText(r, 'Could not load your recordings.').then(function (m) { throw new Error(/relation|does not exist|schema cache/i.test(m) ? 'Recordings are not set up yet (run chatter/migration-recordings.sql in the Orbit Supabase project).' : m); });
+      if (!r.ok) return errText(r, 'Could not load your recordings.').then(function (m) { throw new Error(/relation|does not exist|schema cache/i.test(m) ? 'Recordings are not set up yet (run chat/migration-recordings.sql in the Orbit Supabase project).' : m); });
       return r.json();
     });
   }
@@ -160,8 +160,8 @@
       x.onload = function () {
         if (x.status >= 200 && x.status < 300) { resolve(); return; }
         var why = ''; try { var j = JSON.parse(x.responseText); why = j.message || j.error || ''; } catch (e) { /* ignore */ }
-        if (/bucket not found/i.test(why)) why = 'Recording storage is not set up yet (run chatter/migration-recordings.sql in the Orbit Supabase project).';
-        else if (/row-level security|policy|unauthorized|not allowed/i.test(why)) why = 'Uploads are blocked by Supabase permissions (re-run chatter/migration-recordings.sql).';
+        if (/bucket not found/i.test(why)) why = 'Recording storage is not set up yet (run chat/migration-recordings.sql in the Orbit Supabase project).';
+        else if (/row-level security|policy|unauthorized|not allowed/i.test(why)) why = 'Uploads are blocked by Supabase permissions (re-run chat/migration-recordings.sql).';
         else if (/exceeded|too large|maximum/i.test(why)) why = 'That clip is too big to store.';
         reject(new Error(why || 'Upload failed (' + x.status + ').'));
       };
@@ -302,7 +302,7 @@
     token().then(function (t) {
       if (!t) {
         box.replaceChildren(el('p', null, 'Your Orbit login has expired. Open Orbit and log in again to see your recordings.'));
-        var a = el('a', 'gr-b pri', 'Open Orbit'); a.href = '../chatter/'; a.target = '_top'; a.style.textDecoration = 'none'; a.style.display = 'inline-block'; box.appendChild(a);
+        var a = el('a', 'gr-b pri', 'Open Orbit'); a.href = '../chat/'; a.target = '_top'; a.style.textDecoration = 'none'; a.style.display = 'inline-block'; box.appendChild(a);
         return;
       }
       return Promise.all([listMine(t), keepLimit()]).then(function (res) {

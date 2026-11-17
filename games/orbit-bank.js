@@ -16,7 +16,7 @@
     try { window.dispatchEvent(new CustomEvent('coins-changed', { detail: { balance: bal } })); } catch (e) { /* ignore */ }
   }
   function setBal(n) { n = Math.max(0, Math.floor(Number(n)) || 0); if (n === bal) return; bal = n; put(CACHE, String(n)); fire(); }
-  function anonKey() { return anonP || (anonP = import('../chatter/config.js').then(function (c) { return c.SUPABASE_ANON_KEY; })); }
+  function anonKey() { return anonP || (anonP = import('../chat/config.js').then(function (c) { return c.SUPABASE_ANON_KEY; })); }
   function rpc(name, args) {
     var s = session();
     if (!s) return Promise.reject(new Error('Log in to Orbit first.'));

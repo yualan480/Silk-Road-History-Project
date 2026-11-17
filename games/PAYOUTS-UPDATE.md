@@ -13,7 +13,7 @@ files cannot replace the database payout function.
 
 1. Open the **Orbit Supabase project → SQL Editor → New query**. Use the project
    that contains `orbit_ledger` and `game_rates`, not the separate score boards.
-2. Run the full `chatter/migration-game-payouts-uncapped.sql` file **last**, after
+2. Run the full `chat/migration-game-payouts-uncapped.sql` file **last**, after
    the existing game-rate setup. Do not rerun older capped payout migrations.
 3. Publish/deploy the updated game frontend and reload the games.
 
@@ -37,6 +37,6 @@ rounding, malformed input, anonymous access, cooldowns, repeated round refs,
 owner-defined rates, unchanged unrelated ledger limits and safe reruns.
 The migration is verified locally. A Supabase project administrator must apply it to the live database; a Render deployment cannot apply SQL.
 
-Direct SQL file: https://raw.githubusercontent.com/yualan480/Stogademy/main/chatter/migration-game-payouts-uncapped.sql
+Direct SQL file: https://raw.githubusercontent.com/yualan480/Stogademy/main/chat/migration-game-payouts-uncapped.sql
 
 Copy the entire file into a new SQL Editor query, from `begin;` to `commit;`. The current game-rate-table setup also installs this uncapped function.

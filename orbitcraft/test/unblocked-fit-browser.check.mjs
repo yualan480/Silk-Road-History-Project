@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../../',import.meta.url));
-const catalog=await import('data:text/javascript;base64,'+Buffer.from(await readFile(root+'chatter/unblocked-catalog.js')).toString('base64'));
+const catalog=await import('data:text/javascript;base64,'+Buffer.from(await readFile(root+'chat/unblocked-catalog.js')).toString('base64'));
 const mime={js:'application/javascript',css:'text/css',html:'text/html',png:'image/png',jpg:'image/jpeg',webp:'image/webp',json:'application/json',svg:'image/svg+xml',mp3:'audio/mpeg',ogg:'audio/ogg',wasm:'application/wasm',unityweb:'application/octet-stream'};
 const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;res.setHeader('Content-Type',mime[path.split('.').pop()]||'application/octet-stream');res.end(path==='/gate.js'?'':await readFile(root+path));}catch{res.statusCode=404;res.end();}}).listen(0,'127.0.0.1');await new Promise(r=>server.on('listening',r));
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});

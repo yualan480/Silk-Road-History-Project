@@ -12,7 +12,7 @@ try{
  await page.route('**/*',async route=>{const url=new URL(route.request().url());if(url.origin!=='http://orbit-packaged.test')return route.abort();if(url.pathname==='/harness')return route.fulfill({contentType:'text/html',body:'<!doctype html><main id="main"></main><span class="av" data-uid="owner"></span>'});const file=resolve(root,'.'+url.pathname);if(!file.startsWith(root))return route.abort();try{return route.fulfill({body:await readFile(file),contentType:extname(file)==='.js'?'text/javascript':'application/octet-stream'});}catch{return route.fulfill({status:404,body:''});}});
  await page.goto('http://orbit-packaged.test/harness');
  const result=await page.evaluate(async()=>{
-  const {initShop}=await import('/chatter/shop.js?v=12');
+  const {initShop}=await import('/chat/shop.js?v=12');
   const S={me:{id:'viewer',display_name:'Viewer',avatar_color:'#123456'},view:'shop',orbits:1000000,profiles:new Map([['owner',{id:'owner',display_name:'30yua'}]])},calls=[];
   const rows={shop_items:[{id:'normal_ring',kind:'frame',name:'Normal Ring',price:50,rarity:'common',featured:true,art:{shape:'ring',c1:'#123456',c2:'#abcdef'},blurb:'A normal shop item'}],shop_inventory:[],shop_requests:[],orbit_loop:[{id:1,holder:'owner',price:90000,takes:1}]};
   const sb={from(table){const q={select(){return q},eq(){return q},order(){return q},limit(){return q},maybeSingle(){return Promise.resolve({data:rows[table]?.[0]||null})},then(done,fail){return Promise.resolve({data:rows[table]||[],error:null}).then(done,fail)}};return q;},async rpc(fn,args){calls.push({fn,args});return {data:fn==='buy_shop_item'?999950:0,error:null};},channel(){return {on(){return this},subscribe(){return this}};}};

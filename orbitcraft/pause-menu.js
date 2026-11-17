@@ -7,6 +7,6 @@ export function createPauseMenu({openDialog,closeDialog,bindings,stats,players,d
  if(page==='advancements'){for(const [name,ok]of [['First block',s.mined>0],['Builder: 10 blocks placed',s.placed>=10],['Miner: 100 blocks mined',s.mined>=100]])line((ok?'✓ ':'□ ')+name);}
  if(page==='reporting'){line('Players online:');players().forEach(p=>line(p.name));line('Use Orbit to contact the team about a player.');}
  if(page==='feedback')line('Share feedback with the team in Orbit.');
- if(['links','feedback','reporting'].includes(page)){for(const [name,href]of [['Orbit','../chatter/'],['Orbit Games','../games/']]){const a=document.createElement('a');a.textContent=name;a.href=href;a.target='_blank';a.rel='noopener';area.append(a);}}
+ if(['links','feedback','reporting'].includes(page)){for(const [name,href]of [['Orbit','../chat/'],['Orbit Games','../games/']]){const a=document.createElement('a');a.textContent=name;a.href=href;a.target='_blank';a.rel='noopener';area.append(a);}}
  openDialog('pause-details');});return dialog;
 }

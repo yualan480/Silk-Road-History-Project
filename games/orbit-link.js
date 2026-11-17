@@ -11,7 +11,7 @@
       var d = document.createElement('div');
       d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:1.5rem;background:rgba(4,6,30,.92);color:#f4f3ff;text-align:center;font:16px/1.5 system-ui,sans-serif';
       d.innerHTML = '<div style="max-width:380px"><h2 style="margin:0 0 .6rem;font-size:1.5rem">Log in to Orbit to play</h2><p style="margin:0 0 1.2rem;color:#dcdaf3">Orbit Games uses your Orbit account for your name, scores and Orbits.</p><button type="button" style="padding:.7rem 1.4rem;border:0;border-radius:8px;background:#2563eb;color:#fff;font:600 1rem system-ui,sans-serif;cursor:pointer">Open Orbit</button></div>';
-      d.querySelector('button').onclick = function () { try { top.location.hash = '#/chat'; } catch (e) { location.href = '../chatter/'; } };
+      d.querySelector('button').onclick = function () { try { top.location.hash = '#/chat'; } catch (e) { location.href = '../chat/'; } };
       document.body.appendChild(d);
     });
     return;
@@ -41,7 +41,7 @@
       img.onerror = reject; img.src = url;
     });
   }
-  import('../chatter/config.js').then(function (c) {
+  import('../chat/config.js').then(function (c) {
     return fetch(ORBIT + '/rest/v1/profiles?id=eq.' + encodeURIComponent(uid) + '&select=display_name,avatar_url,avatar_color', { headers: { apikey: c.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + session.access_token } });
   }).then(function (r) { return r.json(); }).then(function (rows) {
     var p = rows && rows[0], n = p && String(p.display_name || '').trim().slice(0, 12);   // the games' database keeps names to 12 characters

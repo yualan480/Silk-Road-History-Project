@@ -1,4 +1,4 @@
-import {SUPABASE_URL,SUPABASE_ANON_KEY} from '../../chatter/config.js';
+import {SUPABASE_URL,SUPABASE_ANON_KEY} from '../../chat/config.js';
 import {SKIN_PRICE,validSkin} from '../skins.js';
 async function wallet(p,path,{body}={}){if(!p.authToken)throw Error('Sign in to Orbit to change your skin.');const response=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{method:body?'POST':'GET',headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${p.authToken}`,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(10000)});const data=await response.json();if(!response.ok){const error=Error(data?.message||'Could not reach your Orbit wallet. Please try again.');error.definitive=true;throw error;}return data;}
 export const skinWallet={receipt:async(p,key)=>(await wallet(p,`orbit_ledger?user_id=eq.${encodeURIComponent(p.id)}&reason=eq.spend&amount=eq.-${SKIN_PRICE}&ref=like.${key}:*&select=ref&limit=1`)).length>0,spend:(p,key)=>wallet(p,'rpc/spend_orbits',{body:{p_item:key,p_price:SKIN_PRICE}})};

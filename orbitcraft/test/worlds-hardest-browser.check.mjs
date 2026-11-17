@@ -5,7 +5,7 @@ import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const mime={js:'application/javascript',css:'text/css',html:'text/html',png:'image/png',mp3:'audio/mpeg',svg:'image/svg+xml'};
-const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;res.setHeader('Content-Type',mime[path.split('.').pop()]||'application/octet-stream');res.end(path==='/chatter/whg-test.html'?'<html><body></body></html>':await readFile(root+path));}catch{res.statusCode=404;res.end();}}).listen(0,'127.0.0.1');await new Promise(r=>server.on('listening',r));
+const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;res.setHeader('Content-Type',mime[path.split('.').pop()]||'application/octet-stream');res.end(path==='/chat/whg-test.html'?'<html><body></body></html>':await readFile(root+path));}catch{res.statusCode=404;res.end();}}).listen(0,'127.0.0.1');await new Promise(r=>server.on('listening',r));
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
 try{
  const base=`http://127.0.0.1:${server.address().port}`;
@@ -26,6 +26,6 @@ try{
   await page.screenshot({path:`/tmp/worlds-hardest-${phone?'phone':'desktop'}.png`});assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);
   await context.close();
  }
- const page=await browser.newPage();await page.goto(base+'/chatter/whg-test.html');await page.evaluate(async()=>{const {initUnblockedGames}=await import('/chatter/unblocked-games.js');document.body.innerHTML='<main></main>';initUnblockedGames({menuBtn:()=>'',bindMenu:()=>{},ic:()=>''}).render(document.querySelector('main'));});await page.getByRole('button',{name:'Play World’s Hardest Game',exact:true}).click();await page.frameLocator('#ub-game').locator('canvas').waitFor();await page.evaluate(()=>document.fullscreenElement?document.exitFullscreen():undefined);await page.getByRole('button',{name:'‹ Gallery',exact:true}).click();
+ const page=await browser.newPage();await page.goto(base+'/chat/whg-test.html');await page.evaluate(async()=>{const {initUnblockedGames}=await import('/chat/unblocked-games.js');document.body.innerHTML='<main></main>';initUnblockedGames({menuBtn:()=>'',bindMenu:()=>{},ic:()=>''}).render(document.querySelector('main'));});await page.getByRole('button',{name:'Play World’s Hardest Game',exact:true}).click();await page.frameLocator('#ub-game').locator('canvas').waitFor();await page.evaluate(()=>document.fullscreenElement?document.exitFullscreen():undefined);await page.getByRole('button',{name:'‹ Gallery',exact:true}).click();
  console.log('PASS World’s Hardest Game: real loader, menus and level 1, desktop keyboard and phone touch movement, saved progress, responsive layout, gallery launch/exit.');
 }finally{await browser.close();server.close();}

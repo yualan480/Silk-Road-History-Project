@@ -118,7 +118,7 @@ loads the profile username using the verified user ID and the user’s existing
 Supabase permissions. It ignores client-supplied names, inventories, coordinates,
 and block targets. Mining uses a server-side line-of-sight ray; placement checks
 resources, reach, and other players. Block edits and inventories commit together.
-The only Supabase key used is the existing public anon key in `chatter/config.js`.
+The only Supabase key used is the existing public anon key in `chat/config.js`.
 Never put a service-role key in browser files.
 
 Block/inventory edits save immediately. Movement saves every two seconds and on

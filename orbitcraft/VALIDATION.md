@@ -15,7 +15,7 @@ Validated November 1, 2026, using Node.js 24.19.0.
 - `wrangler deploy --dry-run`: passed, including the public-world Durable Object
   and static asset bindings. This did not deploy anything.
 - Original upload comparison: all 253 original files remain. Only
-  `chatter/app.js` and `games/index.html` changed, for the Orbitcraft route and
+  `chat/app.js` and `games/index.html` changed, for the Orbitcraft route and
   catalog entry. Existing game logic and Supabase schemas were not modified.
 
 Live Cloudflare deployment and live Supabase-account sign-in are not validated:

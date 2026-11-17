@@ -142,7 +142,7 @@ import {LAND_PATHS,SEA_ROUTE,CITIES,CHAPTERS} from './map-data.js?v=1';
     for(const name of ['chat','games']){
       const frame=$('f-'+name);frame.hidden=name!==view;
       if(name===view&&!frame.getAttribute('src')){
-        let src=name==='chat'?'chatter/':'games/';
+        let src=name==='chat'?'chat/':'games/';
         try{const pending=JSON.parse(sessionStorage.getItem('stg_fwd')||'null');if(pending?.v===name){src+=pending.u||'';sessionStorage.removeItem('stg_fwd');}}catch{}
         frame.src=src;
       }else if(name!==view&&frame.getAttribute('src'))frame.removeAttribute('src');

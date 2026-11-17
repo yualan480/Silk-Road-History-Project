@@ -27,7 +27,7 @@ import { BLOCKS,SLOTS,CHUNK,HEIGHT,MIN_Y,CHUNK_HEIGHT,SIZE,chunkIndex,inside,res
 import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261112-physics47';
 import { createPlayerModel } from './players.js?v=20261112-physics47';
 import { createTextures, createAtmosphere, createHeldBlock, itemSpriteGeometry, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261112-physics47';
-import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
+import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chat/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const bindings=createKeybinds();const sounds=createSounds();
 const chunks=new Map(),pending=new Map(),dirty=new Set(),edits=new Map(),avatars=new Map();
