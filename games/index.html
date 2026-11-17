@@ -2796,7 +2796,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="leaderboard.js?v=20261115-tournaments"></script>
+  <script src="leaderboard.js?v=20261117-score-cap"></script>
   <script src="recorder.js"></script>
   <script src="site-config.js?v=20261109-alphabetical"></script>
   <script src="voice.js"></script>
@@ -3034,7 +3034,7 @@
         document.querySelectorAll('[data-best]').forEach(el => {
           let n = 0;
           try { n = parseInt(localStorage.getItem(el.dataset.best), 10) || 0; } catch (e) { n = 0; }
-          el.textContent = n > 0 ? (el.dataset.best==='wordle-best' ? Leaderboard.formatScore('wordle',n) : n.toLocaleString()) : '-';
+          el.textContent = n > 0 ? (el.dataset.best==='wordle-best' ? Leaderboard.formatScore('wordle',n) : Leaderboard.formatScore('',n)) : '-';
         });
       }
       showBests();
@@ -4208,7 +4208,7 @@
         const rankCells = SP_GAMES.map((g, i) => {
           const r = spEl('div', 'sp-game', undefined, statsPop);
           spEl('span', '', g[1], r);
-          spEl('span', '', bests[i] > 0 ? bests[i].toLocaleString() : '-', r);
+          spEl('span', '', bests[i] > 0 ? Leaderboard.formatScore('',bests[i]) : '-', r);
           return spEl('span', '', '', r);
         });
 

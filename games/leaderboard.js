@@ -176,7 +176,7 @@
   }
 
   /* ---------- scores ---------- */
-  function formatScore(game,score){if(game!=='wordle')return String(score);var rows=7-Math.floor(score/1000000),seconds=999999-score%1000000;return rows+'/6 · '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
+  function formatScore(game,score){if(game!=='wordle')return Math.min(Math.floor(Number(score)),MAX_SCORE).toLocaleString();var rows=7-Math.floor(score/1000000),seconds=999999-score%1000000;return rows+'/6 · '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
   function headers(extra) {
     var h = { apikey: KEY, Authorization: 'Bearer ' + KEY };
     for (var k in extra) h[k] = extra[k];
@@ -227,7 +227,10 @@
     score = Math.floor(Number(score));
     var name = getName();
     if (GAMES.indexOf(game) === -1 || !name || !isCleanName(name)) return Promise.resolve(false);
-    if (!(score > 0) || score > MAX_SCORE) return Promise.resolve(false);
+    if (!Number.isFinite(score) || !(score > 0)) return Promise.resolve(false);
+    // The database permits at most 10 million. Save that cap as a new best
+    // instead of dropping a higher real score and leaving an older 9M result.
+    score = Math.min(score, MAX_SCORE);
     markPlayed();   // a real score means a game was played today
     var avatar = getAvatar(), av = hash(avatar);
     var memo = 'lb-sent-' + game + '-' + name.toLowerCase();
@@ -386,8 +389,8 @@
   function submit(game, score) {
     tournamentRound(game, Math.floor(Number(score))); // real round, not historical best
     var p = sendScore(game, score);
-    var numeric = Math.floor(Number(score)), previous = guideBests[game];
-    if (GAMES.indexOf(game) !== -1 && numeric > 0 && numeric <= MAX_SCORE && numeric > previous) {
+    var numeric = Math.min(Math.floor(Number(score)), MAX_SCORE), previous = guideBests[game];
+    if (GAMES.indexOf(game) !== -1 && Number.isFinite(numeric) && numeric > 0 && numeric > previous) {
       guideBests[game] = numeric;
       p.then(function (saved) {
         if (!saved) { if (guideBests[game] === numeric) guideBests[game] = previous; return; }
