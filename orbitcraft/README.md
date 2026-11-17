@@ -1,6 +1,6 @@
 # Orbitcraft
 
-Orbitcraft adds a real multiplayer voxel sandbox to the supplied Stogademy site.
+Orbitcraft adds a real multiplayer voxel sandbox to the Silk Road site.
 It appears immediately below Orbit Casino inside Orbit Fun, and in the Orbit
 Games catalog. No other game scripts, casino code, shop code, or database tables
 were changed.
