@@ -7,7 +7,7 @@ import { initGuides } from './guides.js?v=3';
 import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import * as CONFIG from './config.js';
+import * as CONFIG from './config.js?v=2';
 import { initOrbit } from './orbit.js?v=26';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
