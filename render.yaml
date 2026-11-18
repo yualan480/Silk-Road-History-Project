@@ -11,3 +11,20 @@ services:
         value: "24"
       - key: HOST
         value: 0.0.0.0
+
+      - key: ORBIT_SEARCH_URL
+        sync: false
+  - type: web
+    name: silk-road-orbit-search
+    runtime: node
+    plan: free
+    buildCommand: npm --prefix orbit-search ci --omit=dev
+    startCommand: npm --prefix orbit-search start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: HOST
+        value: 0.0.0.0
+      - key: ORBIT_SEARCH_PARENT_ORIGIN
+        value: https://silkroadhistoryproject.onrender.com

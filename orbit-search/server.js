@@ -1,0 +1,93 @@
+import http from 'node:http';
+import { resolve, dirname, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { server as wisp, logging } from '@mercuryworkshop/wisp-js/server';
+import { authenticate } from '../orbitcraft/server/auth.js';
+import { createSessions } from './security.js';
+const root = dirname(fileURLToPath(import.meta.url));
+export function createSearchServer({verifyIdentity = authenticate, parentOrigin = process.env.ORBIT_SEARCH_PARENT_ORIGIN || 'https://silkroadhistoryproject.onrender.com'} = {}) {
+const parent = new URL(parentOrigin).origin;
+const sessions = createSessions();
+const attempts = new Map();
+Object.assign(wisp.options, {
+  allow_private_ips: false, allow_loopback_ips: false, allow_direct_ip: false,
+  allow_udp_streams: false, port_whitelist: [80, 443],
+  stream_limit_total: 64, stream_limit_per_host: 24, parse_real_ip: false
+});
+logging.set_level(logging.ERROR);
+const vendors = {
+  '/vendor/scramjet/': '@mercuryworkshop/scramjet/dist/',
+  '/vendor/baremux/': '@mercuryworkshop/bare-mux/dist/',
+  '/vendor/epoxy/': '@mercuryworkshop/epoxy-transport/dist/'
+};
+const mime = {'.js':'text/javascript', '.mjs':'text/javascript', '.html':'text/html; charset=utf-8', '.css':'text/css', '.json':'application/json', '.wasm':'application/wasm'};
+const server = http.createServer(async (req, res) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Content-Security-Policy', `frame-ancestors ${parent}`);
+  const url = new URL(req.url, 'http://local');
+  if (url.pathname === '/health') { res.writeHead(200); return res.end('Orbit Search ready'); }
+  if (url.pathname === '/api/session') {
+    res.setHeader('Cache-Control','no-store');
+    if (req.headers.origin !== parent) { res.writeHead(403); return res.end('Open Orbit Search from Orbit.'); }
+    res.setHeader('Access-Control-Allow-Origin', parent);
+    res.setHeader('Vary', 'Origin');
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization');
+      res.setHeader('Access-Control-Allow-Methods', 'POST');
+      res.writeHead(204); return res.end();
+    }
+    if (req.method !== 'POST') { res.writeHead(405); return res.end(); }
+    const ip = req.socket.remoteAddress;
+    const now = Date.now();
+    for (const [key, value] of attempts) if (now - value.start > 60000) attempts.delete(key);
+    const rate = attempts.get(ip) || {start: now, count: 0};
+    attempts.set(ip, rate);
+    if (++rate.count > 60) { res.writeHead(429); return res.end('Please wait a minute and retry.'); }
+    try {
+      const identity = await verifyIdentity((req.headers.authorization || '').replace(/^Bearer /, ''));
+      res.setHeader('Content-Type','application/json');
+      res.end(JSON.stringify(sessions.issue(identity)));
+    } catch { res.writeHead(401); res.end('Sign in to Orbit again, then retry Orbit Search.'); }
+    return;
+  }
+  if (url.pathname === '/config.json') { res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify({parent})); }
+  let pathname;
+  try { pathname = decodeURIComponent(url.pathname); } catch { res.writeHead(400); return res.end(); }
+  let file;
+  for (const [prefix, directory] of Object.entries(vendors)) {
+    if (!pathname.startsWith(prefix)) continue;
+    const name = pathname.slice(prefix.length);
+    if (!/^[a-zA-Z0-9._-]+$/.test(name) || name.startsWith('.') || !/\.(js|mjs|wasm)$/.test(name)) break;
+    file = resolve(root, 'node_modules', directory, name);
+  }
+  if (!file) {
+    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/address.js'].includes(pathname)) { res.writeHead(404); return res.end(); }
+    file = resolve(root, 'public', pathname === '/' ? 'index.html' : pathname.slice(1));
+  }
+  try {
+    const info = await stat(file);
+    res.writeHead(200, {'Content-Type':mime[extname(file)] || 'application/octet-stream', 'Content-Length':info.size, 'Cache-Control':'no-cache'});
+    const stream = createReadStream(file); stream.on('error', () => res.destroy()); res.on('close', () => stream.destroy()); stream.pipe(res);
+  } catch { res.writeHead(404); res.end('Not found'); }
+});
+server.on('upgrade', (req, socket, head) => {
+  const url = new URL(req.url, 'http://local');
+  const session = sessions.get(url.searchParams.get('ticket'));
+  const origin = req.headers.origin;
+  let ownOrigin=false;try{ownOrigin=!!origin&&new URL(origin).host===req.headers.host;}catch{}
+  // Only the dedicated proxy origin can open its relay; never expose a public unauthenticated Wisp server.
+  if (url.pathname !== '/wisp/' || !session || !ownOrigin || session.connections.size >= 3) {
+    socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;
+  }
+  session.connections.add(socket);
+  const expiry = setTimeout(() => socket.destroy(), Math.max(1, session.expires - Date.now())); expiry.unref();
+  socket.on('close', () => { clearTimeout(expiry); session.connections.delete(socket); });
+  req.url = '/wisp/';
+  wisp.routeRequest(req, socket, head);
+});
+return server;
+}
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) createSearchServer().listen(Number(process.env.PORT || 8790), process.env.HOST || '0.0.0.0', () => console.log('Orbit Search listening'));

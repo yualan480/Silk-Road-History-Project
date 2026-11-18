@@ -21,13 +21,19 @@ const game=new Dimensions(store);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.webp':'image/webp','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://local');
+  if(url.pathname==='/orbit-search/config') {
+    const configured=process.env.ORBIT_SEARCH_URL;let searchUrl=null;
+    try{if(configured){const target=new URL(configured);if(target.protocol==='https:'&&target.host!==req.headers.host)searchUrl=target.origin;}}catch{}
+    res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});return res.end(JSON.stringify({url:searchUrl}));
+  }
+  if(url.pathname.startsWith('/orbit-search/')){res.writeHead(404);return res.end();}
   if(url.pathname==='/chatter'||url.pathname.startsWith('/chatter/')){res.writeHead(308,{Location:'/chat'+url.pathname.slice(8)+url.search});return res.end();}
   if(url.pathname==='/pokemon-showdown/action'){const parts=[];let size=0;for await(const part of req){size+=part.length;if(size>8192){res.writeHead(413);return res.end();}parts.push(part);}const request=new Request('http://'+req.headers.host+req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:Buffer.concat(parts)}:{})});const result=await showdownGuestAuth(request);res.writeHead(result.status,Object.fromEntries(result.headers));return res.end(await result.text());}
   if(url.pathname==='/orbitcraft/health'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({ok:true,players:game.players.size,world:'public',release:RELEASE,pvp:true,size:SIZE,height:HEIGHT,minY:MIN_Y,chunkHeight:CHUNK_HEIGHT,chunkSize:CHUNK,simulationDistance:2,dev}));}
   let path;try{path=decodeURIComponent(url.pathname);}catch{res.writeHead(400);return res.end();}
   if(path==='/orbitcraft/vendor/three.module.js')path='/orbitcraft/node_modules/three/build/three.module.js';
   else if(path==='/orbitcraft/vendor/three.core.js')path='/orbitcraft/node_modules/three/build/three.core.js';
-  else if(!/^\/games\/pokemon-showdown\/data\/[a-z0-9/_-]+\.js$/.test(path)&&!/^\/games\/subway-surfers\/assets\/data\/(config|strings_en|chunks_idle|chunks_game)\.json$/.test(path)&&path.split('/').some(p=>p.startsWith('.')||['node_modules','server','test','data','cloudflare'].includes(p))){res.writeHead(404);return res.end();}
+  else if(!/^\/games\/pokemon-showdown\/data\/[a-z0-9/_-]+\.js$/.test(path)&&!/^\/games\/subway-surfers\/assets\/data\/(config|strings_en|chunks_idle|chunks_game)\.json$/.test(path)&&path.split('/').some(p=>p.startsWith('.')||['node_modules','server','test','data','cloudflare','orbit-search'].includes(p))){res.writeHead(404);return res.end();}
   let file=resolve(root,'.'+path);
   if(file!==root&&!file.startsWith(root+'/')){res.writeHead(403);return res.end();}
   try{if((await stat(file)).isDirectory())file=resolve(file,'index.html');const info=await stat(file);if(!info.isFile())throw new Error('Not a file');res.writeHead(200,{'Content-Type':mime[extname(file)]||'application/octet-stream','Content-Length':info.size,'X-Content-Type-Options':'nosniff'});const stream=createReadStream(file);stream.once('error',()=>res.destroy());res.once('close',()=>stream.destroy());stream.pipe(res);}catch{res.writeHead(404);res.end('Not found');}

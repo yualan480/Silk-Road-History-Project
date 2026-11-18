@@ -4,7 +4,7 @@ import { dirname,resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const game=resolve(dirname(fileURLToPath(import.meta.url)),'..'),root=resolve(game,'..'),out=resolve(game,'.site');
 await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
-const exclude=new Set(['.git','.agents','.aws','.codex','attachments','node_modules','data','server','test','cloudflare','.wrangler','.site','test-results','playwright-report']);
+const exclude=new Set(['.git','.agents','.aws','.codex','attachments','node_modules','data','server','test','cloudflare','.wrangler','.site','test-results','playwright-report','orbit-search']);
 async function copyDirectory(src,dst){
  await mkdir(dst,{recursive:true});
  for(const file of await readdir(src,{withFileTypes:true})){

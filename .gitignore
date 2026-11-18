@@ -8,3 +8,5 @@ orbitcraft/playwright-report/
 *.sqlite-wal
 orbitcraft/.site/
 orbitcraft/.wrangler/
+
+orbit-search/node_modules/
