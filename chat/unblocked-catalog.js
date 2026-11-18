@@ -260,4 +260,23 @@ export const UNBLOCKED_GAMES=[{
  ],
  "controls": "WASD or arrow keys to move; jump twice to shoot. Space/Enter attacks or defends. Local play is supported."
 }
+,
+{
+ "id": "drift-hunters",
+ "title": "Drift Hunters",
+ "category": "Racing",
+ "players": "Single player",
+ "description": "Drift through 3D tracks, earn credits, and tune your garage.",
+ "image": "../games/drift-hunters/icon.png",
+ "src": "../games/drift-hunters/index.html?v=1",
+ "tags": [
+  "drift",
+  "hunters",
+  "cars",
+  "racing",
+  "garage",
+  "tuning"
+ ],
+ "controls": "WASD/arrow keys to drive, Space to brake, C to change camera, Shift/Ctrl to shift gears. Large 3D game; let loading finish. Keyboard recommended."
+}
 ];
