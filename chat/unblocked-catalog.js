@@ -1,6 +1,6 @@
 // Curated games are played inside Orbit. Add future entries here.
 export const UNBLOCKED_GAMES=[{
- id:'cookie-clicker',title:'Cookie Clicker',category:'Clicker',players:'Single player',
+ id:'cookie-clicker',save:'resume',title:'Cookie Clicker',category:'Clicker',players:'Single player',
  description:'Bake cookies, buy buildings, and grow your own cookie empire.',
  image:'../games/cookie-clicker/cover.png',src:'../games/cookie-clicker/index.html?v=2&save=1',
  mobileSrc:'../games/cookie-clicker/mobile.html?v=2&save=1',restartLabel:'Reload',
@@ -13,13 +13,13 @@ export const UNBLOCKED_GAMES=[{
  tags:['electron','dash','runner','neon','tunnel','jump'],
  controls:'Use the on-screen arrow and Jump buttons on phones. Keyboard: A/D or Left/Right to move; W, Up Arrow, or Space to jump.'
 },{
- id:'pokemon-cry',title:'Guess the Pokémon (Cry)',category:'Quiz',players:'Single player',
+ id:'pokemon-cry',save:'resume',title:'Guess the Pokémon (Cry)',category:'Quiz',players:'Single player',
  description:'Listen to a Pokémon cry and choose the correct name. Includes seven generations.',
  image:'../games/pokemon-cry/cover.jpg',src:'../games/pokemon-cry/index.html?save=1',
  tags:['pokemon','pokémon','guess','cry','sound','quiz'],
  controls:'Tap Play to hear the cry, then choose an answer. Use the generation buttons to change the Pokémon pool.'
 },{
- id:'pokemon-stats',title:'Guess the Pokémon (Stats)',category:'Quiz',players:'Single player',
+ id:'pokemon-stats',save:'resume',title:'Guess the Pokémon (Stats)',category:'Quiz',players:'Single player',
  description:'Identify a mystery Pokémon from its six base stats, with optional type and ability hints.',
  image:'../games/pokemon-stats/cover.jpg',src:'../games/pokemon-stats/index.html?save=1',
  tags:['pokemon','pokémon','guess','stats','quiz'],
@@ -49,7 +49,7 @@ export const UNBLOCKED_GAMES=[{
  tags:['pokemon','pokémon','showdown','battle','teams','strategy','multiplayer'],
  controls:'Choose a name, then Battle! for matchmaking or Find a user to challenge a friend.'
 },{
- id:'random-trivia',title:'Random Trivia',category:'Quiz',players:'Single player',
+ id:'random-trivia',save:'resume',title:'Random Trivia',category:'Quiz',players:'Single player',
  description:'Test your knowledge with ten random multiple-choice questions across a mix of topics.',
  image:'../games/random-trivia/cover.jpg',src:'../games/random-trivia/index.html?save=1',
  tags:['random','trivia','quiz','questions','knowledge'],
@@ -200,6 +200,7 @@ export const UNBLOCKED_GAMES=[{
 },
 {
  "id": "suika",
+ "save": "resume",
  "title": "Suika Game",
  "category": "Puzzle",
  "players": "Single player",
@@ -278,5 +279,25 @@ export const UNBLOCKED_GAMES=[{
   "tuning"
  ],
  "controls": "WASD/arrow keys to drive, Space to brake, C to change camera, Shift/Ctrl to shift gears. Large 3D game; let loading finish. Keyboard recommended."
+}
+,
+{
+ "id": "super-mario-bros",
+ "title": "Super Mario Bros.",
+ "category": "Adventure",
+ "players": "Single player \u00b7 your NES file required",
+ "description": "Play the original NES game using your own authorized .nes file. No Nintendo ROM is bundled.",
+ "image": "../games/super-mario-bros/cover.png",
+ "src": "../games/super-mario-bros/index.html?v=1",
+ "save": "resume",
+ "tags": [
+  "super",
+  "mario",
+  "bros",
+  "nes",
+  "nintendo",
+  "platformer"
+ ],
+ "controls": "Load your own .nes file. Arrows move; X jumps, Z runs, Enter starts. Touch controls are available. Progress autosaves every two seconds; export a backup before clearing browser data."
 }
 ];
