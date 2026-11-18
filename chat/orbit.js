@@ -8,6 +8,7 @@ import { classifyCalendarEvent, prioritizeCalendarEvents } from './calendar-role
 import { createBackdrop } from './orbit-bg.js?v=4';
 import { ambient, cycleTime } from './ambient.js?v=6';
 import { createDrift } from './orbit-drift.js?v=3';
+import { createHomeThemes } from './home-themes.js?v=1';
 import { mountFloaters } from './collectible-float.js?v=3';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -31,6 +32,7 @@ const BW = 1200, BH = 800;   // the drawing space; everything is stored in these
 
 export function initOrbit(c) {
   const { S, sb, $, esc, ic, I, modal, toast, prof, av, md, menuBtn, bindMenu } = c;
+  const homeThemes = createHomeThemes({ S, sb, toast, modal, setOrbits: n => c.setOrbits(n) });
   const drift = createDrift({ sb, toast, getOrbits: () => S.orbits || 0, setOrbits: n => c.setOrbits(n), reloadOrbits: () => c.loadOrbits() });   // the drifting Orbit coin (orbit-drift.js)
 
   /* ───────── icons ───────── */
@@ -145,6 +147,7 @@ export function initOrbit(c) {
     ambient.boot();   // Orbit's background music plays on every page (it pauses only while a game is open)
   }
   function stop() {
+    homeThemes.reset();
     ambient.quit();
     clearTimeout(reloadT); clearTimeout(repaintT); clearInterval(O.timer); O.timer = 0;
     if (O.ch) { sb.removeChannel(O.ch); O.ch = null; }
@@ -283,7 +286,7 @@ export function initOrbit(c) {
       <button class="otb oguide" type="button" data-o="guide" aria-label="Choose your guide" title="Choose your guide — Elara or Stellan">${ic('sparkle', 20)}</button>
       <button class="otb oav" data-x="me" aria-label="Your profile">${av(S.me)}</button></div></div>
     <div class="panel orbithome${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">
-      <canvas class="ostars" aria-hidden="true"></canvas>
+      <canvas class="ostars" aria-hidden="true"></canvas><div class="home-theme-slot"></div>
       <div class="oh-day-position" aria-label="Today’s school day">${c.renderDayBadge()}</div>
       <section class="ohero"><div class="ologo"><img class="ohero-logo" src="orbit-logo-planet.png" alt=""><i class="op op-a"></i><i class="op op-b"></i></div><h1 class="owt"><img class="owm" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></h1><p class="otag">Stay in the Loop.</p><div class="ohbtns">${top !== self && typeof top.OpenOrbitTab === 'function' ? `<button class="obtn" data-ob="blank">${ic('arrow',16)}<span>Open Orbit in new tab</span></button>` : ''}${top !== self ? `<button class="obtn" data-ob="back">${ic('arrow', 16)}<span>Back to Silk Road</span></button>` : ''}</div></section>
       ${annCard(a0)}
@@ -294,6 +297,7 @@ export function initOrbit(c) {
     // Reattach the existing canvas and orbiting planets, so realtime updates don't restart animations.
     if (oldStars) main.querySelector('.orbithome > .ostars')?.replaceWith(oldStars);
     if (oldLogo) main.querySelector('.orbithome .ologo')?.replaceWith(oldLogo);
+    homeThemes.mount(main.querySelector('.home-theme-slot'));
     bindMenu(); startStars(main.querySelector('.ostars')); startLogo(main.querySelector('.ologo'));
     const vid = homeVideo(), appEl = document.getElementById('app');
     if (appEl && vid.parentNode !== appEl) appEl.insertBefore(vid, appEl.firstChild);   // the backdrop sits behind the whole window (sidebar included), so the sidebar can be see-through
@@ -1055,7 +1059,7 @@ export function initOrbit(c) {
     VIEWS, render, start, stop, gameOpen: on => ambient.setGameOpen(on), bindSide, sideCal, headBtn, bindHead, aiBtn, bindAiBtn, fmtBar, fmtToggle, bindFmt,
     handles: v => v === 'home' || VIEWS.includes(v),
     refreshFloaters: () => { const p = document.querySelector('.orbithome'); if (p && S.view === 'home') mountFloaters(p, c.collectibles ? c.collectibles() : []); },
-    onView(v) { if (v !== 'home') { ambient.detach(); drift.detach(); if (O.vid) O.vid.pause(); } if (v !== 'board' && !(v === 'call' && O.wb) && O.bd) closeBoard(); if (v !== 'call') O.wb = false; if (v === 'home' && O.lastView !== 'home') O.homeAt = performance.now(); O.lastView = v; },
+    onView(v) { if (v !== 'home') homeThemes.close(); if (v !== 'home') { ambient.detach(); drift.detach(); if (O.vid) O.vid.pause(); } if (v !== 'board' && !(v === 'call' && O.wb) && O.bd) closeBoard(); if (v !== 'call') O.wb = false; if (v === 'home' && O.lastView !== 'home') O.homeAt = performance.now(); O.lastView = v; },
     wbToggle, wbMount, wbIsOpen: () => !!O.wb,
     onNav(k) { if (k === 'events' || k === 'boards' || k === 'home') load().then(repaint); },
     load: () => load(),
