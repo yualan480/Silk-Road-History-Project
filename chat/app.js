@@ -1556,7 +1556,7 @@ function msgHtml(m, prev) {
   <div class="msg ${cont ? 'cont' : ''} ${m.pending ? 'pending' : ''} ${mentionsMe(m) ? 'mentioned' : ''}" data-id="${m.id}">${av(p)}<div class="body">
   ${m.reply_to ? `<div class="reply">↪ ${orig ? esc(prof(orig.author_id).display_name) + ': ' + esc(plain(orig.content || 'Attachment').slice(0, 60)) : 'Original message'}</div>` : ''}
   <div class="head"><b data-a="prof" data-u="${p.id}" style="--c:${esc(p.avatar_color)}">${esc(p.display_name)}</b>${roleBadge(p.id)}${SHOP.coHtml?.(p.id) || ''}<small>${stamp(m.created_at)}</small>${S.pins.has(m.id) ? '<small title="Pinned">📌</small>' : ''}</div>
-  ${m.has_poll && S.polls.has(m.id) ? pollHtml(m) : `<div${jumboOk(m.content) ? ' class="jumbo"' : ''}>${md(m.content, m.id)}${m.edited_at ? ' <small class="muted">(edited)</small>' : ''}</div>`}${attHtml(m)}
+  ${m.has_poll ? pollHtml(m) : `<div${jumboOk(m.content) ? ' class="jumbo"' : ''}>${md(m.content, m.id)}${m.edited_at ? ' <small class="muted">(edited)</small>' : ''}</div>`}${attHtml(m)}
   <div class="rx">${Object.entries(rxs).map(([e, u]) => `<button data-a="rx" data-e="${e}" class="${u.includes(S.me.id) ? 'mine' : ''}" aria-label="${e} ${u.length}">${e} ${u.length}</button>`).join('')}</div></div>
   ${m.pending ? '' : `<div class="acts">${['👍', '❤️', '😂'].map(e => `<button data-a="rx" data-e="${e}" aria-label="React ${e}">${e}</button>`).join('')}<button data-a="reply" title="Reply" aria-label="Reply">↩</button><button data-a="copy" title="Copy" aria-label="Copy message">⧉</button>${S.view === 'server' && can('pin_messages') ? `<button data-a="pin" title="${S.pins.has(m.id) ? 'Unpin' : 'Pin'}" aria-label="Pin message">📌</button>` : ''}${!mine && S.view === 'server' ? '<button data-a="report" title="Report" aria-label="Report message">⚑</button>' : ''}${!mine && S.view === 'server' && can('delete_messages') ? '<button data-a="del" title="Delete (moderator)" aria-label="Delete">🗑</button>' : ''}${mine ? (m.has_poll ? '' : '<button data-a="edit" title="Edit" aria-label="Edit">✎</button>') + '<button data-a="del" title="Delete" aria-label="Delete">🗑</button>' : ''}</div>`}</div>`;
 }
@@ -1602,6 +1602,7 @@ async function onMsgClick(e) {
   if (act === 'reply') { S.replyTo = m; renderMsgs(); $('#in').focus(); }
   else if (act === 'claimgift') claimGift(m.gift_id, a);
   else if (act === 'cancelgift') cancelGift(m.gift_id, a);
+  else if (act === 'retrypoll') { await loadPolls([m.id]); redrawPoll(m.id); }
   else if (act === 'vote') votePoll(m, a.dataset.o);
   else if (act === 'endpoll') endPoll(m);
   else if (act === 'pin') { const { error } = await sb.rpc('pin_message', { p_message: m.id, p_pin: !S.pins.has(m.id) }); if (error) toast(error.message, true); else { await loadPins(); renderMsgs(); updatePinBar(); } }
@@ -3339,28 +3340,54 @@ function roleModal(key) {   // who has this role? (opened by clicking an @Role p
 }
 
 /* ───────── polls ───────── */
+const pollBusy = new Set();
+let pollRefreshBusy = false;
 async function loadPolls(ids) {
-  if (!ids.length) return;
-  const { data, error } = await sb.from('polls').select('id, message_id, multiple, ends_at, created_by, options:poll_options(id, label, position), votes:poll_votes(option_id, user_id)').in('message_id', ids);
-  if (!error) (data || []).forEach(p => S.polls.set(p.message_id, p));
+  if (!ids.length) return true;
+  const cache = S.polls;
+  try {
+    const { data, error } = await sb.from('polls').select('id, message_id, multiple, ends_at, created_by, options:poll_options(id, label, position), votes:poll_votes(option_id, user_id)').in('message_id', ids);
+    if (error) return false;
+    if (cache !== S.polls) return false;
+    (data || []).forEach(p => cache.set(p.message_id, { ...p, options: p.options || [], votes: p.votes || [] }));
+    return true;
+  } catch { return false; }
 }
+async function refreshVisiblePolls() {
+  if (pollRefreshBusy || document.hidden || !['server', 'dm'].includes(S.view)) return;
+  const ids = S.list.filter(m => m.has_poll).map(m => m.id);
+  if (!ids.length) return;
+  pollRefreshBusy = true;
+  try { await loadPolls(ids); ids.forEach(redrawPoll); }
+  finally { pollRefreshBusy = false; }
+}
+// Recover missed realtime changes and update closing times without a page reload.
+setInterval(refreshVisiblePolls, 15000);
+addEventListener('focus', refreshVisiblePolls);
 const ensurePoll = m => m.has_poll && !S.polls.has(m.id) ? loadPolls([m.id]) : Promise.resolve();
 function pollHtml(m) {
-  const p = S.polls.get(m.id); if (!p) return '';
+  const p = S.polls.get(m.id); if (!p) return `<div class="poll" data-pm="${m.id}"><div class="pq">${md(m.content, m.id)}</div><p class="muted">Could not load this poll. Check your connection and try again.</p><button type="button" class="linkbtn" data-a="retrypoll">Retry poll</button></div>`;
   const ended = !!p.ends_at && new Date(p.ends_at) <= new Date(), voters = new Set(p.votes.map(v => v.user_id)).size;
   const mine = new Set(p.votes.filter(v => v.user_id === S.me.id).map(v => v.option_id)), cnt = new Map();
   p.votes.forEach(v => cnt.set(v.option_id, (cnt.get(v.option_id) || 0) + 1));
   const opts = [...p.options].sort((a, b) => a.position - b.position), top = Math.max(0, ...opts.map(o => cnt.get(o.id) || 0));
   const meta = [p.multiple ? 'Choose any' : 'Choose one', ended ? 'Ended' : p.ends_at ? 'Ends ' + stamp(p.ends_at) : ''].filter(Boolean).join(' · ');
   return `<div class="poll" data-pm="${m.id}"><div class="pq">${md(m.content, m.id)}</div><div class="pmeta">${ic('poll', 14)} ${esc(meta)}</div>${opts.map(o => { const n = cnt.get(o.id) || 0, pct = voters ? Math.round(n * 100 / voters) : 0;
-    return `<button type="button" class="popt ${mine.has(o.id) ? 'mine' : ''} ${ended && n && n === top ? 'win' : ''}" data-a="vote" data-o="${o.id}" aria-pressed="${mine.has(o.id)}" ${ended ? 'disabled' : ''}><i style="width:${pct}%"></i><span class="pl">${mine.has(o.id) ? '✓ ' : ''}${esc(o.label)}</span><span class="pn">${n} · ${pct}%</span></button>`; }).join('')}
+    return `<button type="button" class="popt ${mine.has(o.id) ? 'mine' : ''} ${ended && n && n === top ? 'win' : ''}" data-a="vote" data-o="${o.id}" aria-pressed="${mine.has(o.id)}" ${ended || pollBusy.has(p.id) ? 'disabled' : ''}><i style="width:${pct}%"></i><span class="pl">${mine.has(o.id) ? '✓ ' : ''}${esc(o.label)}</span><span class="pn">${n} · ${pct}%</span></button>`; }).join('')}
   <div class="pfoot"><span>${voters} ${voters === 1 ? 'voter' : 'voters'}</span>${!ended && (p.created_by === S.me.id || can('delete_messages')) ? '<button type="button" class="linkbtn" data-a="endpoll">End poll</button>' : ''}</div></div>`;
 }
 function redrawPoll(mid) { const m = S.list.find(x => x.id === mid), el = $(`.poll[data-pm="${mid}"]`); if (m && el) el.outerHTML = pollHtml(m); }
 async function votePoll(m, oid) {
-  const p = S.polls.get(m.id); if (!p) return; const mine = p.votes.some(v => v.user_id === S.me.id && v.option_id === oid);
-  const { error } = await sb.rpc('vote_poll', { p_poll: p.id, p_option: oid, p_on: !mine }); if (error) return toast(error.message, true);
-  await loadPolls([m.id]); redrawPoll(m.id);
+  const p = S.polls.get(m.id);
+  if (!p || pollBusy.has(p.id) || (p.ends_at && new Date(p.ends_at) <= new Date())) return;
+  const mine = p.votes.some(v => v.user_id === S.me.id && v.option_id === oid);
+  pollBusy.add(p.id); redrawPoll(m.id);
+  try {
+    const { error } = await sb.rpc('vote_poll', { p_poll: p.id, p_option: oid, p_on: !mine });
+    if (error) { toast(error.message, true); return; }
+    if (!await loadPolls([m.id])) toast('Vote sent, but results could not refresh. They will retry automatically.', true);
+  } catch { toast('Could not confirm your vote. Check your connection and retry.', true); }
+  finally { pollBusy.delete(p.id); redrawPoll(m.id); }
 }
 function endPoll(m) {
   confirmBox('End this poll?', 'Nobody will be able to vote after this. The results stay visible.', 'End poll', async () => {
@@ -3368,11 +3395,9 @@ function endPoll(m) {
     await loadPolls([m.id]); redrawPoll(m.id); });
 }
 function onVote(p) {
-  const r = p.eventType === 'DELETE' ? p.old : p.new; if (!r?.poll_id) return;
-  const poll = [...S.polls.values()].find(x => x.id === r.poll_id); if (!poll) return;
-  if (p.eventType === 'INSERT') { if (!poll.votes.some(v => v.user_id === r.user_id && v.option_id === r.option_id)) poll.votes.push({ option_id: r.option_id, user_id: r.user_id }); }
-  else if (p.eventType === 'DELETE') poll.votes = poll.votes.filter(v => !(v.user_id === r.user_id && v.option_id === r.option_id));
-  redrawPoll(poll.message_id);
+  // DELETE events may contain only the primary key. Reload authoritative results
+  // rather than applying incomplete or out-of-order events to cached vote totals.
+  refreshVisiblePolls();
 }
 async function onPollChange(p) { const mid = (p.new || p.old)?.message_id; if (mid && S.polls.has(mid)) { await loadPolls([mid]); redrawPoll(mid); } }
 function pollModal() {
@@ -3388,7 +3413,7 @@ function pollModal() {
     const { data, error } = await sb.rpc('create_poll', { p_channel: view === 'server' ? A : null, p_conversation: view === 'dm' ? A : null, p_question: q, p_options: opts, p_multiple: $('#pm', bg).checked, p_hours: hrs ? +hrs : null });
     if (error) { toast(error.message, true); if (/row-level security|permission denied/i.test(error.message)) verifyAccess(); return false; }
     await loadPolls([data.id]);
-    if (S.active === A) { upsert(data); renderMsgs(true); }
+    if (S.active === A && S.view === view) { upsert(data); renderMsgs(true); }
     const c = S.convs.find(x => x.id === A); if (c) { Object.assign(c, { last_message_at: data.created_at, last_message_preview: '📊 ' + q.slice(0, 70), last_author: S.me.id, last_read_at: data.created_at }); renderSide(); } } }],
   bg => {
     const box = $('#po', bg), add = () => { if (box.children.length >= 10) return toast('A poll can have up to 10 options.', true); const i = document.createElement('input'); i.className = 'po'; i.maxLength = 100; i.placeholder = 'Option ' + (box.children.length + 1); i.autocomplete = 'off'; i.style.marginTop = '6px'; box.append(i); i.focus(); };
