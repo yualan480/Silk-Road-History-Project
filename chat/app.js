@@ -1,3 +1,4 @@
+import {pollTotals} from './poll-totals.js?v=1';
 import {renderOrbitSearch} from './orbit-search.js?v=3';
 import {schoolSignupDetails} from './school-signup.js?v=4';
 import {startGoogleSignIn} from './oauth.js?v=2';
@@ -3356,10 +3357,12 @@ async function loadPolls(ids) {
     // Load each table directly: relationship embedding can fail when the live
     // PostgREST schema cache cannot resolve the poll foreign keys.
     const pollIds = data.map(p => p.id);
-    const [options, votes] = await Promise.all([
-      sb.from('poll_options').select('id, poll_id, label, position').in('poll_id', pollIds),
+    let [options, votes] = await Promise.all([
+      sb.from('poll_options').select('id, poll_id, label, position, manual_votes').in('poll_id', pollIds),
       sb.from('poll_votes').select('poll_id, option_id, user_id').in('poll_id', pollIds)
     ]);
+    // Keep existing installations working before the optional admin-adjustment SQL is run.
+    if(options.error&&/manual_votes|column|schema cache/i.test(options.error.message||'')) options=await sb.from('poll_options').select('id, poll_id, label, position').in('poll_id',pollIds);
     if (options.error || votes.error || cache !== S.polls) return false;
     for (const p of data) {
       const answers = (options.data || []).filter(o => o.poll_id === p.id);
@@ -3385,14 +3388,14 @@ addEventListener('focus', refreshVisiblePolls);
 const ensurePoll = m => m.has_poll && !S.polls.has(m.id) ? loadPolls([m.id]) : Promise.resolve();
 function pollHtml(m) {
   const p = S.polls.get(m.id); if (!p) return `<div class="poll" data-pm="${m.id}"><div class="pq">${md(m.content, m.id)}</div><p class="muted">Could not load this poll. Check your connection and try again.</p><button type="button" class="linkbtn" data-a="retrypoll">Retry poll</button></div>`;
-  const ended = !!p.ends_at && new Date(p.ends_at) <= new Date(), voters = new Set(p.votes.map(v => v.user_id)).size;
-  const mine = new Set(p.votes.filter(v => v.user_id === S.me.id).map(v => v.option_id)), cnt = new Map();
-  p.votes.forEach(v => cnt.set(v.option_id, (cnt.get(v.option_id) || 0) + 1));
+  const ended = !!p.ends_at && new Date(p.ends_at) <= new Date();
+  const {voters,adjustments,denominator,counts:cnt}=pollTotals(p.options,p.votes);
+  const mine = new Set(p.votes.filter(v => v.user_id === S.me.id).map(v => v.option_id));
   const opts = [...p.options].sort((a, b) => a.position - b.position), top = Math.max(0, ...opts.map(o => cnt.get(o.id) || 0));
   const meta = [p.multiple ? 'Choose any' : 'Choose one', ended ? 'Ended' : p.ends_at ? 'Ends ' + stamp(p.ends_at) : ''].filter(Boolean).join(' · ');
-  return `<div class="poll" data-pm="${m.id}"><div class="pq">${md(m.content, m.id)}</div><div class="pmeta">${ic('poll', 14)} ${esc(meta)}</div>${opts.map(o => { const n = cnt.get(o.id) || 0, pct = voters ? Math.round(n * 100 / voters) : 0;
+  return `<div class="poll" data-pm="${m.id}"><div class="pq">${md(m.content, m.id)}</div><div class="pmeta">${ic('poll', 14)} ${esc(meta)}</div>${opts.map(o => { const n = cnt.get(o.id) || 0, pct = denominator ? Math.round(n * 100 / denominator) : 0;
     return `<button type="button" class="popt ${mine.has(o.id) ? 'mine' : ''} ${ended && n && n === top ? 'win' : ''}" data-a="vote" data-o="${o.id}" aria-pressed="${mine.has(o.id)}" ${ended || pollBusy.has(p.id) ? 'disabled' : ''}><i style="width:${pct}%"></i><span class="pl">${mine.has(o.id) ? '✓ ' : ''}${esc(o.label)}</span><span class="pn">${n} · ${pct}%</span></button>`; }).join('')}
-  <div class="pfoot"><span>${voters} ${voters === 1 ? 'voter' : 'voters'}</span>${!ended && (p.created_by === S.me.id || can('delete_messages')) ? '<button type="button" class="linkbtn" data-a="endpoll">End poll</button>' : ''}</div></div>`;
+  <div class="pfoot"><span>${voters} ${voters === 1 ? 'voter' : 'voters'}${adjustments ? ' · '+adjustments+' admin-added '+(adjustments===1?'vote':'votes') : ''}</span>${!ended && (p.created_by === S.me.id || can('delete_messages')) ? '<button type="button" class="linkbtn" data-a="endpoll">End poll</button>' : ''}</div></div>`;
 }
 function redrawPoll(mid) { const m = S.list.find(x => x.id === mid), el = $(`.poll[data-pm="${mid}"]`); if (m && el) el.outerHTML = pollHtml(m); }
 async function votePoll(m, oid) {
