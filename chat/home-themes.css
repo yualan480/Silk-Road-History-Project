@@ -5,3 +5,5 @@
 :root[data-orbit-home-theme=arctic]{--oh-filter:hue-rotate(330deg) saturate(.55) brightness(1.15);--oh-tint:#c5f3ff;--oh-card:linear-gradient(120deg,#114860ed,#28657bed)}
 :root[data-orbit-home-theme] .ovid{filter:var(--oh-filter)}:root[data-orbit-home-theme] .orbithome .oann{background:var(--oh-card);border-color:var(--oh-tint)}:root[data-orbit-home-theme] .orbithome .qlink{border-color:var(--oh-tint)}
 @media(max-width:480px){.home-theme-panel{width:calc(100vw - 48px);padding:12px}.home-theme-grid{gap:8px}.home-theme-grid article{padding:8px}.home-theme-panel button{min-height:44px}}
+
+.top.otop .home-theme-slot{align-self:center;margin:0;z-index:20}.top.otop:has(.home-theme-picker[open]){z-index:30}

@@ -10761,6 +10761,7 @@
           (n.finishRunComplete = function () {
             var t = this,
               e = this.app.game.stats.score;
+            if (window.OrbitSubway) window.OrbitSubway.submit(Math.floor(e));
             (this.app.user.coins += this.app.game.stats.coins),
               e > this.app.user.score
                 ? ((this.app.user.score = e),
@@ -11667,32 +11668,19 @@
               this.updateEntries(t);
             }),
             (t.update = function (t, e) {
+              document.body.classList.add('orbit-ranking-open');
               var i = this;
               (this.name = t),
                 (this.score = e),
-                nn.a.hangout.getLeaderboard(this.length, t, e).then(function (t) {
+                (window.OrbitSubway ? window.OrbitSubway.getLeaderboard(this.length) : Promise.resolve([])).then(function (t) {
                   return i.updateScores(t);
                 });
             }),
             (t.updateScores = function (t) {
-              t = t.sort(function (t, e) {
-                return e.score - t.score;
-              });
-              for (var e = !1, i = 0; i < this.length; i++) {
-                var n = t[i];
-                n && (n.image || (n.image = "icon_friend"), (n.highlight = n.name === this.name && n.score === this.score), "ME" === n.name && (n.highlight = !0), n.highlight && (e = !0), (n.index = i + 1));
-              }
-              e ||
-                (t[this.length - 1] = {
-                  name: this.name,
-                  score: this.score,
-                  image: "icon_friend",
-                  highlight: !0,
-                  index: "",
-                }),
-                this.updateEntries(t);
-            }),
-            (t.updateEntries = function (t) {
+            // Rankings come from authenticated Orbit profiles, never sample bots.
+            this.updateEntries(t.slice(0, this.length));
+          }),
+          (t.updateEntries = function (t) {
               for (var e = this.title && this.title.text ? 80 : 0, i = 0; i < this.length; i++) {
                 var n = this.entries[i],
                   o = t[i];
@@ -11998,6 +11986,7 @@
               (this.menu.btn.play.key = 32);
           }),
           (t.onClose = function () {
+            document.body.classList.remove('orbit-ranking-open');
             i.prototype.onClose.call(this), (this.menu.btn.play.key = null);
           }),
           (t.goToTitle = function () {
@@ -12085,6 +12074,10 @@
           }),
           (n.onOpen = function () {
             i.prototype.onOpen.call(this), this.ranking.update(this.app.user.name, this.app.user.score);
+          }),
+          (n.onClose = function () {
+            document.body.classList.remove('orbit-ranking-open');
+            i.prototype.onClose.call(this);
           }),
           (n.onResize = function () {
             i.prototype.onResize.call(this), this.bg.resize(this.w, this.h), (this.menu.x = this.w / 2), (this.menu.y = this.h - this.menu.h / 2), (this.base.x = 0.5 * this.w), (this.base.y = 0.5 * (this.h - this.menu.h));

@@ -278,7 +278,7 @@ export function initOrbit(c) {
     const enterMs = Math.round(performance.now() - O.homeAt), enter = enterMs < 1500;   // fade-in only when you arrive, not on every live refresh
     const oldStars = main.querySelector('.orbithome > .ostars');
     const oldLogo = main.querySelector('.orbithome .ologo');
-    main.innerHTML = `<div class="top otop${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">${menuBtn()}<div class="osearchw"><label class="osearch">${ic('search', 18)}<input id="oq" type="text" placeholder="Search Orbit…" autocomplete="off" spellcheck="false" aria-label="Search Orbit"><kbd>Ctrl + K</kbd></label><div class="ores" id="ores" hidden></div></div><div class="otop-actions">
+    main.innerHTML = `<div class="top otop${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">${menuBtn()}<div class="home-theme-slot"></div><div class="osearchw"><label class="osearch">${ic('search', 18)}<input id="oq" type="text" placeholder="Search Orbit…" autocomplete="off" spellcheck="false" aria-label="Search Orbit"><kbd>Ctrl + K</kbd></label><div class="ores" id="ores" hidden></div></div><div class="otop-actions">
       <button class="otb osnd" type="button" aria-pressed="true" aria-label="Turn Orbit sound off" title="Sound on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="sw" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="sw" d="M18.5 5.5a9 9 0 0 1 0 13"/><path class="sx" d="m16 9 5 6M21 9l-5 6"/></svg></button>
       <button class="otb omus" type="button" aria-pressed="true" aria-label="Turn Orbit music off" title="Music on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="mx" d="M3 3l18 18"/></svg></button>
       <button class="otb" data-o="go" data-k="friends" aria-label="Friends${inN ? ' (' + inN + ' requests)' : ''}">${ic('friends', 20)}${inN ? '<i class="otbdot"></i>' : ''}</button>
@@ -286,7 +286,7 @@ export function initOrbit(c) {
       <button class="otb oguide" type="button" data-o="guide" aria-label="Choose your guide" title="Choose your guide — Elara or Stellan">${ic('sparkle', 20)}</button>
       <button class="otb oav" data-x="me" aria-label="Your profile">${av(S.me)}</button></div></div>
     <div class="panel orbithome${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">
-      <canvas class="ostars" aria-hidden="true"></canvas><div class="home-theme-slot"></div>
+      <canvas class="ostars" aria-hidden="true"></canvas>
       <div class="oh-day-position" aria-label="Today’s school day">${c.renderDayBadge()}</div>
       <section class="ohero"><div class="ologo"><img class="ohero-logo" src="orbit-logo-planet.png" alt=""><i class="op op-a"></i><i class="op op-b"></i></div><h1 class="owt"><img class="owm" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></h1><p class="otag">Stay in the Loop.</p><div class="ohbtns">${top !== self && typeof top.OpenOrbitTab === 'function' ? `<button class="obtn" data-ob="blank">${ic('arrow',16)}<span>Open Orbit in new tab</span></button>` : ''}${top !== self ? `<button class="obtn" data-ob="back">${ic('arrow', 16)}<span>Back to Silk Road</span></button>` : ''}</div></section>
       ${annCard(a0)}

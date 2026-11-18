@@ -30,6 +30,8 @@
         background-repeat: no-repeat;
         margin: 0;
       }
+    #orbit-score-status{display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);max-width:70vw;margin:0;padding:7px 12px;border-radius:9px;background:#092a4de8;color:#fff;font:14px/1.4 Arial,sans-serif;text-align:center;z-index:20;pointer-events:none}
+    body.orbit-ranking-open #orbit-score-status{display:block}
     </style>
     <title>Subway Surfers New York | 3kh0</title>
     <script src="js/games_lib/ludiAdapter.js" charset="utf-8"></script>
@@ -37,7 +39,8 @@
 
   <body>
     <div id="og-game-holder"></div>
-    <script src="js/boot.js?v=2"></script>
+    <script type="module" src="orbit-leaderboard.js?v=1"></script>
+    <script src="js/boot.js?v=3"></script>
     
 
   </body>

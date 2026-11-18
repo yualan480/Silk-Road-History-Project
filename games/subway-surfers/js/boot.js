@@ -55,27 +55,27 @@
           a.addEventListener("load", function() {
               var e = JSON.parse(this.responseText);
               n && n(e)
-          }), a.open("GET", e + "?v=1gefx1jwdk0gj12hb"), a.send()
+          }), a.open("GET", e + "?v=orbit-leaderboard-1"), a.send()
       }
 
       function loadScript(e, n) {
           try {
               var t = document.createElement("script");
               t.async = false;
-              n && (t.onload = n), t.src = e + "?v=1gefx1jwdk0gj12hb", document.head.appendChild(t)
+              n && (t.onload = n), t.src = e + "?v=orbit-leaderboard-1", document.head.appendChild(t)
           } catch (e) {}
       }
 
       function loadFont(e, n) {
           var t = document.createElement("link");
-          t.rel = "stylesheet", t.type = "text/css", t.href = e + "?v=1gefx1jwdk0gj12hb", t.media = "all", document.head.appendChild(t);
+          t.rel = "stylesheet", t.type = "text/css", t.href = e + "?v=orbit-leaderboard-1", t.media = "all", document.head.appendChild(t);
           var a = document.createElement("div");
           a.className = "fontcache", a.style = 'font-family: "' + n + '";', a.textContent = ".", document.body.appendChild(a)
       }
 
       function initApp(e) {
           var n, t, a;
-          n = e.meta, t = pathJoin(n.path, n.splash), (a = document.querySelector("#og-game-holder")).style.backgroundColor = n.color, a.style.backgroundImage = 'url("' + t + '?v=1gefx1jwdk0gj12hb"")', loadFont("assets/font/lilita-one.css", "Lilita One"), loadFont("assets/font/titan-one.css", "Titan One"), window.sharedAppData.config.leaderboards && loadScript("js/leaderboard.js"), window.sharedAppData.config.vconsole && loadScript("https://cdnjs.cloudflare.com/ajax/libs/vConsole/3.3.0/vconsole.min.js"), loadScript("js/inflate.min.js"), loadScript("js/vendor.js"), loadScript("js/main.js")
+          n = e.meta, t = pathJoin(n.path, n.splash), (a = document.querySelector("#og-game-holder")).style.backgroundColor = n.color, a.style.backgroundImage = 'url("' + t + '?v=orbit-leaderboard-1"")', loadFont("assets/font/lilita-one.css", "Lilita One"), loadFont("assets/font/titan-one.css", "Titan One"), window.sharedAppData.config.leaderboards && loadScript("js/leaderboard.js"), window.sharedAppData.config.vconsole && loadScript("https://cdnjs.cloudflare.com/ajax/libs/vConsole/3.3.0/vconsole.min.js"), loadScript("js/inflate.min.js"), loadScript("js/vendor.js"), loadScript("js/main.js")
       }
       console.log = function() {
           return null

@@ -86,7 +86,7 @@ export const UNBLOCKED_GAMES=[{
  "players": "Single player",
  "description": "Dodge subway trains, collect coins, and keep the chase going.",
  "image": "../games/subway-surfers/NewYorkIcon.png",
- "src": "../games/subway-surfers/index.html?v=2",
+ "src": "../games/subway-surfers/index.html?v=3",
  "tags": [
   "subway",
   "surfers",
