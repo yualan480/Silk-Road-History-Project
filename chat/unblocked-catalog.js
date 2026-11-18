@@ -241,4 +241,23 @@ export const UNBLOCKED_GAMES=[{
  ],
  "controls": "Click or tap, drag to aim, then release to kick. Your match state autosaves in this browser."
 }
+,
+{
+ "id": "basket-bros",
+ "title": "Basket Bros",
+ "category": "Sports",
+ "players": "1\u20132 players (local)",
+ "description": "Jump, shoot, and dunk in fast basketball matches.",
+ "image": "../games/basket-bros/thumb.jpg",
+ "src": "../games/basket-bros/index.html?v=1",
+ "tags": [
+  "basket",
+  "bros",
+  "basketball",
+  "sports",
+  "two",
+  "player"
+ ],
+ "controls": "WASD or arrow keys to move; jump twice to shoot. Space/Enter attacks or defends. Local play is supported."
+}
 ];
