@@ -1,5 +1,5 @@
 import {pollTotals} from './poll-totals.js?v=1';
-import {renderOrbitSearch} from './orbit-search.js?v=4';
+import {renderOrbitSearch} from './orbit-search.js?v=5';
 import {schoolSignupDetails} from './school-signup.js?v=4';
 import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';

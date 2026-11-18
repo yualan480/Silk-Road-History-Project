@@ -12,7 +12,12 @@ assert.ok(frameRule.split(/\s+/).includes('https://silk-road-orbit-search.onrend
 let proxyBase;
 const mount=async frame=>{
  await frame.addScriptTag({url:parentBase+'/test-render.js'});
- await frame.evaluate(()=>window.testRender(document.querySelector('#main'),{sb:{auth:{getSession:async()=>({data:{session:{access_token:'test-session'}}})}},menuBtn:()=>'',bindMenu:()=>{}}));
+ await frame.evaluate(()=>{
+  const tab=document.createElement('button');tab.id='search-test-tab';tab.textContent='Orbit Search';
+  tab.onclick=()=>window.testRender(document.querySelector('#main'),{sb:{auth:{getSession:async()=>({data:{session:{access_token:'test-session'}}})}},menuBtn:()=>'',bindMenu:()=>{}});
+  document.body.prepend(tab);
+ });
+ await frame.locator('#search-test-tab').click();
 };
 const listen=server=>new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve('http://127.0.0.1:'+server.address().port)));
 const target=http.createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end('<!doctype html><h1>Orbit Search fixture</h1><button id="test" onclick="this.textContent=\'JavaScript works\'">Test JavaScript</button>');});
@@ -20,13 +25,13 @@ const targetBase=await listen(target);
 const parent=http.createServer((req,res)=>{
  if(req.url==='/test-render.js'){res.setHeader('Content-Type','text/javascript');res.end('window.testRender='+renderOrbitSearch.toString());return;}
  const policy=orbitCsp.replace('https://silk-road-orbit-search.onrender.com',req.url==='/blocked-policy'?'https://not-the-search.example':proxyBase);
- res.setHeader('Content-Type','text/html');res.end('<!doctype html><meta http-equiv="Content-Security-Policy" content="'+policy+'"><div id="main" style="height:90vh"></div>');
+ res.setHeader('Content-Type','text/html');res.end('<!doctype html><meta http-equiv="Content-Security-Policy" content="'+policy+'"><div id="main" data-view="search" style="height:90vh"></div>');
 });
 const parentBase=await listen(parent);
 let acceptedSessions=0;
 const proxy=createSearchServer({parentOrigin:parentBase,verifyIdentity:async token=>{if(token!=='test-session')throw Error();acceptedSessions++;return {id:'browser-test',expiresAt:Date.now()+600000};}});
 proxyBase=await listen(proxy);
-const wrapper=http.createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end('<!doctype html><iframe title="Orbit wrapper" src="'+parentBase+'" style="width:100%;height:95vh"></iframe>');});
+const wrapper=http.createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end('<!doctype html><iframe title="Orbit wrapper" src="'+parentBase+'" allow="fullscreen" allowfullscreen style="width:100%;height:95vh"></iframe>');});
 const wrapperBase=await listen(wrapper);
 // Test-only network fixture: production disallows these private addresses and ports.
 wisp.options.allow_private_ips=true;wisp.options.allow_loopback_ips=true;
@@ -51,6 +56,13 @@ try{
  await page.goto(parentBase);
  await mount(page);
  assert.equal(await page.locator('iframe').count(),0,'Do not embed Render startup pages');
+ await page.waitForFunction(()=>document.fullscreenElement===document.querySelector('#main'));
+ await page.getByRole('button',{name:'Exit fullscreen'}).click();
+ await page.waitForFunction(()=>!document.fullscreenElement);
+ await page.getByRole('button',{name:'Fullscreen',exact:true}).click();
+ await page.waitForFunction(()=>document.fullscreenElement===document.querySelector('#main'));
+ await page.getByRole('button',{name:'Exit fullscreen'}).click();
+ await page.waitForFunction(()=>!document.fullscreenElement);
  const search=page.frameLocator('iframe[title="Orbit Search"]');
  await search.locator('#status').filter({hasText:'Ready'}).waitFor({timeout:45000});
  assert.ok(readinessChecks>=3);
@@ -64,6 +76,11 @@ try{
  assert.equal(errors.length,0,errors.join('\n'));
  await page.setViewportSize({width:390,height:844});
  assert.equal(await search.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);
+ await page.getByRole('button',{name:'Fullscreen',exact:true}).click();
+ await page.waitForFunction(()=>document.fullscreenElement===document.querySelector('#main'));
+ await page.evaluate(()=>{document.querySelector('#main').innerHTML='<p>Another Orbit tab</p>';});
+ await page.waitForFunction(()=>!document.fullscreenElement);
+
  const direct=await browser.newPage();await direct.goto(proxyBase);await direct.getByRole('status').filter({hasText:'Open Orbit Search from the Orbit sidebar'}).waitFor();await direct.close();
  // Reproduce a browser that rejects the embedded service, then use an authenticated top-level window.
  const fallback=await browser.newPage();
@@ -107,5 +124,5 @@ try{
  await unrelated.evaluate(proxyBase=>document.querySelector('iframe').contentWindow.postMessage({type:'orbit-search-account',accessToken:'test-session'},proxyBase),proxyBase);
  await unrelated.waitForTimeout(500);assert.equal(acceptedSessions,before,'Untrusted parent may not hand off an account');
  assert.match(await untrusted.locator('#status').innerText(),/Connecting/);await unrelated.close();
- console.log('PASS actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
+ console.log('PASS automatic fullscreen on a real tab click, exit/re-entry controls, actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
 }finally{await browser.close();for(const s of [proxy,parent,target,wrapper]){s.closeAllConnections();s.close();}process.exitCode=0;}

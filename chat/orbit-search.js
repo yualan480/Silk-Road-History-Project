@@ -1,8 +1,14 @@
 export function renderOrbitSearch(main, {sb, menuBtn, bindMenu}, externalWindow = null) {
   if (main.querySelector('[data-orbit-search]')) return;
-  main.innerHTML = `<div class="top">${menuBtn()}<b class="title">Orbit Search</b></div><section data-orbit-search style="display:flex;flex-direction:column;flex:1;min-height:0;height:100%"><div data-search-notice style="padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" data-search-window disabled style="width:auto">Open search window</button><span role="status">Starting Orbit Search… Render may take a minute to wake up.</span><button type="button" class="btn ghost" data-search-retry hidden style="width:auto;display:none">Retry connection</button></div></section>`;
+  main.innerHTML = `<div class="top">${menuBtn()}<b class="title">Orbit Search</b><span class="grow"></span><button type="button" class="btn ghost" data-search-fullscreen style="width:auto">Fullscreen</button></div><section data-orbit-search style="display:flex;flex-direction:column;flex:1;min-height:0;height:100%"><div data-search-notice style="padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" data-search-window disabled style="width:auto">Open search window</button><span role="status">Starting Orbit Search… Render may take a minute to wake up.</span><button type="button" class="btn ghost" data-search-retry hidden style="width:auto;display:none">Retry connection</button></div></section>`;
   bindMenu();
   const container = main.querySelector('[data-orbit-search]');
+  const fullscreen = main.querySelector('[data-search-fullscreen]');
+  const syncFullscreen=()=>{fullscreen.textContent=document.fullscreenElement===main?'Exit fullscreen':'Fullscreen';fullscreen.setAttribute('aria-pressed',String(document.fullscreenElement===main));};
+  fullscreen.onclick=()=>{try{const result=document.fullscreenElement===main?document.exitFullscreen?.():main.requestFullscreen?.();result?.catch(()=>{});}catch{}};
+  document.addEventListener('fullscreenchange',syncFullscreen);syncFullscreen();
+  // Request during the tab click, before any network await consumes user activation.
+  if(!externalWindow&&navigator.userActivation?.isActive&&!document.fullscreenElement)fullscreen.click();
   const notice = container.querySelector('[data-search-notice]');
   const status = notice.querySelector('[role=status]');
   const retry = notice.querySelector('[data-search-retry]');
@@ -17,7 +23,9 @@ export function renderOrbitSearch(main, {sb, menuBtn, bindMenu}, externalWindow 
   let refreshTimer, helloTimer, timeout, listener, stopped=false, inFlight;
   const pending = new AbortController();
   function cleanup() {
-    stopped=true;pending.abort();clearInterval(refreshTimer);clearInterval(helloTimer);clearTimeout(timeout);
+    stopped=true;pending.abort();
+    document.removeEventListener('fullscreenchange',syncFullscreen);
+    if(document.fullscreenElement===main)document.exitFullscreen?.().catch(()=>{});clearInterval(refreshTimer);clearInterval(helloTimer);clearTimeout(timeout);
     if(listener)window.removeEventListener('message',listener);
   }
   const observer = new MutationObserver(() => {if (!container.isConnected) {cleanup();observer.disconnect();}});
@@ -48,7 +56,7 @@ export function renderOrbitSearch(main, {sb, menuBtn, bindMenu}, externalWindow 
     if(stopped||!container.isConnected)return;
     const frame = document.createElement('iframe');
     frame.title = 'Orbit Search'; frame.src = origin + '/';
-    frame.style.cssText = 'border:0;width:100%;flex:1;min-height:480px;background:#080d32';
+    frame.style.cssText = 'border:0;width:100%;flex:1;min-height:0;background:#080d32';
     frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-downloads');
     const peer=()=>externalWindow||frame.contentWindow;
     status.textContent=externalWindow?'Connecting the search window to your Orbit account…':'Connecting your Orbit account…';

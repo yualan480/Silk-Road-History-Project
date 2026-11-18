@@ -122,3 +122,7 @@
 .profile-class-item .rpill{margin:0}
 .profile-class-status{margin-left:auto;font-size:12px;color:#aabce6}
 @media(max-width:480px){.profile-class-status{display:none}}
+
+/* Keep Search controls and its browser together in fullscreen. */
+#main[data-view="search"]:fullscreen{display:flex;flex-direction:column;width:100vw;height:100dvh;background:#080d32;overflow:hidden}
+#main[data-view="search"]:fullscreen>.top{flex-shrink:0}
