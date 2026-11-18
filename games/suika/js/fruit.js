@@ -1,5 +1,5 @@
 import { shadeColor } from "./utils.js";
-import { Vec2 } from "./vec2.js";
+import { Vec2 } from "./vec2.js?v=2";
 
 export const FruitTypes = {
     a: { color: "#C40233", radius: 20, index: 39 },
@@ -31,24 +31,22 @@ export class Fruit {
 
     }
 
-    drawFruit(ctx, radius, index) {
-
-        radius *= 1.3;
-
-        const img = Fruit.img;
-    
-        const cols = 5;
-        const rows = 8;
-
-        const w = img.width / cols;
-        const h = img.height / rows;
-
-        const x = index % cols;
-        const y = Math.floor(index / cols);
-
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, x * w, y * h, w, h, -radius, -radius, radius * 2, radius * 2);
-        
+    drawFruit(ctx, radius) {
+        const colors=['#ef5361','#d94a85','#8f64ce','#f6b54c','#ff9939','#e84440','#b9d86c','#ffad9c','#f4ce4e','#68b960'];
+        const tier=Object.values(FruitTypes).indexOf(this.type),r=radius;
+        ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+        const gradient=ctx.createRadialGradient(-r*.3,-r*.4,r*.05,0,0,r);
+        gradient.addColorStop(0,'#fff8');gradient.addColorStop(.28,colors[tier]);gradient.addColorStop(1,colors[tier]);
+        ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fillStyle=gradient;ctx.fill();
+        ctx.strokeStyle='#54281e33';ctx.lineWidth=Math.max(1,r*.035);ctx.stroke();
+        if(tier===9){ctx.save();ctx.clip();ctx.strokeStyle='#22784866';ctx.lineWidth=r*.13;for(const x of [-.6,-.2,.2,.6]){ctx.beginPath();ctx.ellipse(r*x,0,r*.21,r*1.1,0,0,Math.PI*2);ctx.stroke();}ctx.restore();}
+        if(tier===8){ctx.strokeStyle='#ab863633';ctx.lineWidth=r*.025;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(-r,r*i*.3);ctx.lineTo(r,r*(i*.3+.6));ctx.moveTo(-r,r*i*.3);ctx.lineTo(r,r*(i*.3-.6));ctx.stroke();}}
+        ctx.fillStyle='#2d7f48';ctx.beginPath();ctx.ellipse(r*.17,-r*.89,r*.28,r*.11,-.45,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#705235';ctx.lineWidth=Math.max(2,r*.06);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,-r*.82);ctx.quadraticCurveTo(-r*.08,-r*1.03,r*.07,-r*1.08);ctx.stroke();
+        ctx.fillStyle='#fff5';ctx.beginPath();ctx.ellipse(-r*.36,-r*.35,r*.17,r*.28,.55,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#553e36';for(const x of [-.24,.24]){ctx.beginPath();ctx.ellipse(r*x,r*.05,r*.045,r*.065,0,0,Math.PI*2);ctx.fill();}
+        ctx.strokeStyle='#553e36';ctx.lineWidth=Math.max(1.4,r*.025);ctx.beginPath();ctx.arc(0,r*.12,r*.1,0,Math.PI);ctx.stroke();
+        ctx.fillStyle='#f38a8a88';for(const x of [-.39,.39]){ctx.beginPath();ctx.ellipse(r*x,r*.18,r*.09,r*.045,0,0,Math.PI*2);ctx.fill();}
     }
 
     render({

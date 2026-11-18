@@ -3,7 +3,6 @@
 The following locally hosted game packages were retrieved from the Selenite archive at commit `9c743188888af0986c8c7b293dbac8f9e421a4ee`:
 
 - Subway Surfers: `subway-surfers-ny`
-- Geometry Dash: `geometrydash` (Griffpatch's Scratch/TurboWarp browser edition)
 - Monkey Mart: `monkeymart`
 - Drift Boss: `drift-boss`
 - Drive Mad: `drivemad`
@@ -19,3 +18,5 @@ Ruffle 0.7.1 is downloaded from the `@ruffle-rs/ruffle` npm package and hosted i
 The Baloo 2 font used by the Fancade-based Drive Mad runtime is covered by `drive-mad/webapp/Baloo2-OFL.txt`.
 
 All games launch from Orbit's existing alphabetical Unblocked Games gallery, with automatic fullscreen, restart, and gallery-return controls. Assets and engines are loaded on demand when a game is selected.
+
+New imports: A Small World Cup, Basket Bros, Drift Hunters, and the JSNES-based Super Mario Bros. player. Each directory contains ORBIT-SOURCE.md with its pinned source and credits. No Nintendo ROM is bundled. Geometry Dash’s Scratch port was removed; RobTop lists native releases but no official browser release at https://www.robtopgames.com/ .

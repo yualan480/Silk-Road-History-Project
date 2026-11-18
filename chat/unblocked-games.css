@@ -7,3 +7,5 @@
 .ub-player-top .title{min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 .ub-card-body>b{display:flex;align-items:center;flex-wrap:wrap;gap:7px}.ub-ranked{display:inline-flex;flex:none;align-items:center;padding:3px 7px;border:1px solid #e1ba5d;border-radius:6px;background:#4b351b;color:#ffe4a0;font:700 10px/1.2 var(--sans,Arial,sans-serif);letter-spacing:.035em}.ub-player-top .ub-ranked{margin-left:8px;vertical-align:middle}
+
+.ub-player-footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}.ub-player-footer #ub-save-status{font-size:11px;color:#c7dcff;flex:0 1 auto}

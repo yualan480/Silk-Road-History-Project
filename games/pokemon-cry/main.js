@@ -123,7 +123,7 @@ for (let i = 0, len = genElements.length; i < len; i++) {
         const data = gens[generation];
         data.enabled = !data.enabled;
         genElement.setAttribute('aria-pressed', String(data.enabled));
-        updatePokemon();
+        updatePokemon();saveCryProgress();
     });
 }
 // Pick decoys that are not the answer, for the player to choose between.
@@ -194,11 +194,12 @@ const guess = (option) => {
     else {
         displayEndScreen();
     }
+    saveCryProgress();
 };
 const startRumble = () => setRumble(playElement, true);
 const stopRumble = () => setRumble(playElement, false);
-const nextRound = () => {
-    thePokemon = randomFromLists(pokemonLeft, true);
+const nextRound = (restored = null) => {
+    thePokemon = restored || randomFromLists(pokemonLeft, true);
     let roundPokemons = pickDecoyPokemon(thePokemon.species_id, 3);
     roundPokemons.push(thePokemon);
     roundPokemons = shuffle(roundPokemons);
@@ -221,10 +222,8 @@ const nextRound = () => {
         restorePlayFocus = false;
     }
     spriteElement.alt = 'Mystery Pokemon';
-    setHidden(spriteElement, true);
+    setHidden(spriteElement, true);saveCryProgress();
 };
-// Start the very first round in the beginning.
-nextRound();
 const displayEndScreen = () => {
     const endScreen = requireElement('.end-screen');
     endScreen.classList.remove('hidden');
@@ -267,3 +266,9 @@ optionsElement.addEventListener('click', (event) => {
     }
     guess(option);
 });
+
+const CRY_SAVE='orbit-pokemon-cry-progress-v1';
+function saveCryProgress(){try{localStorage.setItem(CRY_SAVE,JSON.stringify({version:1,total:totalGuesses,correct:correctGuesses,current:thePokemon?.species_id,answered:!!optionElements[0].disabled,wrong:guessedWrong.map(p=>p.species_id),gens:Object.fromEntries(Object.entries(gens).map(([id,g])=>[id,{enabled:g.enabled,left:g.pokemonLeft.map(p=>p.species_id)}]))}));}catch{}}
+function restoreCryProgress(){try{const data=JSON.parse(localStorage.getItem(CRY_SAVE)||'null');if(data?.version!==1||![data.total,data.correct].every(n=>Number.isInteger(n)&&n>=0&&n<=10000)||data.correct>data.total)return null;const all=Object.values(gens).flatMap(g=>g.pokemon);for(const [id,g]of Object.entries(gens)){const saved=data.gens?.[id];if(saved&&Array.isArray(saved.left)){const ids=new Set(saved.left.map(String));g.enabled=!!saved.enabled;g.pokemonLeft=g.pokemon.filter(p=>ids.has(String(p.species_id)));}}if(!Object.values(gens).some(g=>g.enabled))gens[1].enabled=true;totalGuesses=data.total;correctGuesses=data.correct;for(const id of data.wrong||[]){const p=all.find(p=>String(p.species_id)===String(id));if(p)guessedWrong.push(p);}updatePokemon();genElements.forEach(e=>e.setAttribute('aria-pressed',String(gens[Number(e.dataset.gen)].enabled)));return !data.answered?all.find(p=>String(p.species_id)===String(data.current))||null:null;}catch{return null;}}
+const restoredCry=restoreCryProgress();if(restoredCry||arePokemonLeft())nextRound(restoredCry);else displayEndScreen();
+window.OrbitGameSave?.register(saveCryProgress);addEventListener('pagehide',saveCryProgress);

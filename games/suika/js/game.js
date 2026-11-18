@@ -1,5 +1,5 @@
 
-import { World } from "./world.js";
+import { World } from "./world.js?v=2";
 
 const VIRTUAL_SIZE = 800;
 

@@ -12,6 +12,7 @@ let currentQuestionIndex,
   correctGuess,
   wrongGuess,
   questions = [];
+let selectedAnswerIndex=null,restoringAnswer=false;
 
 // Local questions keep rounds playable without a third-party API.
 async function getQuestions(callback) {
@@ -82,8 +83,8 @@ function startGame() {
 
 // Setting up the next question by calling showQuestion and resetState for resetting the background color back to normal.
 function setNextQuestion() {
-  resetState();
-  showQuestion(questions[currentQuestionIndex]);
+  selectedAnswerIndex=null;resetState();
+  showQuestion(questions[currentQuestionIndex]);saveRound();
 }
 
 // This will determine if the question is true or false.
@@ -118,14 +119,11 @@ function resetState() {
 function selectAnswer(e) {
   const selectedButton = e.currentTarget;
   if (selectedButton.disabled) return;
+  selectedAnswerIndex=Array.from(answerButtonElement.children).indexOf(selectedButton);
   const correct = selectedButton.dataset.correct;
   setStatusClass(document.body, correct);
 
-  if (correct) {
-    correctGuess++;
-  } else {
-    wrongGuess++;
-  }
+  if(!restoringAnswer){if(correct)correctGuess++;else wrongGuess++;}
 
   document.getElementById('status').textContent = correct ? 'Correct!' : 'The correct answer is ' + readable(questions[currentQuestionIndex].answers.find(a => a.correct).text) + '.';
   document.getElementById('progress').textContent = 'Question ' + (currentQuestionIndex + 1) + ' of ' + questions.length + ' · Score: ' + correctGuess;
@@ -143,6 +141,7 @@ function selectAnswer(e) {
     correctGuessDisplay.innerHTML = correctGuess.toString();
     wrongGuessDisplay.innerHTML = wrongGuess.toString();
   }
+  saveRound();
 }
 
 // Add the class 'correct' if correct or 'wrong' if wrong.
@@ -160,3 +159,8 @@ function clearStatusClass(element) {
   element.classList.remove("correct");
   element.classList.remove("wrong");
 }
+
+const TRIVIA_SAVE='orbit-trivia-round-v1';
+function saveRound(){if(!questions.length||!Number.isInteger(currentQuestionIndex))return;try{localStorage.setItem(TRIVIA_SAVE,JSON.stringify({version:1,questions,index:currentQuestionIndex,correct:correctGuess,wrong:wrongGuess,selected:selectedAnswerIndex}));}catch{}}
+function restoreRound(){try{const data=JSON.parse(localStorage.getItem(TRIVIA_SAVE)||'null');if(data?.version!==1||!Array.isArray(data.questions)||data.questions.length!==10||!Number.isInteger(data.index)||data.index<0||data.index>=10||![data.correct,data.wrong].every(n=>Number.isInteger(n)&&n>=0&&n<=10))return;for(const q of data.questions){if(typeof q.question!=='string'||!Array.isArray(q.answers)||q.answers.length!==4||!q.answers.every(a=>typeof a.text==='string'&&typeof a.correct==='boolean'))return;}questions=data.questions;currentQuestionIndex=data.index;correctGuess=data.correct;wrongGuess=data.wrong;selectedAnswerIndex=data.selected;startButton.classList.add('hide');startParagraph.classList.add('hide');endMessage.classList.add('hide');questionContainerElement.classList.remove('hide');resetState();showQuestion(questions[currentQuestionIndex]);if(Number.isInteger(data.selected)&&data.selected>=0&&data.selected<4){restoringAnswer=true;selectAnswer({currentTarget:answerButtonElement.children[data.selected]});restoringAnswer=false;}}catch{restoringAnswer=false;}}
+restoreRound();window.OrbitGameSave?.register(saveRound);addEventListener('pagehide',saveRound);

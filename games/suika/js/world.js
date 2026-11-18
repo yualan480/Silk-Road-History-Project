@@ -1,5 +1,5 @@
-import { Fruit, FruitTypes } from "./fruit.js";
-import { Vec2 } from "./vec2.js";
+import { Fruit, FruitTypes } from "./fruit.js?v=2";
+import { Vec2 } from "./vec2.js?v=2";
 
 const WORLD_MARGIN = 5;
 
