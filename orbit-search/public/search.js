@@ -2,8 +2,11 @@ import { normalizeAddress } from '/address.js';
 const status = document.querySelector('#status');
 const address = document.querySelector('#address');
 let frame, controller, connection, expires = 0;
+const connectionId=crypto.randomUUID();
+const orbitWindow=parent!==window?parent:window.opener;
+const notify=message=>orbitWindow?.postMessage(message,config.parent);
 const config = await fetch('/config.json').then(r => r.json());
-status.textContent=parent===window?'Open Orbit Search from the Orbit sidebar to connect your account.':'Connecting to your Orbit account…';
+status.textContent=!orbitWindow?'Open Orbit Search from the Orbit sidebar to connect your account.':'Connecting to your Orbit account…';
 let boot;
 async function initialize() {
   if (boot) return boot;
@@ -20,20 +23,26 @@ async function initialize() {
   return boot;
 }
 window.addEventListener('message', async event => {
-  if (event.source !== parent || event.origin !== config.parent) return;
-  if(event.data?.type==='orbit-search-hello'){parent.postMessage({type:'orbit-search-ready'},config.parent);return;}
-  if(event.data?.type!=='orbit-search-session')return;
+  if (event.source !== orbitWindow || event.origin !== config.parent) return;
+  if(event.data?.type==='orbit-search-hello'){notify({type:'orbit-search-ready',connectionId});return;}
+  if(!['orbit-search-session','orbit-search-account'].includes(event.data?.type))return;
   try {
+    let session=event.data;
+    if(event.data.type==='orbit-search-account'){
+      const response=await fetch('/api/session',{method:'POST',headers:{Authorization:'Bearer '+event.data.accessToken}});
+      if(!response.ok)throw new Error('Could not connect your Orbit account. Sign in again and reopen Orbit Search.');
+      session=await response.json();
+    }
     await initialize();
     const url = new URL('/wisp/', location.href); url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    url.searchParams.set('ticket', event.data.token);
+    url.searchParams.set('ticket', session.token);
     await connection.setTransport('/vendor/epoxy/index.mjs', [{wisp:url.href}]);
-    expires = event.data.expires;
+    expires = session.expires;
     status.textContent = 'Ready · Search results and websites open here.';
-    parent.postMessage({type:'orbit-search-connected'},config.parent);
-  } catch (error) {status.textContent = error.message;parent.postMessage({type:'orbit-search-error',message:error.message},config.parent);}
+    notify({type:'orbit-search-connected'});
+  } catch (error) {status.textContent = error.message;notify({type:'orbit-search-error',message:error.message});}
 });
-parent.postMessage({type:'orbit-search-ready'}, config.parent);
+notify({type:'orbit-search-ready',connectionId});
 document.querySelector('#search').addEventListener('submit', async event => {
   event.preventDefault();
   try {

@@ -1,4 +1,4 @@
-import {renderOrbitSearch} from './orbit-search.js?v=2';
+import {renderOrbitSearch} from './orbit-search.js?v=3';
 import {schoolSignupDetails} from './school-signup.js?v=4';
 import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';

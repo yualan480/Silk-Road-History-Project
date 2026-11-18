@@ -31,8 +31,9 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/health') { res.writeHead(200); return res.end('Orbit Search ready'); }
   if (url.pathname === '/api/session') {
     res.setHeader('Cache-Control','no-store');
-    if (req.headers.origin !== parent) { res.writeHead(403); return res.end('Open Orbit Search from Orbit.'); }
-    res.setHeader('Access-Control-Allow-Origin', parent);
+    let ownOrigin=false;try{const source=new URL(req.headers.origin);ownOrigin=['http:','https:'].includes(source.protocol)&&source.host===req.headers.host;}catch{}
+    if (req.headers.origin !== parent && !ownOrigin) { res.writeHead(403); return res.end('Open Orbit Search from Orbit.'); }
+    res.setHeader('Access-Control-Allow-Origin', ownOrigin?req.headers.origin:parent);
     res.setHeader('Vary', 'Origin');
     if (req.method === 'OPTIONS') {
       res.setHeader('Access-Control-Allow-Headers', 'Authorization');

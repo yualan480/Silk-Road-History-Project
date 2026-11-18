@@ -43,5 +43,25 @@ try{
  await page.setViewportSize({width:390,height:844});
  assert.equal(await search.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);
  const direct=await browser.newPage();await direct.goto(proxyBase);await direct.getByRole('status').filter({hasText:'Open Orbit Search from the Orbit sidebar'}).waitFor();await direct.close();
- console.log('PASS cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
+ // Reproduce a browser that rejects the embedded service, then use an authenticated top-level window.
+ const fallback=await browser.newPage();
+ await fallback.route(parentBase+'/orbit-search/config',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({url:proxyBase})}));
+ await fallback.route(parentBase+'/orbit-search/ready',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({ready:true,parent:parentBase})}));
+ await fallback.route(proxyBase+'/',route=>route.request().frame().parentFrame()?route.abort('blockedbyclient'):route.continue());
+ await fallback.goto(parentBase);
+ await fallback.evaluate(render=>{const fn=(0,eval)('('+render+')');fn(document.querySelector('#main'),{sb:{auth:{getSession:async()=>({data:{session:{access_token:'test-session'}}})}},menuBtn:()=>'',bindMenu:()=>{}});},renderOrbitSearch.toString());
+ await fallback.locator('iframe').waitFor();
+ const popupPromise=fallback.waitForEvent('popup');
+ await fallback.getByRole('button',{name:'Open search window'}).click();
+ const popup=await popupPromise;
+ await popup.locator('#status').filter({hasText:'Ready'}).waitFor({timeout:45000});
+ await fallback.getByRole('status').filter({hasText:'Search is connected in the separate window'}).waitFor();
+ assert.equal(await fallback.locator('iframe').count(),0);
+ await popup.locator('#address').fill('http://fixture.test:'+new URL(targetBase).port+'/');await popup.locator('#go').click();
+ await popup.frameLocator('iframe').getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
+ await popup.frameLocator('iframe').locator('#test').click();
+ await popup.frameLocator('iframe').getByRole('button',{name:'JavaScript works'}).waitFor();
+ await popup.reload();await popup.locator('#status').filter({hasText:'Ready'}).waitFor({timeout:45000});
+ await popup.close();await fallback.close();
+ console.log('PASS blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
 }finally{await browser.close();for(const s of [proxy,parent,target]){s.closeAllConnections();s.close();}process.exitCode=0;}
