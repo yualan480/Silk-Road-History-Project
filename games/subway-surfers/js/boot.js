@@ -61,6 +61,7 @@
       function loadScript(e, n) {
           try {
               var t = document.createElement("script");
+              t.async = false;
               n && (t.onload = n), t.src = e + "?v=1gefx1jwdk0gj12hb", document.head.appendChild(t)
           } catch (e) {}
       }

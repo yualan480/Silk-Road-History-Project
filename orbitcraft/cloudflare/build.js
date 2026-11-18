@@ -8,7 +8,7 @@ const exclude=new Set(['.git','.agents','.aws','.codex','attachments','node_modu
 async function copyDirectory(src,dst){
  await mkdir(dst,{recursive:true});
  for(const file of await readdir(src,{withFileTypes:true})){
-  if(file.name.startsWith('.')||(exclude.has(file.name)&&!(file.name==='data'&&src===resolve(root,'games/pokemon-showdown')))||/\.(sql|sqlite|zip)$/.test(file.name)||['package.json','package-lock.json','wrangler.jsonc','README.md'].includes(file.name))continue;
+  if(file.name.startsWith('.')||(exclude.has(file.name)&&!(file.name==='data'&&[resolve(root,'games/pokemon-showdown'),resolve(root,'games/subway-surfers/assets')].includes(src)))||/\.(sql|sqlite|zip)$/.test(file.name)||['package.json','package-lock.json','wrangler.jsonc','README.md'].includes(file.name))continue;
   const from=resolve(src,file.name),to=resolve(dst,file.name);
   if(file.isDirectory())await copyDirectory(from,to);else if(file.isFile())await copyFile(from,to);
  }
@@ -16,6 +16,10 @@ async function copyDirectory(src,dst){
 await copyDirectory(root,out);
 await mkdir(resolve(out,'orbitcraft/vendor'),{recursive:true});
 for(const file of ['three.module.js','three.core.js'])await copyFile(resolve(game,'node_modules/three/build',file),resolve(out,'orbitcraft/vendor',file));
+for(const name of ['config','strings_en','chunks_idle','chunks_game']){
+ const path='games/subway-surfers/assets/data/'+name+'.json';
+ if(!(await readFile(resolve(root,path))).equals(await readFile(resolve(out,path))))throw new Error('Missing packaged Subway Surfers data: '+path);
+}
 // Guard the generated package as well as source: the Loop is challenge-only.
 const shop=await readFile(resolve(out,'chat/shop.js'),'utf8');
 for(const retired of ['take_orbit_loop','loopBoxHtml','id="olprice"','id="oltake"']){
