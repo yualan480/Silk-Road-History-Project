@@ -81,12 +81,13 @@ export const UNBLOCKED_GAMES=[{
 },
 {
  "id": "subway-surfers",
+ "ranked": true,
  "title": "Subway Surfers",
  "category": "Action",
  "players": "Single player",
  "description": "Dodge subway trains, collect coins, and keep the chase going.",
  "image": "../games/subway-surfers/NewYorkIcon.png",
- "src": "../games/subway-surfers/index.html?v=3",
+ "src": "../games/subway-surfers/index.html?v=4",
  "tags": [
   "subway",
   "surfers",

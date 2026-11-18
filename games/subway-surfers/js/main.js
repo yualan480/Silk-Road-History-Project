@@ -11637,7 +11637,7 @@
               (this.image.width = this.w - 2 * t.border),
               (this.image.height = this.h - 2 * t.border),
               this.spinner.scale.set(0.4),
-              this.load("assets/placeholder/" + t.image + ".png");
+              this.load(/^(https:\/\/|data:image\/)/.test(t.image) ? t.image : "assets/placeholder/" + t.image + ".png");
           }),
           AvatarIcon
         );
@@ -11745,7 +11745,7 @@
                   },
                   t
                 )),
-                (this.name.text = t.name.substr(0, this.clampChars)),
+                (this.name.text = t.name.substr(0, 100)),
                 (this.score.text = t.score),
                 (this.index.text = t.index),
                 t.loading ||
@@ -12244,7 +12244,7 @@
                 this.updateEntries();
             }),
             (t.onOpen = function () {
-              i.prototype.onOpen.call(this);
+              i.prototype.onOpen.call(this);this.updateEntries();
             }),
             (t.onClose = function () {
               i.prototype.onClose.call(this);
@@ -12260,14 +12260,12 @@
                   var t = [
                       {
                         name: "nickname",
-                        type: "input",
+                        type: "profile",
                         value: this.app.user.name,
                         icon: "icon_user.png",
-                        title: this.app.strings.get("nickname"),
-                        description: this.app.strings.get("nickname_prompt"),
-                        onChange: function (t) {
-                          (e.app.user.name = t), e.app.user.save();
-                        },
+                        title: "Orbit profile",
+                        description: "Your name and picture come from Orbit.",
+                        onChange: function () {},
                       },
                       {
                         name: "sound",
@@ -12301,6 +12299,7 @@
             }),
             (t.updateEntries = function () {
               this.buildEntries(), (this.nickname.value = this.app.user.name), (this.sound.value = this.app.settings.sound);
+              if(window.OrbitSubway)window.OrbitSubway.bindUser(this.app.user).then(function(){this.nickname.value=this.app.user.name;this.nickname.update();}.bind(this));
             }),
             SectionSettings
           );
@@ -12417,6 +12416,13 @@
               var e = t ? this.opts.subtitleTrue : this.opts.subtitleFalse,
                 i = "string" == typeof t ? t : e;
               (this.subtitle.text = i), (this.title.y = i ? -35 : -20), (this.subtitle.y = this.title.y + 40);
+              if(this.type==='profile' && window.OrbitSubway && window.OrbitSubway.profile){
+                var profile=window.OrbitSubway.profile;
+                this.subtitle.text=profile.name;this.subtitle._text.style.maxWidth=400;
+                this.btn.visible=false;
+                if(!this.profileAvatar){this.profileAvatar=new An(90);this.addChild(this.profileAvatar);this.profileAvatar.x=this.btn.x;}
+                this.profileAvatar.update({image:profile.image});
+              }
             }),
             (t = Entry),
             (e = [
@@ -12988,7 +12994,8 @@
                     tutorial: !0,
                   })
                 ),
-                this.user.name || ((this.user.name = oo.random()), this.user.save()),
+                (this.user.name = 'Loading Orbit profile…'),
+                window.OrbitSubway && window.OrbitSubway.bindUser(this.user),
                 (this.sfx = new gn(0 === B.volume)),
                 this.sfx.setup(eo.audio.audio, ao),
                 this.sfx.volume(this.settings.sound ? B.volume : 0),

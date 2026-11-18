@@ -22,19 +22,20 @@ begin
  returning score into best;
  return best;
 end $$;
-create or replace function public.get_subway_leaderboard(p_limit int default 11)
-returns table(user_id uuid,name text,score bigint,rank bigint,avatar_url text)
+drop function if exists public.get_subway_leaderboard(int);
+create function public.get_subway_leaderboard(p_limit int default 11)
+returns table(user_id uuid,name text,score bigint,rank bigint,avatar_url text,avatar_color text)
 language plpgsql stable security definer set search_path=public as $$
 declare uid uuid:=auth.uid(); lim int:=greatest(1,least(coalesce(p_limit,11),50));
 begin
  if uid is null or not exists(select 1 from profiles where id=uid) then raise exception 'Log in to Orbit first.';end if;
  return query
  with ranked as (
-  select s.user_id,coalesce(nullif(p.display_name,''),p.username)::text as name,s.score,
-   row_number() over(order by s.score desc,s.achieved_at,s.user_id) as rank,p.avatar_url
+  select s.user_id,coalesce(nullif(btrim(concat_ws(' ',nullif(btrim(p.first_name),''),nullif(btrim(p.last_name),''))),''),nullif(p.display_name,''),p.username)::text as name,s.score,
+   row_number() over(order by s.score desc,s.achieved_at,s.user_id) as rank,p.avatar_url,p.avatar_color
   from subway_scores s join profiles p on p.id=s.user_id
  ), mine as(select r.rank from ranked r where r.user_id=uid)
- select r.user_id,r.name,r.score,r.rank,r.avatar_url from ranked r
+ select r.user_id,r.name,r.score,r.rank,r.avatar_url,r.avatar_color from ranked r
  where r.rank<=lim-case when exists(select 1 from mine where mine.rank>lim) then 1 else 0 end or r.user_id=uid
  order by r.rank;
 end $$;
