@@ -9,7 +9,7 @@ The repository's `render.yaml` describes both web services. Existing Render serv
 1. In Render create **New → Web Service**, connect **Silk-Road-History-Project**, use branch `main`, and name it `silk-road-orbit-search` (or another available name).
 2. Leave **Root Directory** empty. Build command: `npm --prefix orbit-search ci --omit=dev`. Start command: `npm --prefix orbit-search start`. Health check: `/health`. Set `NODE_VERSION=24` and `ORBIT_SEARCH_PARENT_ORIGIN=https://silkroadhistoryproject.onrender.com` (exact origin, no path).
 3. Deploy it. Copy its actual public HTTPS URL.
-4. In the **existing Silk Road/Orbit service → Environment**, add `ORBIT_SEARCH_URL` with that URL, then save and redeploy. Open Orbit → **Orbit Search**.
+4. In the **existing Silk Road/Orbit service → Environment**, add `ORBIT_SEARCH_URL` with that URL, then save and redeploy. Open Orbit → **Orbit Search**. The site checks that the search application is awake before embedding it. Its loading notice stays visible until the account connection is acknowledged; if connecting fails, use **Retry connection**. Opening the search-service address directly shows instructions to return to the Orbit sidebar.
 
 No SQL or Supabase authentication changes are required. Both services use the existing public Supabase configuration and verify signed-in users with Supabase. No service-role key is used.
 

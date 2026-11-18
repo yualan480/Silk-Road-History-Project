@@ -1,3 +1,4 @@
+import {createSearchReadiness} from './search-status.js';
 import {showdownGuestAuth} from './showdown-auth.js';
 import {SIZE,HEIGHT,MIN_Y,CHUNK_HEIGHT,CHUNK} from '../world.js';
 import { RELEASE } from '../release.js';
@@ -19,12 +20,14 @@ if(dev && host!=='127.0.0.1' && host!=='localhost')throw new Error('Development 
 const store=openStore(process.env.ORBITCRAFT_DB||resolve(root,'orbitcraft/data/world.sqlite'));
 const game=new Dimensions(store);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.webp':'image/webp','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
+const searchReadiness=createSearchReadiness();
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://local');
-  if(url.pathname==='/orbit-search/config') {
+  if(url.pathname==='/orbit-search/config'||url.pathname==='/orbit-search/ready') {
     const configured=process.env.ORBIT_SEARCH_URL;let searchUrl=null;
     try{if(configured){const target=new URL(configured);if(target.protocol==='https:'&&target.host!==req.headers.host)searchUrl=target.origin;}}catch{}
-    res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});return res.end(JSON.stringify({url:searchUrl}));
+    const body=url.pathname.endsWith('/ready')?(searchUrl?await searchReadiness(searchUrl):{ready:false}):{url:searchUrl};
+    res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});return res.end(JSON.stringify(body));
   }
   if(url.pathname.startsWith('/orbit-search/')){res.writeHead(404);return res.end();}
   if(url.pathname==='/chatter'||url.pathname.startsWith('/chatter/')){res.writeHead(308,{Location:'/chat'+url.pathname.slice(8)+url.search});return res.end();}

@@ -3,6 +3,7 @@ const status = document.querySelector('#status');
 const address = document.querySelector('#address');
 let frame, controller, connection, expires = 0;
 const config = await fetch('/config.json').then(r => r.json());
+status.textContent=parent===window?'Open Orbit Search from the Orbit sidebar to connect your account.':'Connecting to your Orbit account…';
 let boot;
 async function initialize() {
   if (boot) return boot;
@@ -19,7 +20,9 @@ async function initialize() {
   return boot;
 }
 window.addEventListener('message', async event => {
-  if (event.source !== parent || event.origin !== config.parent || event.data?.type !== 'orbit-search-session') return;
+  if (event.source !== parent || event.origin !== config.parent) return;
+  if(event.data?.type==='orbit-search-hello'){parent.postMessage({type:'orbit-search-ready'},config.parent);return;}
+  if(event.data?.type!=='orbit-search-session')return;
   try {
     await initialize();
     const url = new URL('/wisp/', location.href); url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -27,7 +30,8 @@ window.addEventListener('message', async event => {
     await connection.setTransport('/vendor/epoxy/index.mjs', [{wisp:url.href}]);
     expires = event.data.expires;
     status.textContent = 'Ready · Search results and websites open here.';
-  } catch (error) {status.textContent = error.message;}
+    parent.postMessage({type:'orbit-search-connected'},config.parent);
+  } catch (error) {status.textContent = error.message;parent.postMessage({type:'orbit-search-error',message:error.message},config.parent);}
 });
 parent.postMessage({type:'orbit-search-ready'}, config.parent);
 document.querySelector('#search').addEventListener('submit', async event => {
