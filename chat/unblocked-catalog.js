@@ -221,4 +221,24 @@ export const UNBLOCKED_GAMES=[{
  image:'../games/balloon-bastion/cover.jpg',src:'../games/balloon-bastion/index.html?v=1&save=1',
  tags:['balloon','bastion','tower','defense','strategy','waves','td'],
  controls:'Pick a tower, then click or tap open ground to place it. Start waves, pop balloons, upgrade towers, and defend your portal. Keyboard: 1–4 to select towers, Space to start or pause, Esc to deselect. Progress autosaves between waves.'
-}];
+},
+{
+ "id": "a-small-world-cup",
+ "title": "A Small World Cup",
+ "category": "Sports",
+ "players": "Single player",
+ "description": "Swing your ragdoll footballer, score goals, and chase the cup.",
+ "image": "../games/a-small-world-cup/cover.jpg",
+ "src": "../games/a-small-world-cup/index.html?v=1",
+ "save": "resume",
+ "tags": [
+  "small",
+  "world",
+  "cup",
+  "football",
+  "soccer",
+  "sports"
+ ],
+ "controls": "Click or tap, drag to aim, then release to kick. Your match state autosaves in this browser."
+}
+];

@@ -1,0 +1,1 @@
+A Small World Cup browser files from https://github.com/spicypotatogaming/a-small-world-cup/tree/3778737e29bb47ee11e61f2996a38fb199b7a462 . Original game by Rujo Games; original game credits retained. Archive advertising/tracking code is not loaded. Hosted locally inside Orbit.
