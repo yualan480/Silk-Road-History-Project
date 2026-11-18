@@ -26,8 +26,11 @@ const mime = {'.js':'text/javascript', '.mjs':'text/javascript', '.html':'text/h
 const server = http.createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('Content-Security-Policy', `frame-ancestors ${parent}`);
   const url = new URL(req.url, 'http://local');
+  // The public launcher may sit under Orbit's nested/blank-window wrappers.
+  // Account handoff still checks the exact immediate parent origin AND window source.
+  // It has no stored login and cannot authenticate an unrelated embedding site.
+  if(!['/','/index.html'].includes(url.pathname))res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${parent}`);
   if (url.pathname === '/health') { res.writeHead(200); return res.end('Orbit Search ready'); }
   if (url.pathname === '/api/session') {
     res.setHeader('Cache-Control','no-store');

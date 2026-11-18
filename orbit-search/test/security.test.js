@@ -20,6 +20,8 @@ test('relay needs an Orbit session and exact parent origin; assets are scoped',a
  const server=createSearchServer({parentOrigin,verifyIdentity:async token=>{if(token!=='valid')throw Error();return {id:'test',expiresAt:Date.now()+60000};}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>{server.closeAllConnections();server.close();});
  const base='http://127.0.0.1:'+server.address().port;
+ assert.equal((await fetch(base+'/')).headers.get('content-security-policy'),null,'Public launcher supports nested wrappers');
+ assert.equal((await fetch(base+'/config.json')).headers.get('content-security-policy'),"frame-ancestors 'self' "+parentOrigin);
  assert.equal((await fetch(base+'/api/session',{method:'POST',headers:{Origin:'https://evil.example',Authorization:'Bearer valid'}})).status,403);
  assert.equal((await fetch(base+'/api/session',{method:'POST',headers:{Origin:parentOrigin,Authorization:'Bearer wrong'}})).status,401);
  const result=await fetch(base+'/api/session',{method:'POST',headers:{Origin:parentOrigin,Authorization:'Bearer valid'}});

@@ -58,11 +58,8 @@ export function renderOrbitSearch(main, {sb, menuBtn, bindMenu}, externalWindow 
       inFlight=(async()=>{
         const {data} = await sb.auth.getSession();
         if (!data.session) throw new Error('Sign in to Orbit to use Orbit Search.');
-        if(externalWindow){peer().postMessage({type:'orbit-search-account',accessToken:data.session.access_token},origin);return;}
-        const res = await fetch(origin + '/api/session', {method:'POST',signal:pending.signal,headers:{Authorization:'Bearer '+data.session.access_token}});
-        if (!res.ok) throw new Error(res.status === 401 ? 'Your Orbit session expired. Sign in again.' : 'Orbit Search could not connect. Retry the connection.');
-        const session = await res.json();
-        if(!stopped)peer().postMessage({type:'orbit-search-session',...session},origin);
+        // Authenticate inside the search origin so browsers need no cross-site API request from Orbit.
+        if(!stopped)peer().postMessage({type:'orbit-search-account',accessToken:data.session.access_token},origin);
       })().finally(()=>{inFlight=null;});
       return inFlight;
     }
