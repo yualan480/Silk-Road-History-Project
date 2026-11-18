@@ -1294,7 +1294,7 @@ async function fetchMsgs(before) {
   const { data, error } = await q; if (error) { toast('Could not load messages: ' + error.message, true); return; }
   S.hasMore = data.length === 50; data.forEach(upsert);
   if (data.length) { const { data: rs } = await sb.from('message_reactions').select('*').in('message_id', data.map(m => m.id)); (rs || []).forEach(r => { const a = S.rx.get(r.message_id) || []; a.push(r); S.rx.set(r.message_id, a); }); }
-  const pm = data.filter(m => m.has_poll).map(m => m.id); if (pm.length) await loadPolls(pm);
+  const pm = data.map(m => m.id); if (pm.length) await loadPolls(pm);
 }
 async function markRead() {
   if (document.hidden || !document.hasFocus()) return;   // "Read" should mean the other person really has the chat in front of them
@@ -1556,7 +1556,7 @@ function msgHtml(m, prev) {
   <div class="msg ${cont ? 'cont' : ''} ${m.pending ? 'pending' : ''} ${mentionsMe(m) ? 'mentioned' : ''}" data-id="${m.id}">${av(p)}<div class="body">
   ${m.reply_to ? `<div class="reply">↪ ${orig ? esc(prof(orig.author_id).display_name) + ': ' + esc(plain(orig.content || 'Attachment').slice(0, 60)) : 'Original message'}</div>` : ''}
   <div class="head"><b data-a="prof" data-u="${p.id}" style="--c:${esc(p.avatar_color)}">${esc(p.display_name)}</b>${roleBadge(p.id)}${SHOP.coHtml?.(p.id) || ''}<small>${stamp(m.created_at)}</small>${S.pins.has(m.id) ? '<small title="Pinned">📌</small>' : ''}</div>
-  ${m.has_poll ? pollHtml(m) : `<div${jumboOk(m.content) ? ' class="jumbo"' : ''}>${md(m.content, m.id)}${m.edited_at ? ' <small class="muted">(edited)</small>' : ''}</div>`}${attHtml(m)}
+  ${(m.has_poll || S.polls.has(m.id)) ? pollHtml(m) : `<div${jumboOk(m.content) ? ' class="jumbo"' : ''}>${md(m.content, m.id)}${m.edited_at ? ' <small class="muted">(edited)</small>' : ''}</div>`}${attHtml(m)}
   <div class="rx">${Object.entries(rxs).map(([e, u]) => `<button data-a="rx" data-e="${e}" class="${u.includes(S.me.id) ? 'mine' : ''}" aria-label="${e} ${u.length}">${e} ${u.length}</button>`).join('')}</div></div>
   ${m.pending ? '' : `<div class="acts">${['👍', '❤️', '😂'].map(e => `<button data-a="rx" data-e="${e}" aria-label="React ${e}">${e}</button>`).join('')}<button data-a="reply" title="Reply" aria-label="Reply">↩</button><button data-a="copy" title="Copy" aria-label="Copy message">⧉</button>${S.view === 'server' && can('pin_messages') ? `<button data-a="pin" title="${S.pins.has(m.id) ? 'Unpin' : 'Pin'}" aria-label="Pin message">📌</button>` : ''}${!mine && S.view === 'server' ? '<button data-a="report" title="Report" aria-label="Report message">⚑</button>' : ''}${!mine && S.view === 'server' && can('delete_messages') ? '<button data-a="del" title="Delete (moderator)" aria-label="Delete">🗑</button>' : ''}${mine ? (m.has_poll ? '' : '<button data-a="edit" title="Edit" aria-label="Edit">✎</button>') + '<button data-a="del" title="Delete" aria-label="Delete">🗑</button>' : ''}</div>`}</div>`;
 }
@@ -3346,10 +3346,25 @@ async function loadPolls(ids) {
   if (!ids.length) return true;
   const cache = S.polls;
   try {
-    const { data, error } = await sb.from('polls').select('id, message_id, multiple, ends_at, created_by, options:poll_options(id, label, position), votes:poll_votes(option_id, user_id)').in('message_id', ids);
+    const { data, error } = await sb.from('polls').select('id, message_id, multiple, ends_at, created_by').in('message_id', ids);
     if (error) return false;
     if (cache !== S.polls) return false;
-    (data || []).forEach(p => cache.set(p.message_id, { ...p, options: p.options || [], votes: p.votes || [] }));
+    if (!data?.length) return true;
+    // Load each table directly: relationship embedding can fail when the live
+    // PostgREST schema cache cannot resolve the poll foreign keys.
+    const pollIds = data.map(p => p.id);
+    const [options, votes] = await Promise.all([
+      sb.from('poll_options').select('id, poll_id, label, position').in('poll_id', pollIds),
+      sb.from('poll_votes').select('poll_id, option_id, user_id').in('poll_id', pollIds)
+    ]);
+    if (options.error || votes.error || cache !== S.polls) return false;
+    for (const p of data) {
+      const answers = (options.data || []).filter(o => o.poll_id === p.id);
+      if (answers.length < 2) continue; // Never render a question-only poll.
+      cache.set(p.message_id, { ...p, options: answers, votes: (votes.data || []).filter(v => v.poll_id === p.id) });
+      const message = S.list.find(m => m.id === p.message_id);
+      if (message) message.has_poll = true;
+    }
     return true;
   } catch { return false; }
 }
@@ -3399,7 +3414,7 @@ function onVote(p) {
   // rather than applying incomplete or out-of-order events to cached vote totals.
   refreshVisiblePolls();
 }
-async function onPollChange(p) { const mid = (p.new || p.old)?.message_id; if (mid && S.polls.has(mid)) { await loadPolls([mid]); redrawPoll(mid); } }
+async function onPollChange(p) { const mid = (p.eventType === 'DELETE' ? p.old : p.new)?.message_id; if (mid && S.list.some(m => m.id === mid)) { await loadPolls([mid]); renderMsgs(); } }
 function pollModal() {
   const lim = postLimit(); if (lim) return toast(lim, true);
   modal('Create a poll', `<label for="pq">Question</label><input id="pq" maxlength="300" placeholder="What should we play tonight?" autocomplete="off"><label>Options (2 to 10)</label><div id="po"></div><button type="button" class="btn ghost sm" id="pa" style="margin-top:6px">Add option</button>
@@ -3412,6 +3427,7 @@ function pollModal() {
     const A = S.active, view = S.view, hrs = $('#pd', bg).value;
     const { data, error } = await sb.rpc('create_poll', { p_channel: view === 'server' ? A : null, p_conversation: view === 'dm' ? A : null, p_question: q, p_options: opts, p_multiple: $('#pm', bg).checked, p_hours: hrs ? +hrs : null });
     if (error) { toast(error.message, true); if (/row-level security|permission denied/i.test(error.message)) verifyAccess(); return false; }
+    data.has_poll = true;
     await loadPolls([data.id]);
     if (S.active === A && S.view === view) { upsert(data); renderMsgs(true); }
     const c = S.convs.find(x => x.id === A); if (c) { Object.assign(c, { last_message_at: data.created_at, last_message_preview: '📊 ' + q.slice(0, 70), last_author: S.me.id, last_read_at: data.created_at }); renderSide(); } } }],
