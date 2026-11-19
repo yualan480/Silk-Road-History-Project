@@ -145,10 +145,15 @@ try{
   try{await(await import('/relay-probe.js')).verifyRelay(session.token);return 'unexpected success';}catch(error){return error.message;}finally{window.WebSocket=NativeWebSocket;}
  });assert.match(failedProbe,/closed before its handshake/);
 
+ assert.equal(await direct.locator('.load-track').count(),0);
+ await direct.locator('body').evaluate(el=>el.classList.add('loading'));
+ assert.equal(await direct.locator('.tab-logo').evaluate(el=>getComputedStyle(el).animationName),'tab-orbit-spin');
+ await direct.locator('body').evaluate(el=>el.classList.remove('loading'));
+ assert.equal(await direct.locator('.tab-logo').evaluate(el=>getComputedStyle(el).animationName),'none');
  await direct.locator('.brand-mark img').evaluate(img=>img.decode());await direct.waitForTimeout(650);await direct.screenshot({path:'/tmp/orbit-search-redesign-desktop.png'});
  for(const size of [{width:390,height:844},{width:360,height:640},{width:844,height:390}]){await direct.setViewportSize(size);assert.equal(await direct.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);assert.equal(await direct.locator('#start-search').isVisible(),true);}
  await direct.setViewportSize({width:390,height:844});await direct.screenshot({path:'/tmp/orbit-search-redesign-phone.png'});
- await direct.emulateMedia({reducedMotion:'reduce'});assert.equal(await direct.locator('.brand-mark').evaluate(el=>getComputedStyle(el).animationName),'none');await direct.close();
+ await direct.emulateMedia({reducedMotion:'reduce'});await direct.locator('body').evaluate(el=>el.classList.add('loading'));assert.equal(await direct.locator('.tab-logo').evaluate(el=>getComputedStyle(el).animationName),'none');assert.equal(await direct.locator('.brand-mark').evaluate(el=>getComputedStyle(el).animationName),'none');await direct.close();
  // Reproduce a browser that rejects the embedded service, then use an authenticated top-level window.
  const fallback=await browser.newPage();
  await fallback.route(parentBase+'/orbit-search/config',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({url:proxyBase})}));
