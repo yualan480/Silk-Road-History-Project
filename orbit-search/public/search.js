@@ -126,7 +126,8 @@ const shortcutDefaults=[
 const shortcutContainer=document.querySelector('#search-shortcuts');
 const shortcutEditor=document.querySelector('#shortcut-editor');
 const shortcutError=document.querySelector('#shortcut-editor-error');
-let shortcutKey='',userShortcuts=[];
+let shortcutKey='orbit-search-personal-shortcuts',userShortcuts=[];
+try{const saved=JSON.parse(localStorage.getItem(shortcutKey)||'[]');if(Array.isArray(saved))userShortcuts=saved.filter(item=>item&&typeof item.name==='string'&&typeof item.url==='string'&&/^https?:\\/\\//i.test(item.url)).slice(0,30);}catch{}
 function saveUserShortcuts(){if(shortcutKey)try{localStorage.setItem(shortcutKey,JSON.stringify(userShortcuts));}catch{}}
 function renderShortcuts(){
  shortcutContainer.replaceChildren();
