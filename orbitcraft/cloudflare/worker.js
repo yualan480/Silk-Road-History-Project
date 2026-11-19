@@ -11,7 +11,7 @@ export default {
   const url=new URL(request.url);
   if(url.pathname==='/chatter'||url.pathname.startsWith('/chatter/')){url.pathname='/chat'+url.pathname.slice(8);return Response.redirect(url.toString(),308);}
   if(url.pathname==='/pokemon-showdown/action')return showdownGuestAuth(request);
-  if(url.pathname==='/orbit-intelligence/socket'||url.pathname==='/orbit-intelligence/health')return env.ORBIT_INTELLIGENCE.get(env.ORBIT_INTELLIGENCE.idFromName('orbit-intelligence-v1')).fetch(request);
+  if(url.pathname.startsWith('/orbit-intelligence/'))return new Response('This feature has been removed.',{status:410});
   if(url.pathname==='/orbitcraft/socket'||url.pathname==='/orbitcraft/health'){
    const id=env.ORBITCRAFT_WORLD.idFromName('orbitcraft-public-v1');
    return env.ORBITCRAFT_WORLD.get(id).fetch(request);

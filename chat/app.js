@@ -5,22 +5,19 @@ import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
 import {initUnblockedGames} from './unblocked-games.js?v=38';
-import { initGuides } from './guides.js?v=3';
-import { initIntelligence } from './intelligence.js?v=1';
+import { initGuides } from './guides.js?v=4';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js?v=2';
-import { initOrbit } from './orbit.js?v=29';
+import { initOrbit } from './orbit.js?v=30';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=13').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
-const { initTournaments } = await import('./tournaments.js?v=3').catch(e => (console.warn('Tournaments unavailable', e), {}));
 const { initGamble } = await import('./gamble.js?v=5').catch(e => (console.warn('Orbit Casino unavailable', e), {}));
-const { initArena } = await import('./arena.js?v=5').catch(e => (console.warn('Orbit Game unavailable', e), {}));
+const { initArena } = await import('./arena.js?v=6').catch(e => (console.warn('Orbit Game unavailable', e), {}));
 const { dictateBtn, bindDictate } = await import('./dictate.js?v=1').catch(e => (console.warn('Voice typing unavailable', e), {}));
 const NO_AR = { decorate() {}, start() {}, stop() {}, load() {} };
 const NO_GB = { handles: v => v === 'gamble', render: m => { m.innerHTML = '<div class="empty"><h2>Orbit Casino is unavailable</h2><p>Reload the page. If this keeps happening, tell a staff member.</p></div>'; }, onNav() {}, stop() {} };
-const NO_TN = { handles: v => v === 'tournaments' || v === 'tournament', render: m => { m.innerHTML = '<div class="empty"><h2>Tournaments are unavailable</h2><p>Reload the page. If this keeps happening, tell a staff member.</p></div>'; }, onNav() {}, stop() {}, load: async () => {} };
 const NO_SHOP = { render: m => { m.innerHTML = '<div class="empty"><h2>The shop is unavailable</h2><p>Reload the page. If this keeps happening, tell a staff member.</p></div>'; }, load: async () => {}, avAttr: () => '', glyphOf: () => '', coHtml: () => '', applyOwn() {}, refreshCos: async () => {} };
 import { attachFx, afterMain, pageSwap, clickRipple } from './fx.js?v=3';
 import { leaderboardHtml, startLeaderboardFx } from './leaderboard.js?v=5';
@@ -49,11 +46,9 @@ const TAB_TAGS = [
   ['roles', 'Roles', 'roles', 'tag', ['role', 'class-roles', 'classes']],
   ['events', 'Events', 'events', 'calendar', ['event']],
   ['tesd-calendar', 'TESD Calendar', 'tesd-calendar', 'calendar', ['tesd', 'school-calendar', 'tesdcalendar']],
-  ['tournaments', 'Tournaments', 'tournaments', 'trophy', ['tournament']],
   ['unblocked-games', 'Unblocked Games', 'unblocked', 'compass', ['unblocked']],
   ['orbit-games', 'Orbit Games', 'gamer', 'gamepad', ['games', 'game']],
   ['orbit-shop', 'Orbit Shop', 'shop', 'shop', ['shop']],
-  ['orbit-intelligence', 'Orbit Intelligence', 'intelligence', 'crosshair', ['intelligence', 'intel']],
   ['orbit-leaderboard', 'Orbit Leaderboard', 'leaderboard', 'trophy', ['leaderboard', 'lb']],
   ['orbit-gamble', 'Orbit Casino', 'gamble', 'dice', ['gamble', 'casino', 'blackjack', 'slots', 'roulette']],
   ['orbitcraft', 'Orbitcraft', 'orbitcraft', 'gamepad', ['craft', 'sandbox']],
@@ -289,11 +284,9 @@ const CM = initCommunities({ S, sb, $, esc, ic, I, modal, toast, confirmBox, pro
   needProfiles: ids => needProfiles(ids), navTo: k => navTo(k), renderSide: () => renderSide(), profileModal: id => profileModal(id), isStaff: () => isStaff(), onJoined: () => GUIDE.milestone('community') });
 
 SHOP = !initShop ? NO_SHOP : initShop({ S, sb, $, esc, ic, I, modal, toast, menuBtn, renderMain: () => renderMain(), renderSide: () => renderSide(), navTo: k => navTo(k), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
-const TN = !initTournaments ? NO_TN : initTournaments({ S, sb, $, esc, ic, I, modal, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), renderMain: () => renderMain(), renderSide: () => renderSide(), navTo: k => navTo(k), isStaff: () => isStaff(), loadOrbits: () => loadOrbits() });
 const GB = !initGamble ? NO_GB : initGamble({ S, sb, esc, ic, I, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
-const AR = !initArena ? NO_AR : initArena({ S, sb, esc, ic, I, modal, toast, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), openChan: id => { S.view = 'server'; openChan(id); }, openIntelligence: text => { if(text) INT.setDraft(text); navTo('intelligence'); } });
+const AR = !initArena ? NO_AR : initArena({ S, sb, esc, ic, I, modal, toast, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), openChan: id => { S.view = 'server'; openChan(id); },  });
 const UB = initUnblockedGames({menuBtn,bindMenu,ic,onPlaying: active => O.gameOpen(active)});
-const INT = initIntelligence({ S, sb, esc, modal, toast, menuBtn, bindMenu, onViewItems: () => AR.openGear?.() });
 const GUIDE = initGuides({ S, sb, esc, toast, navTo: k => navTo(k), onChange: () => { if (S.me) { renderSide(); if (S.view === 'ai') renderMain(); } } });
 
 /* ───────── device lock: the first account to sign in on a browser owns it ───────── */
@@ -888,22 +881,23 @@ async function startApp(session, force) {
   if (S.servers[0]) openServer(S.servers[0].id, null, true); else renderAll();
   GUIDE.start(session.user, S.friends);
 }
-function teardown() { GUIDE.stop(); UB.stop(); INT.stop(); O.stop(); CM.stop(); TN.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
+function teardown() { GUIDE.stop(); UB.stop(); O.stop(); CM.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
 const renderAll = () => { renderSide(); renderMain(); renderMembers(); };
 const onlineCount = () => S.members.filter(m => statusOf(prof(m.user_id)) !== 'offline').length;
 
 function navTo(k) {
+  if (['intelligence','tournaments','tournament'].includes(k)) k='home';
   closeSide(); if (k !== 'gamer') { gamesLock(false); O.gameOpen(false); }   // leaving Orbit Games: the music comes back
   if (k === 'dm' || k === 'communities' || k === 'friends') S.socialOpen = true;
   if (k === 'unblocked' || k === 'gamer' || k === 'shop' || k === 'gamble' || k === 'orbitcraft') S.funOpen = true;
   S.sideOff = k === 'gamer' || k === 'gamble' || k === 'orbitcraft';   // Orbit Games and Orbit Casino open full screen: the sidebar tucks away (the arrow in the top bar brings it back)
-  S.gamerGo = k === 'gamer' ? (S.gamerNext || '') : ''; S.gamerNext = '';   // a tournament's Play button opens that game; the sidebar opens the game list
+  S.gamerGo = k === 'gamer' ? (S.gamerNext || '') : ''; S.gamerNext = '';   // A game link opens that cartridge; the sidebar opens the game list
   if (k === 'dm') {
     S.view = 'dm'; const id = S.convs.some(c => c.id === S.lastDm) ? S.lastDm : S.convs[0]?.id;
     if (id) return openConv(id); S.active = null; return renderAll();
   }
   const wasGamer = S.view === 'gamer'; S.view = k; if (wasGamer || k === 'gamer') trackStatus();   // the orange "playing" dot follows the person in and out of Orbit Games
-  renderAll(); UB.onNav(k); INT.onNav(k); O.onNav(k); CM.onNav(k); TN.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'gms') loadGms(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
+  renderAll(); UB.onNav(k); O.onNav(k); CM.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'gms') loadGms(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
   if (k === 'roles') loadClassRoles().then(() => S.view === 'roles' && renderMain());
   if (k === 'home') loadHomeSchedule();
 }
@@ -1023,9 +1017,9 @@ function renderLeaderboard(main) {
   main.innerHTML = leaderboardHtml({ rows, days: d, showAll: !!S.lbAll, meId: S.me.id, err: S.lbErr, prof, av, ic, esc, roleOf, logo: 'orbit-logo-planet.png', menu: menuBtn(), fresh })
   + `
   <section class="lbactiveearn" aria-label="Active-time Orbit earnings"><div><strong>+100 Orbits per active minute</strong><small>Earn automatically while you actively use Orbit. Idle or background time doesn't count.</small></div><div class="lbactiveearn-total"><strong>+${Number(S.lbTimeToday || 0).toLocaleString()}</strong><small>Earned from active time today</small></div></section>
-  <details class="lbhow"><summary>How to earn Orbits</summary><ul class="lbrules"><li>Spend active time on Orbit: +100 per minute (idle time excluded)</li><li>Attend an official community event: +50</li><li>Host an approved community event: +100</li><li>Complete a community challenge: +25</li><li>Reach a weekly participation milestone: +75</li><li>Win an official tournament: +100 (second place +50, third place +25)</li><li>Complete a daily login streak milestone: +25</li><li>Help another community member: +15</li><li>Submit a verified bug report: +25</li><li>Participate in an official community poll: +5</li><li>Complete a special staff-approved event: +50</li><li>Reach a monthly participation milestone: +150</li><li>Win Community Member of the Month: +200</li></ul>
+  <details class="lbhow"><summary>How to earn Orbits</summary><ul class="lbrules"><li>Spend active time on Orbit: +100 per minute (idle time excluded)</li><li>Attend an official community event: +50</li><li>Host an approved community event: +100</li><li>Complete a community challenge: +25</li><li>Reach a weekly participation milestone: +75</li><li>Complete a daily login streak milestone: +25</li><li>Help another community member: +15</li><li>Submit a verified bug report: +25</li><li>Participate in an official community poll: +5</li><li>Complete a special staff-approved event: +50</li><li>Reach a monthly participation milestone: +150</li><li>Win Community Member of the Month: +200</li></ul>
   <p class="muted"><b>Games:</b> Orbit Games pays a share of each final score in Orbits: ${gameRatesText()}. Games and Orbit share one balance, shown beside your profile.</p>
-  <p class="muted">Messages, comments and clicks earn nothing. Staff verify event attendance, tournaments, help and bug reports, and each one pays once. Orbits buy cosmetics (frames, nameplates, themes, badges) and can't be exchanged for money.</p></details></div></div>`;
+  <p class="muted">Messages, comments and clicks earn nothing. Staff verify event attendance, help and bug reports, and each one pays once. Orbits buy cosmetics (frames, nameplates, themes, badges) and can't be exchanged for money.</p></details></div></div>`;
   bindMenu(); // Mobile leaderboard menu must open the sidebar, including after refreshes.
   main.querySelectorAll('[data-d]').forEach(b => b.onclick = () => loadBoard(+b.dataset.d));
   const mo = main.querySelector('#lbmore'); if (mo) mo.onclick = () => { S.lbAll = !S.lbAll; S.lbFresh = true; renderMain(); };
@@ -1065,7 +1059,7 @@ addEventListener('storage', e => { if (e.key === 'orbit-balance') { S.orbits = p
 function renderSide() {
   const side = $('#side'); if (!side || !S.me) return;
   const keep = $('.scroll', side)?.scrollTop || 0, sideKeep = side.scrollTop, un = S.convs.filter(unread).length, more = !!S.moreNav || ['roles', 'boards', 'board', 'leaderboard', 'support'].includes(S.view);
-  const nav = (k, label, icon, n) => `<button class="nav-i ${S.view === k || S.view === ({ events: 'event', boards: 'board', communities: 'community', tournaments: 'tournament' })[k] ? 'on' : ''}${S.hot?.[HOT_KEY[k]] && S.view !== k ? ' hot' : ''}" data-nav="${k}"${S.hot?.[HOT_KEY[k]] && S.view !== k ? ` aria-label="${label} (new)"` : ''}>${ic(icon)}<span>${label}</span>${n ? `<span class="pill">${n}</span>` : ''}</button>`;
+  const nav = (k, label, icon, n) => `<button class="nav-i ${S.view === k || S.view === ({ events: 'event', boards: 'board', communities: 'community' })[k] ? 'on' : ''}${S.hot?.[HOT_KEY[k]] && S.view !== k ? ' hot' : ''}" data-nav="${k}"${S.hot?.[HOT_KEY[k]] && S.view !== k ? ` aria-label="${label} (new)"` : ''}>${ic(icon)}<span>${label}</span>${n ? `<span class="pill">${n}</span>` : ''}</button>`;
   /* Orbit Social: one dropdown holding Direct Messages, Communities and Friends. It opens by itself while you are on one of them. */
   const inSocial = ['dm', 'communities', 'community', 'friends'].includes(S.view), socOpen = S.socialOpen ?? inSocial, socCount = un + (CM.invites() || 0) + S.incoming.length;
   const socialNav = `<div class="nav-grp${socOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inSocial && !socOpen ? ' on' : ''}" data-social aria-expanded="${socOpen}" aria-controls="navsoc">${ic('friends')}<span>Orbit Social</span>${!socOpen && socCount ? `<span class="pill">${socCount}</span>` : ''}<span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
@@ -1075,7 +1069,7 @@ function renderSide() {
   const funNav = `<div class="nav-grp${funOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inFun && !funOpen ? ' on' : ''}" data-fun aria-expanded="${funOpen}" aria-controls="navfun">${ic('smile')}<span>Explore</span><span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
     <div class="nav-sub" id="navfun" role="group" aria-label="Explore"${funOpen ? '' : ' hidden'}>${nav('unblocked', 'Unblocked Games', 'compass')}${nav('gamer', 'Orbit Games', 'gamepad')}${nav('shop', 'Orbit Shop', 'shop')}${nav('gamble', 'Orbit Casino', 'dice')}${nav('orbitcraft', 'Orbitcraft', 'gamepad')}</div></div>`;
   side.innerHTML = `<div class="brand"><a class="bwrap sidebar-orbit-logo" href="./" aria-label="Refresh Orbit" title="Refresh Orbit"><span class="sbplanet" aria-hidden="true"><img src="orbit-logo-planet.png" alt="" width="660" height="444"><span class="sbmoon-orbits"><span class="sbmoon-track sbmoon-track-a"><i class="sbmoon sbmoon-a"></i></span><span class="sbmoon-track sbmoon-track-b"><i class="sbmoon sbmoon-b"></i></span></span></span><img class="sbword" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></a><button type="button" class="ib sidebar-close" data-sidebar-close aria-label="Close sidebar">${ic('x')}</button></div>
-  <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${nav('tournaments', 'Tournaments', 'trophy')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('intelligence', 'Orbit Intelligence', 'crosshair')}${nav('ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide', 'sparkle')}${nav('search', 'Orbit Search', 'search')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
+  <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide', 'sparkle')}${nav('search', 'Orbit Search', 'search')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
   ${O.sideCal()}
   <div class="scroll">${S.view === 'dm' ? dmList() : socialList()}</div>
   ${V.ch ? `<div class="vpanel" id="vp"><button class="t" id="vo" title="Open call" aria-label="Open call screen"><b>Voice connected</b><small></small></button><button class="ib" id="vl" title="Leave voice" aria-label="Leave voice channel">${ic('phoneOff', 18)}</button></div>` : ''}
@@ -1439,7 +1433,6 @@ function renderHome(main) {
   const dayBadge = homeDayBadge();
   const quickLinks = [
     { key: 'events', name: 'Events', desc: 'School calendar', icon: 'tag' },
-    { key: 'tournaments', name: 'Tournaments', desc: 'Compete with others', icon: 'trophy' },
     { key: 'gamer', name: 'Orbit Games', desc: 'Play and earn Orbits', icon: 'gamepad' },
     { key: 'leaderboard', name: 'Leaderboard', desc: 'See player rankings', icon: 'compass' }
   ];
@@ -1470,8 +1463,8 @@ function renderMain(loading) {   // wraps the real renderer: page transition whe
   }
 }
 function renderMainInner(loading) {
+  if (['intelligence','tournaments','tournament'].includes(S.view)) S.view='home';
   GUIDE.onNav(S.view);
-  if (S.view !== 'intelligence') INT.onNav(S.view);
   if (S.view !== 'unblocked') UB.onNav(S.view);
   $('#app')?.classList.toggle('side-off', (S.view === 'gamer' || S.view === 'gamble' || S.view === 'orbitcraft') && !!S.sideOff);
   const main = $('#main'); if (!main) return;
@@ -1484,7 +1477,6 @@ function renderMainInner(loading) {
     bindMenu(); O.onView(S.view); O.gameOpen(true); return;
   }
   O.onView(S.view); if (O.handles(S.view)) return O.render(main);
-  if (TN.handles(S.view)) return TN.render(main);
   if (GB.handles(S.view)) return GB.render(main);
   if (CM.handles(S.view)) return CM.render(main);
   if (S.view === 'friends') return renderFriends(main);
@@ -1495,7 +1487,6 @@ function renderMainInner(loading) {
   if (S.view === 'tesd-calendar') return renderTesdCalendar(main);
   if (S.view === 'search') return renderOrbitSearch(main, {sb, menuBtn, bindMenu});
   if (S.view === 'unblocked') return UB.render(main);
-  if (S.view === 'intelligence') return INT.render(main);
   if (S.view === 'leaderboard') return renderLeaderboard(main);
   if (S.view === 'shop') return SHOP.render(main);
   if (S.view === 'gamer') return renderGamer(main);
@@ -1820,7 +1811,7 @@ function manageProfileClassRoles(uid) {
 }
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && S.me) { e.preventDefault(); if (S.view !== 'home') navTo('home'); setTimeout(() => $('#oq')?.focus(), 60); } });
 function bindOrbitSearch(inp, out) {
-  const pages = [['search', 'Orbit Search'], ['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide'], ['leaderboard', 'Orbit Leaderboard'], ['intelligence', 'Orbit Intelligence'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['unblocked', 'Unblocked Games'], ['gamer', 'Orbit Games'], ['tournaments', 'Tournaments'], ['roles', 'Roles'], ];
+  const pages = [['search', 'Orbit Search'], ['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide'], ['leaderboard', 'Orbit Leaderboard'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['unblocked', 'Unblocked Games'], ['gamer', 'Orbit Games'], ['roles', 'Roles'], ];
   const item = (kind, id, t, s) => `<button class="ores-i" data-k="${kind}" data-id="${esc(id)}"><span class="t"><b>${esc(t)}</b>${s ? `<small>${esc(s)}</small>` : ''}</span></button>`;
   const group = (h, items) => items.length ? `<div class="ores-h">${h}</div>${items.join('')}` : '';
   let seq = 0;

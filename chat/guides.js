@@ -6,13 +6,11 @@ const TIPS={
  home:['happy',"Welcome home. Your next conversation, community, or favorite game could be one click away.","This is your launchpad. Pick something that looks fun, and we’ll take it from there."],
  communities:['thoughtful',"Look for a community around something you enjoy. You don’t have to know everyone to belong.","Shared interests are a great starting point. Browse a community before deciding to join."],
  friends:['happy',"A small hello can start a great friendship. Add someone you know, then send them a message.","Teamwork starts with a hello. You can send a friend request from the Add friend tab."],
- intelligence:['surprised',"A clue is a starting point, not the whole story. Connect theories on the map and see what fits.","Trust your strategy, but question the clues. The constellation map shows player theories—not proven facts."],
  leaderboard:['thoughtful',"Progress comes in little steps. Try something new and see where it takes you.","Got your eye on the leaderboard? Explore the rules and make your own plan to climb."],
  shop:['neutral',"Take your time browsing. A style that feels like you is always a good choice.","You can preview your options before spending Orbits. Find something that fits your style."],
  gamer:['excited',"Found a game you like? Every round is a chance to learn something new.","Ready for a round? Have fun first—the personal bests will follow."],
  dm:['neutral',"You can start a private conversation here. Share thoughtfully, and take your time replying.","Your messages live here. A friendly check-in can go a long way."],
  events:['excited',"Something to look forward to! Check the time and details before joining an event.","Events are a good way to meet your community. Take a look at what’s coming up."],
- tournaments:['excited',"A tournament is a chance to try, learn, and cheer each other on. You don’t need to be perfect.","Check the tournament rules, then give it your best shot. A good challenge helps you grow."]
 };
 export function guidePreferences(raw={}){return {version:1,guide:Object.hasOwn(NAMES,raw?.guide)?raw.guide:null,quiet:raw?.quiet===true,introSeen:raw?.introSeen===true,seen:Array.isArray(raw?.seen)?raw.seen.filter(x=>typeof x==='string').slice(-120):[],updated:Number.isFinite(raw?.updated)?raw.updated:0};}
 export function initGuides({S,sb,esc,toast,navTo,onChange=()=>{},clock=()=>Date.now(),cooldown=90000,initialDelay=12000,maxPerSession=3}){

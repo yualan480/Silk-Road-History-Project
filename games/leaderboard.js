@@ -186,24 +186,6 @@
   // send a finished game's score (with the player's picture). It is sent when it beats this device's last
   // score for the game, or when the picture changed, so the leaderboard shows the newest picture.
   var lastError = '';
-  /* Only real finished rounds go into a live tournament. Never submit a cached
-     personal best, avatar sync or an offline retry as a new tournament result. */
-  function tournamentRound(game, score) {
-    function deliver(attempt) {
-      try {
-        var B = window.OrbitBank;
-        if (!B && window.parent !== window) B = window.parent.OrbitBank;
-        if (!B) {
-          if (attempt < 10) setTimeout(function () { deliver(attempt + 1); }, 250);
-          return;
-        }
-        if (!B.signedIn() || !B.rpc) return;
-        B.rpc('tournament_record_score', { p_game: game, p_score: score })
-          .catch(function (err) { console.warn('Tournament score was not recorded:', err); });
-      } catch (e) { /* a tournament must never break a game */ }
-    }
-    deliver(0);
-  }
   // Retain unsent bests across navigation and temporary connection/server failures.
   function pendingKey(game, name) { return 'lb-pending-' + game + '-' + name.toLowerCase(); }
   function queueScore(game, name, score) {
@@ -384,7 +366,6 @@
   }
   // what the games call when a round ends: send the score, then show where the player stands
   function submit(game, score) {
-    tournamentRound(game, Math.floor(Number(score))); // real round, not historical best
     var p = sendScore(game, score);
     var numeric = Math.floor(Number(score)), previous = guideBests[game];
     if (GAMES.indexOf(game) !== -1 && Number.isSafeInteger(numeric) && numeric > 0 && numeric > previous) {

@@ -2,7 +2,7 @@
    The browser only asks. Prices, amounts, cooldowns, weekly limits and every outcome are decided by the functions in migration-orbit-game.sql and migration-orbit-game-v2.sql. */
 
 export function initArena(c) {
-  const { S, sb, esc, ic, I, modal, toast, prof, av, needProfiles, setOrbits, loadOrbits, openChan, openIntelligence } = c;
+  const { S, sb, esc, ic, I, modal, toast, prof, av, needProfiles, setOrbits, loadOrbits, openChan } = c;
   Object.assign(I, { crosshair: '<circle cx="12" cy="12" r="8"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>' });
   const A = { st: null, err: '', busy: false, ch: null, t: 0, loading: false, at: 0 };
   const RM = matchMedia('(prefers-reduced-motion: reduce)');
@@ -65,7 +65,7 @@ export function initArena(c) {
       <button class="ar-link" data-ar="hist" type="button">History</button></div>`;
     const bal = `<div class="ar-bal"><span><small>Unlocked</small><b>${fmt(s.balance - s.locked)}</b></span><span class="${s.locked ? 'lk' : ''}"><small>${s.locked ? 'Locked · ' + left(s.vault?.ends_at) : 'Locked'}</small><b>${fmt(s.locked)}</b></span></div>`;
     const chips = `<div class="ar-chips">${s.catalog.map(i => `<span class="ar-chip${i.qty ? ' has' : ''}" title="${esc(i.name)}: ${i.qty} owned, ${i.used}/${i.limit} gained this week">${GLYPH(i)}<b>${i.qty}</b></span>`).join('')}</div>`;
-    const act = `<button class="btn sm" data-ar="gear" type="button">Gear</button><button class="btn sm ghost" data-ar="chat" type="button">Intelligence Chat</button>`;
+    const act = `<button class="btn sm" data-ar="gear" type="button">Gear</button>`;
     return `<section class="arena on" id="arena"><div class="ar-top">${loop}</div>
       <div class="ar-mid">${bal}${chips}<div class="ar-act">${act}</div></div>
       <details class="lbhow ar-how"><summary>How the game works</summary><ul class="lbrules">
@@ -88,7 +88,6 @@ export function initArena(c) {
       const k = b.dataset.ar;
       if (k === 'gear') gearModal();
       else if (k === 'hist') histModal();
-      else if (k === 'chat') openIntelligence();
     };
   }
 
@@ -174,12 +173,9 @@ export function initArena(c) {
         });
         const clue = async comp => {
           const r = await act('investigate', { p_target: id, p_compass: comp }); if (!r) return;
-          const holder = box.querySelector('#ar-clue'); holder.innerHTML = `<div class="ar-clue ${comp ? 'comp' : ''}"><span class="ar-ping"></span><p>${esc(r.clue)}</p><div class="ar-two"><button class="btn sm ghost" id="ar-cs" type="button">Save to notes</button><button class="btn sm ghost" id="ar-cx" type="button">Share in chat</button></div></div>`;
+          const holder = box.querySelector('#ar-clue'); holder.innerHTML = `<div class="ar-clue ${comp ? 'comp' : ''}"><span class="ar-ping"></span><p>${esc(r.clue)}</p><div class="ar-two"><button class="btn sm ghost" id="ar-cs" type="button">Save to notes</button></div></div>`;
           bump(holder.firstElementChild, 'pop');
           holder.querySelector('#ar-cs').onclick = async () => { const v = ((s.notes?.[id] ? s.notes[id] + ' · ' : '') + r.clue).slice(-280); if (await act('game_note_save', { p_target: id, p_note: v })) { s.notes[id] = v; const t = box.querySelector('#ar-note'); if (t) t.value = v; toast('Saved to your notes.'); } };
-          holder.querySelector('#ar-cx').onclick = async () => {
-            close(); openIntelligence(`🔎 ${comp ? 'Astral Compass report' : 'Clue'} about ${p.display_name}: ${r.clue}`);
-          };
         };
         g('#ar-inv') && (g('#ar-inv').onclick = () => clue(false)); g('#ar-comp') && (g('#ar-comp').onclick = () => clue(true));
         g('#ar-sword') && (g('#ar-sword').onclick = async () => {

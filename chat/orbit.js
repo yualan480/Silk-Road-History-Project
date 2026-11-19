@@ -21,7 +21,6 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 export const KINDS = {
   game_night: { emoji: '🎮', label: 'Game night' },
   trivia: { emoji: '🧠', label: 'Trivia' },
-  tournament: { emoji: '🏆', label: 'Tournament' },
   drawing: { emoji: '🎨', label: 'Drawing contest' },
   other: { emoji: '📌', label: 'Event' },
 };
@@ -267,7 +266,7 @@ export function initOrbit(c) {
     const a0 = O.ann[0], links = [
       ['chat', 'friends', 'Go Social', 'Chat · Friends · Communities'],
       ['gamer', 'gamepad', 'Orbit Games', 'Games · Leaderboards · Fun'],
-      ['events', 'calendar', 'Upcoming Events', 'Events · Tournaments · More'],
+      ['events', 'calendar', 'Upcoming Events', 'Events · Calendar · More'],
       ['communities', 'compass', 'Explore Communities', 'Find your people'],
       ['dm', 'dm', 'Direct Messages', 'Your conversations'],
       ['roles', 'tag', 'School Roles', 'Your classes and groups'],
