@@ -103,7 +103,7 @@ function navigate(value,tab=activeTab){
   if(Date.now()>=expires)throw new Error('Connect to your Orbit account before searching. Reopen Orbit Search if the connection has expired.');
   if(!tab.frame){
    const frame=tab.frame=controller.createFrame();frame.frame.title='Orbit Search browser';
-   frame.frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox allow-modals');
+   frame.frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals');
    frame.addEventListener('urlchange',event=>{if(tabs.includes(tab)&&event.url)updateAddress(String(event.url),tab);});
    frame.frame.onload=()=>{if(!tabs.includes(tab))return;tab.loading=false;setStatus('Page loaded · Some websites may require a CAPTCHA or refuse proxy access.','ready',tab);paintTab(tab);if(tab===activeTab)showActive();};
    tab.panel.append(frame.frame);
