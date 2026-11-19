@@ -1,5 +1,11 @@
 // Games play inside Orbit unless explicitly marked with externalUrl.
 export const UNBLOCKED_GAMES=[{
+ id:'openkrillion',title:'OpenKrillion — Community Edition',category:'Quiz',players:'Single player',
+ description:'A locally hosted, open-source Krillion-inspired trivia dive. Seven timed rounds, rare-answer scoring, practice and an animated ocean. Uses a small independent sample question bank; not official Krillion.',
+ image:'../games/openkrillion/assets/icon.png',src:'../games/openkrillion/index.html?v=1',
+ tags:['krillion','openkrillion','community','trivia','quiz','rare','answers'],
+ controls:'Type an answer and press Enter. Rarer accepted answers score more. This community edition uses sample questions. Settings and logbook save in this browser; server progress can reset on a Render redeploy. No Orbit account sync.'
+},{
  id:'krillion',title:'Krillion',category:'Quiz',players:'Single player',
  description:'The official daily trivia dive: seven prompts, with rarer answers taking you deeper. Opens the official website in a new tab.',
  image:'../games/krillion/cover.png',externalUrl:'https://krillion.io/',

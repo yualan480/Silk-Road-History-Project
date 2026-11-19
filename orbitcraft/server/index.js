@@ -1,3 +1,4 @@
+import {createOpenKrillion,KRILLION_PREFIX,defaultOpenKrillionDatabase} from './openkrillion.js';
 import {searchOrigin,searchFramePolicy} from './search-config.js';
 import {createSearchReadiness} from './search-status.js';
 import {showdownGuestAuth} from './showdown-auth.js';
@@ -20,10 +21,23 @@ const host=process.env.HOST||(process.env.RENDER==='true'?'0.0.0.0':'127.0.0.1')
 if(dev && host!=='127.0.0.1' && host!=='localhost')throw new Error('Development guest mode must bind to localhost.');
 const store=openStore(process.env.ORBITCRAFT_DB||resolve(root,'orbitcraft/data/world.sqlite'));
 const game=new Dimensions(store);
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.webp':'image/webp','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
+const openKrillion=createOpenKrillion({databasePath:defaultOpenKrillionDatabase(process.env.ORBITCRAFT_DB||resolve(root,'orbitcraft/data/world.sqlite'))});
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.webp':'image/webp','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
 const searchReadiness=createSearchReadiness();
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://local');
+  if(url.pathname==='/games/openkrillion'){res.writeHead(308,{Location:KRILLION_PREFIX});return res.end();}
+  if((url.pathname.startsWith(KRILLION_PREFIX)&&['','index.html','privacy','about'].includes(url.pathname.slice(KRILLION_PREFIX.length)))||url.pathname.startsWith(KRILLION_PREFIX+'api/')) {
+    try {
+      const chunks=[];let size=0;
+      for await(const chunk of req){size+=chunk.length;if(size>8000){res.writeHead(413);return res.end('Request too large');}chunks.push(chunk);}
+      const protocol=req.headers['x-forwarded-proto']==='https'?'https':'http';
+      const requestHeaders=new Headers();for(const [key,value] of Object.entries(req.headers))if(typeof value==='string')requestHeaders.set(key,value);
+      requestHeaders.set('CF-Connecting-IP',req.socket.remoteAddress||'local');
+      const request=new Request(protocol+'://'+req.headers.host+req.url,{method:req.method,headers:requestHeaders,...(!['GET','HEAD'].includes(req.method)?{body:Buffer.concat(chunks)}:{})});
+      const result=await openKrillion.fetch(request);res.writeHead(result.status,Object.fromEntries(result.headers));return res.end(Buffer.from(await result.arrayBuffer()));
+    }catch(error){console.error('OpenKrillion request:',error.message);res.writeHead(503,{'Content-Type':'application/json'});return res.end(JSON.stringify({error:'Game temporarily unavailable. Please retry.'}));}
+  }
   if(url.pathname==='/orbit-search/config'||url.pathname==='/orbit-search/ready') {
     const searchUrl=searchOrigin(process.env.ORBIT_SEARCH_URL,req.headers.host);
     const body=url.pathname.endsWith('/ready')?(searchUrl?await searchReadiness(searchUrl):{ready:false}):{url:searchUrl};
@@ -79,5 +93,5 @@ const tick=setInterval(()=>{
 },50);
 const save=setInterval(()=>{for(const p of game.players.values())store.savePlayer(p);game.flushDrops();},2000);
 server.listen(port,host,()=>console.log(`Orbitcraft listening on ${host}:${port}${dev?' (local development identities enabled)':''}`));
-function stop(){clearInterval(tick);clearInterval(save);game.flushDrops();for(const p of game.players.values())store.savePlayer(p);for(const ws of wss.clients)ws.close(1001,'Server restarting');wss.close();server.close(()=>{store.close();process.exit(0);});setTimeout(()=>process.exit(0),2000).unref();}
+function stop(){clearInterval(tick);clearInterval(save);game.flushDrops();for(const p of game.players.values())store.savePlayer(p);for(const ws of wss.clients)ws.close(1001,'Server restarting');wss.close();server.close(()=>{openKrillion.close();store.close();process.exit(0);});setTimeout(()=>process.exit(0),2000).unref();}
 process.on('SIGTERM',stop);process.on('SIGINT',stop);

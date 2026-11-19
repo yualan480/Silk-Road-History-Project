@@ -22,3 +22,5 @@ Gallery backdrop: `chat/unblocked-marble.webp` is a landscape adaptation of the 
 Gallery UI typography uses locally hosted Oxanium for titles and Outfit for descriptive text. Font sources and SIL Open Font License notices are retained under `chat/fonts/`. The gallery’s fullscreen control and hover styling do not alter game artwork.
 
 - Krillion: unchanged official `https://krillion.io/icon.png`, retrieved 2026-11-19. The clearly labeled gallery entry opens the official site in a new tab, respecting its embedding restrictions.
+
+- OpenKrillion — Community Edition: original `public/assets/icon.png` from VulcanEon/openkrillion.com-service at `33fdff48623fb4815e95081a1a1d41bd1902f99d`. This locally playable edition is labeled separately from official Krillion.
