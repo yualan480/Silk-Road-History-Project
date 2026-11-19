@@ -58,3 +58,15 @@ Private IPs, loopback, direct IP destinations and UDP remain blocked. This is no
 After pushing, redeploy the separate Orbit Search Render service. The main website service does not deploy this service's frontend by itself.
 
 To reproduce the unresolved shared-worker case explicitly: `ORBIT_SEARCH_SHARED_WORKER_CHECK=1 node orbit-search/test/browser.check.mjs`. It timed out before returning worker fetch/WebSocket results in the audited Chromium environment. The normal test run does not claim this probe passed. No complete working Discord login, remote service-worker or shared-worker configuration is established by this audit.
+
+## Follow-up: requested imports, vendor routes and Render headers
+
+Do **not** import `/vendor/bare-mux/worker.js` into `sw.js`. That file is the SharedWorker server entry: it assigns `self.onconnect` and announces a BareMux port refresh on BroadcastChannel. It is not the service-worker BareClient module. Scramjet's bundle already contains its BareClient integration. Loading the SharedWorker entry into the service worker does not fix remote-worker interception and can disrupt port state.
+
+`server.js` now serves `/vendor/bare-mux/` as an alias of `/vendor/baremux/`. Both `worker.js`, `index.js` and `index.mjs` have identical bytes under both prefixes. Existing client worker URLs are deliberately retained because BareMux persists its worker path.
+
+Epoxy transport 2.1.29 distributes `index.js` and `index.mjs`; its WASM is embedded as base64 in that module. There is no standalone Epoxy WASM binary in this package to map to a fabricated URL. Scramjet's real `/vendor/scramjet/scramjet.wasm.wasm` is served with `application/wasm`; the response's WASM magic bytes are tested. Vendor scripts/modules use JavaScript MIME types and traversal/non-vendor files remain inaccessible.
+
+The root `_headers` file contains no COOP/COEP and is used by static-host deployment tooling, not by this Render Node Web Service. Node response headers are set in `orbit-search/server.js`. No `_headers` change or isolation headers are required by the tested pinned runtime. The Wisp upgrade validates the proxy's own browser Origin and relay ticket; Discord's gateway is an outbound destination inside that authenticated tunnel, not an incoming Origin exception. Keep these checks. All named public Discord hosts on 443 are permitted by the existing destination policy; no destination-level connection success is implied.
+
+Full reviewed source snapshots are provided in REVIEWED-FILES.md for copying. They preserve the known limitations above and are not a claim that Discord can never fail or make an unhandled browser network request.

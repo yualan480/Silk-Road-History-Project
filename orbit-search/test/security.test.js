@@ -32,3 +32,22 @@ test('relay needs an Orbit session and exact parent origin; assets are scoped',a
  for(const path of ['/','/sw.js','/address.js','/vendor/scramjet/scramjet.all.js','/vendor/scramjet/scramjet.wasm.wasm','/vendor/epoxy/index.mjs','/vendor/baremux/worker.js','/orbit-mark.png']) assert.equal((await fetch(base+path)).status,200,path);
  assert.equal(wisp.options.allow_private_ips,false);assert.equal(wisp.options.allow_loopback_ips,false);assert.deepEqual(wisp.options.port_whitelist,[80,443]);
 });
+
+test('vendor alias, module and WASM MIME types, root worker and embedded-page headers',async t=>{
+ const server=createSearchServer({parentOrigin:'https://orbit.example'});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>{server.closeAllConnections();server.close();});
+ const base='http://127.0.0.1:'+server.address().port;
+ for(const file of ['worker.js','index.js','index.mjs']){
+  const old=await fetch(base+'/vendor/baremux/'+file),canonical=await fetch(base+'/vendor/bare-mux/'+file);
+  assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/javascript/);
+  assert.equal(await old.text(),await canonical.text());
+ }
+ const wasm=await fetch(base+'/vendor/scramjet/scramjet.wasm.wasm');assert.equal(wasm.status,200);assert.equal(wasm.headers.get('content-type'),'application/wasm');
+ assert.deepEqual([...new Uint8Array(await wasm.arrayBuffer()).slice(0,4)],[0,97,115,109]);
+ const epoxy=await fetch(base+'/vendor/epoxy/index.mjs');assert.equal(epoxy.status,200);assert.match(epoxy.headers.get('content-type'),/javascript/);assert.ok((await epoxy.text()).includes('AGFzb'));
+ for(const path of ['/','/sw.js','/proxy-runtime.js']){
+  const response=await fetch(base+path);assert.equal(response.status,200);
+  assert.equal(response.headers.get('cross-origin-opener-policy'),null);assert.equal(response.headers.get('cross-origin-embedder-policy'),null);
+ }
+ for(const path of ['/vendor/bare-mux/%2e%2e%2fpackage.json','/vendor/epoxy/package.json'])assert.equal((await fetch(base+path)).status,404);
+});

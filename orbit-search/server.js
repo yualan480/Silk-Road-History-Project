@@ -20,6 +20,7 @@ logging.set_level(logging.ERROR);
 const vendors = {
   '/vendor/scramjet/': '@mercuryworkshop/scramjet/dist/',
   '/vendor/baremux/': '@mercuryworkshop/bare-mux/dist/',
+  '/vendor/bare-mux/': '@mercuryworkshop/bare-mux/dist/', // Alias; retain existing worker URL/storage compatibility.
   '/vendor/epoxy/': '@mercuryworkshop/epoxy-transport/dist/'
 };
 const mime = {'.js':'text/javascript', '.mjs':'text/javascript', '.html':'text/html; charset=utf-8', '.css':'text/css', '.json':'application/json', '.wasm':'application/wasm', '.png':'image/png'};
