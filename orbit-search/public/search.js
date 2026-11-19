@@ -4,10 +4,14 @@ const status = document.querySelector('#status');
 const address = document.querySelector('#address');
 const startAddress=document.querySelector('#start-address');
 const welcome=document.querySelector('#welcome'),browserPanel=document.querySelector('#browser');
-const tabTitle=document.querySelector('#tab-title');
+const tabList=document.querySelector('#tabs');
+const tabs=[];let activeTab=null,nextTabId=0;
 const siteHelp=document.querySelector('#site-help');
-function setStatus(message,state='ready'){status.textContent=message;document.body.dataset.connection=state;}
-let frame, controller, expires = 0;
+function setStatus(message,state='ready',tab=activeTab){
+ if(tab){tab.message=message;tab.state=state;}
+ if(!tab||tab===activeTab){status.textContent=message;document.body.dataset.connection=state;}
+}
+let controller, expires = 0;
 const connectionId=crypto.randomUUID();
 const orbitWindow=parent!==window?parent:window.opener;
 const notify=message=>orbitWindow?.postMessage(message,config.parent);
@@ -32,38 +36,92 @@ window.addEventListener('message', async event => {
   } catch (error) {setStatus(error.message,'error');notify({type:'orbit-search-error',message:error.message});}
 });
 notify({type:'orbit-search-ready',connectionId});
-let history=[],historyIndex=-1,currentUrl='';
-function syncNavigation(){document.querySelector('#back').disabled=historyIndex<=0;document.querySelector('#forward').disabled=historyIndex>=history.length-1;}
-function updateAddress(url){
-  try{const target=new URL(url);if(!['https:','http:'].includes(target.protocol))return;currentUrl=target.href;address.value=currentUrl;tabTitle.textContent=target.hostname;
-    siteHelp.hidden=!(target.hostname==='discord.com'||target.hostname.endsWith('.discord.com')||target.hostname==='discordapp.com'||target.hostname.endsWith('.discordapp.com'));
-    if(history[historyIndex]!==currentUrl){history.splice(historyIndex+1);history.push(currentUrl);historyIndex=history.length-1;}syncNavigation();
-  }catch{/* Ignore non-web notifications from an unloaded frame. */}
+function paintTab(tab){
+ tab.label.textContent=tab.title;
+ tab.button.setAttribute('aria-label',tab.title);
+ tab.close.setAttribute('aria-label','Close '+tab.title+' tab');
+ tab.element.classList.toggle('is-loading',tab.loading);
 }
-function navigate(value){
-  try{
-    const url=normalizeAddress(value);
-    if(Date.now()>=expires)throw new Error('Connect to your Orbit account before searching. Reopen Orbit Search if the connection has expired.');
-    if(!frame){
-      frame=controller.createFrame();frame.frame.title='Orbit Search browser';
-      frame.frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox allow-modals');
-      const opened=frame;
-      frame.addEventListener('urlchange',event=>{if(frame===opened&&event.url)updateAddress(String(event.url));});
-      frame.frame.onload=()=>{if(frame!==opened)return;document.body.classList.remove('loading');setStatus('Page loaded · Some websites may require a CAPTCHA or refuse proxy access.');};
-      browserPanel.replaceChildren(frame.frame);
-    }
-    welcome.hidden=true;browserPanel.hidden=false;document.body.classList.add('browsing','loading');
-    updateAddress(url);setStatus('Opening '+new URL(url).hostname+'…','loading');frame.go(url);
-  }catch(error){document.body.classList.remove('loading');setStatus(error.message,'error');}
+function syncNavigation(){
+ document.querySelector('#back').disabled=!activeTab||activeTab.index<=0;
+ document.querySelector('#forward').disabled=!activeTab||activeTab.index>=activeTab.history.length-1;
 }
+function showActive(){
+ const tab=activeTab;if(!tab)return;
+ for(const item of tabs){
+  const selected=item===tab;item.panel.hidden=!selected;
+  item.element.classList.toggle('active-tab',selected);
+  item.button.setAttribute('aria-selected',String(selected));item.button.tabIndex=selected?0:-1;
+  if(selected)item.label.id='tab-title';else item.label.removeAttribute('id');
+ }
+ welcome.hidden=!!tab.url;browserPanel.hidden=!tab.url;
+ tab.button.setAttribute('aria-controls',tab.url?tab.panel.id:'welcome');welcome.setAttribute('role','tabpanel');welcome.setAttribute('aria-labelledby',tab.id);
+ address.value=tab.draft;startAddress.value=tab.startDraft;
+ document.body.classList.toggle('browsing',!!tab.url);document.body.classList.toggle('loading',tab.loading);
+ siteHelp.hidden=!/^https?:\/\/(?:[a-z0-9-]+\.)?(?:discord\.com|discordapp\.com)(?::\d+)?(?:\/|$)/i.test(tab.url);
+ setStatus(tab.message,tab.state,tab);syncNavigation();
+}
+function selectTab(tab,focus=false){
+ if(!tabs.includes(tab))return;activeTab=tab;showActive();
+ tab.element.scrollIntoView({block:'nearest',inline:'nearest'});if(focus)tab.button.focus();
+}
+function closeTab(tab){
+ const index=tabs.indexOf(tab);if(index<0)return;
+ tabs.splice(index,1);tab.panel.remove();tab.element.remove();
+ if(!tabs.length){activeTab=null;addTab();return;}
+ if(activeTab===tab)selectTab(tabs[Math.max(0,index-1)],true);
+}
+function addTab(){
+ const id='search-tab-'+(++nextTabId),tab={id,url:'',title:'New search',draft:'',editing:false,startDraft:'',history:[],index:-1,frame:null,loading:false,message:Date.now()<expires?'Ready · Search results and websites open here.':status.textContent,state:Date.now()<expires?'ready':document.body.dataset.connection};
+ tab.panel=document.createElement('div');tab.panel.id=id+'-panel';tab.panel.className='browser-tab-panel';tab.panel.hidden=true;tab.panel.setAttribute('role','tabpanel');tab.panel.setAttribute('aria-labelledby',id);
+ browserPanel.append(tab.panel);
+ tab.element=document.createElement('div');tab.element.className='browser-tab';
+ tab.button=document.createElement('button');tab.button.type='button';tab.button.id=id;tab.button.className='tab-select';tab.button.setAttribute('role','tab');tab.button.setAttribute('aria-controls',tab.panel.id);
+ tab.button.innerHTML='<img class="tab-logo" src="/orbit-mark.png" width="25" height="18" alt=""><span class="tab-label"></span>';
+ tab.label=tab.button.querySelector('.tab-label');
+ tab.close=document.createElement('button');tab.close.type='button';tab.close.className='tab-close';tab.close.textContent='×';tab.close.onclick=()=>closeTab(tab);
+ tab.button.onclick=()=>selectTab(tab);
+ tab.button.onkeydown=event=>{
+  let index=tabs.indexOf(tab);
+  if(event.key==='ArrowRight')index=(index+1)%tabs.length;else if(event.key==='ArrowLeft')index=(index-1+tabs.length)%tabs.length;else if(event.key==='Home')index=0;else if(event.key==='End')index=tabs.length-1;else if(event.key==='Delete'){event.preventDefault();closeTab(tab);return;}else return;
+  event.preventDefault();selectTab(tabs[index],true);
+ };
+ tab.element.append(tab.button,tab.close);tabList.append(tab.element);tabs.push(tab);paintTab(tab);selectTab(tab);startAddress.focus({preventScroll:true});
+ return tab;
+}
+function updateAddress(url,tab=activeTab){
+ if(!tab||!tabs.includes(tab))return;
+ try{const target=new URL(url);if(!['https:','http:'].includes(target.protocol))return;
+  tab.url=target.href;if(!tab.editing)tab.draft=tab.url;tab.title=target.hostname;
+  if(tab.history[tab.index]!==tab.url){tab.history.splice(tab.index+1);tab.history.push(tab.url);tab.index=tab.history.length-1;}
+  paintTab(tab);if(tab===activeTab)showActive();
+ }catch{/* Ignore non-web frame notifications. */}
+}
+function navigate(value,tab=activeTab){
+ try{
+  const url=normalizeAddress(value);tab.editing=false;
+  if(Date.now()>=expires)throw new Error('Connect to your Orbit account before searching. Reopen Orbit Search if the connection has expired.');
+  if(!tab.frame){
+   const frame=tab.frame=controller.createFrame();frame.frame.title='Orbit Search browser';
+   frame.frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox allow-modals');
+   frame.addEventListener('urlchange',event=>{if(tabs.includes(tab)&&event.url)updateAddress(String(event.url),tab);});
+   frame.frame.onload=()=>{if(!tabs.includes(tab))return;tab.loading=false;setStatus('Page loaded · Some websites may require a CAPTCHA or refuse proxy access.','ready',tab);paintTab(tab);if(tab===activeTab)showActive();};
+   tab.panel.append(frame.frame);
+  }
+  tab.loading=true;setStatus('Opening '+new URL(url).hostname+'…','loading',tab);updateAddress(url,tab);tab.frame.go(url);
+ }catch(error){tab.loading=false;setStatus(error.message,'error',tab);paintTab(tab);if(tab===activeTab)showActive();}
+}
+address.addEventListener('input',()=>{activeTab.draft=address.value;activeTab.editing=true;});
+startAddress.addEventListener('input',()=>{activeTab.startDraft=startAddress.value;});
 document.querySelector('#search').addEventListener('submit',event=>{event.preventDefault();navigate(address.value);});
 document.querySelector('#start-search').addEventListener('submit',event=>{event.preventDefault();navigate(startAddress.value);});
 document.querySelectorAll('[data-url]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.url)));
 document.querySelector('#source-link').addEventListener('click',event=>{event.preventDefault();navigate(event.currentTarget.href);});
-document.querySelector('#newtab').onclick=()=>{
-  if(frame){frame.frame.remove();frame=null;}browserPanel.replaceChildren();browserPanel.hidden=true;welcome.hidden=false;siteHelp.hidden=true;history=[];historyIndex=-1;currentUrl='';address.value=startAddress.value='';tabTitle.textContent='New search';syncNavigation();document.body.classList.remove('browsing','loading');setStatus(Date.now()<expires?'Ready · Search results and websites open here.':'Open Orbit Search from the Orbit sidebar to connect your account.',Date.now()<expires?'ready':'connecting');startAddress.focus({preventScroll:true});
+document.querySelector('#newtab').onclick=()=>addTab();
+document.querySelector('#back').onclick=()=>{if(activeTab.index>0){activeTab.index--;navigate(activeTab.history[activeTab.index]);}};
+document.querySelector('#forward').onclick=()=>{if(activeTab.index<activeTab.history.length-1){activeTab.index++;navigate(activeTab.history[activeTab.index]);}};
+document.querySelector('#reload').onclick=()=>{
+ const tab=activeTab;if(tab.frame){tab.loading=true;setStatus('Reloading '+new URL(tab.url).hostname+'…','loading',tab);paintTab(tab);showActive();tab.frame.reload();}else startAddress.focus();
 };
-document.querySelector('#back').onclick=()=>{if(historyIndex>0){historyIndex--;navigate(history[historyIndex]);}};
-document.querySelector('#forward').onclick=()=>{if(historyIndex<history.length-1){historyIndex++;navigate(history[historyIndex]);}};
-document.querySelector('#reload').onclick=()=>{if(frame){document.body.classList.add('loading');setStatus('Reloading '+new URL(currentUrl).hostname+'…','loading');frame.reload();}else startAddress.focus();};
 document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();address.focus();address.select();}});
+addTab();

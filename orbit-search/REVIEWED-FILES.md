@@ -312,10 +312,14 @@ const status = document.querySelector('#status');
 const address = document.querySelector('#address');
 const startAddress=document.querySelector('#start-address');
 const welcome=document.querySelector('#welcome'),browserPanel=document.querySelector('#browser');
-const tabTitle=document.querySelector('#tab-title');
+const tabList=document.querySelector('#tabs');
+const tabs=[];let activeTab=null,nextTabId=0;
 const siteHelp=document.querySelector('#site-help');
-function setStatus(message,state='ready'){status.textContent=message;document.body.dataset.connection=state;}
-let frame, controller, expires = 0;
+function setStatus(message,state='ready',tab=activeTab){
+ if(tab){tab.message=message;tab.state=state;}
+ if(!tab||tab===activeTab){status.textContent=message;document.body.dataset.connection=state;}
+}
+let controller, expires = 0;
 const connectionId=crypto.randomUUID();
 const orbitWindow=parent!==window?parent:window.opener;
 const notify=message=>orbitWindow?.postMessage(message,config.parent);
@@ -340,48 +344,102 @@ window.addEventListener('message', async event => {
   } catch (error) {setStatus(error.message,'error');notify({type:'orbit-search-error',message:error.message});}
 });
 notify({type:'orbit-search-ready',connectionId});
-let history=[],historyIndex=-1,currentUrl='';
-function syncNavigation(){document.querySelector('#back').disabled=historyIndex<=0;document.querySelector('#forward').disabled=historyIndex>=history.length-1;}
-function updateAddress(url){
-  try{const target=new URL(url);if(!['https:','http:'].includes(target.protocol))return;currentUrl=target.href;address.value=currentUrl;tabTitle.textContent=target.hostname;
-    siteHelp.hidden=!(target.hostname==='discord.com'||target.hostname.endsWith('.discord.com')||target.hostname==='discordapp.com'||target.hostname.endsWith('.discordapp.com'));
-    if(history[historyIndex]!==currentUrl){history.splice(historyIndex+1);history.push(currentUrl);historyIndex=history.length-1;}syncNavigation();
-  }catch{/* Ignore non-web notifications from an unloaded frame. */}
+function paintTab(tab){
+ tab.label.textContent=tab.title;
+ tab.button.setAttribute('aria-label',tab.title);
+ tab.close.setAttribute('aria-label','Close '+tab.title+' tab');
+ tab.element.classList.toggle('is-loading',tab.loading);
 }
-function navigate(value){
-  try{
-    const url=normalizeAddress(value);
-    if(Date.now()>=expires)throw new Error('Connect to your Orbit account before searching. Reopen Orbit Search if the connection has expired.');
-    if(!frame){
-      frame=controller.createFrame();frame.frame.title='Orbit Search browser';
-      frame.frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox allow-modals');
-      const opened=frame;
-      frame.addEventListener('urlchange',event=>{if(frame===opened&&event.url)updateAddress(String(event.url));});
-      frame.frame.onload=()=>{if(frame!==opened)return;document.body.classList.remove('loading');setStatus('Page loaded · Some websites may require a CAPTCHA or refuse proxy access.');};
-      browserPanel.replaceChildren(frame.frame);
-    }
-    welcome.hidden=true;browserPanel.hidden=false;document.body.classList.add('browsing','loading');
-    updateAddress(url);setStatus('Opening '+new URL(url).hostname+'…','loading');frame.go(url);
-  }catch(error){document.body.classList.remove('loading');setStatus(error.message,'error');}
+function syncNavigation(){
+ document.querySelector('#back').disabled=!activeTab||activeTab.index<=0;
+ document.querySelector('#forward').disabled=!activeTab||activeTab.index>=activeTab.history.length-1;
 }
+function showActive(){
+ const tab=activeTab;if(!tab)return;
+ for(const item of tabs){
+  const selected=item===tab;item.panel.hidden=!selected;
+  item.element.classList.toggle('active-tab',selected);
+  item.button.setAttribute('aria-selected',String(selected));item.button.tabIndex=selected?0:-1;
+  if(selected)item.label.id='tab-title';else item.label.removeAttribute('id');
+ }
+ welcome.hidden=!!tab.url;browserPanel.hidden=!tab.url;
+ tab.button.setAttribute('aria-controls',tab.url?tab.panel.id:'welcome');welcome.setAttribute('role','tabpanel');welcome.setAttribute('aria-labelledby',tab.id);
+ address.value=tab.draft;startAddress.value=tab.startDraft;
+ document.body.classList.toggle('browsing',!!tab.url);document.body.classList.toggle('loading',tab.loading);
+ siteHelp.hidden=!/^https?:\/\/(?:[a-z0-9-]+\.)?(?:discord\.com|discordapp\.com)(?::\d+)?(?:\/|$)/i.test(tab.url);
+ setStatus(tab.message,tab.state,tab);syncNavigation();
+}
+function selectTab(tab,focus=false){
+ if(!tabs.includes(tab))return;activeTab=tab;showActive();
+ tab.element.scrollIntoView({block:'nearest',inline:'nearest'});if(focus)tab.button.focus();
+}
+function closeTab(tab){
+ const index=tabs.indexOf(tab);if(index<0)return;
+ tabs.splice(index,1);tab.panel.remove();tab.element.remove();
+ if(!tabs.length){activeTab=null;addTab();return;}
+ if(activeTab===tab)selectTab(tabs[Math.max(0,index-1)],true);
+}
+function addTab(){
+ const id='search-tab-'+(++nextTabId),tab={id,url:'',title:'New search',draft:'',editing:false,startDraft:'',history:[],index:-1,frame:null,loading:false,message:Date.now()<expires?'Ready · Search results and websites open here.':status.textContent,state:Date.now()<expires?'ready':document.body.dataset.connection};
+ tab.panel=document.createElement('div');tab.panel.id=id+'-panel';tab.panel.className='browser-tab-panel';tab.panel.hidden=true;tab.panel.setAttribute('role','tabpanel');tab.panel.setAttribute('aria-labelledby',id);
+ browserPanel.append(tab.panel);
+ tab.element=document.createElement('div');tab.element.className='browser-tab';
+ tab.button=document.createElement('button');tab.button.type='button';tab.button.id=id;tab.button.className='tab-select';tab.button.setAttribute('role','tab');tab.button.setAttribute('aria-controls',tab.panel.id);
+ tab.button.innerHTML='<img class="tab-logo" src="/orbit-mark.png" width="25" height="18" alt=""><span class="tab-label"></span>';
+ tab.label=tab.button.querySelector('.tab-label');
+ tab.close=document.createElement('button');tab.close.type='button';tab.close.className='tab-close';tab.close.textContent='×';tab.close.onclick=()=>closeTab(tab);
+ tab.button.onclick=()=>selectTab(tab);
+ tab.button.onkeydown=event=>{
+  let index=tabs.indexOf(tab);
+  if(event.key==='ArrowRight')index=(index+1)%tabs.length;else if(event.key==='ArrowLeft')index=(index-1+tabs.length)%tabs.length;else if(event.key==='Home')index=0;else if(event.key==='End')index=tabs.length-1;else if(event.key==='Delete'){event.preventDefault();closeTab(tab);return;}else return;
+  event.preventDefault();selectTab(tabs[index],true);
+ };
+ tab.element.append(tab.button,tab.close);tabList.append(tab.element);tabs.push(tab);paintTab(tab);selectTab(tab);startAddress.focus({preventScroll:true});
+ return tab;
+}
+function updateAddress(url,tab=activeTab){
+ if(!tab||!tabs.includes(tab))return;
+ try{const target=new URL(url);if(!['https:','http:'].includes(target.protocol))return;
+  tab.url=target.href;if(!tab.editing)tab.draft=tab.url;tab.title=target.hostname;
+  if(tab.history[tab.index]!==tab.url){tab.history.splice(tab.index+1);tab.history.push(tab.url);tab.index=tab.history.length-1;}
+  paintTab(tab);if(tab===activeTab)showActive();
+ }catch{/* Ignore non-web frame notifications. */}
+}
+function navigate(value,tab=activeTab){
+ try{
+  const url=normalizeAddress(value);tab.editing=false;
+  if(Date.now()>=expires)throw new Error('Connect to your Orbit account before searching. Reopen Orbit Search if the connection has expired.');
+  if(!tab.frame){
+   const frame=tab.frame=controller.createFrame();frame.frame.title='Orbit Search browser';
+   frame.frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox allow-modals');
+   frame.addEventListener('urlchange',event=>{if(tabs.includes(tab)&&event.url)updateAddress(String(event.url),tab);});
+   frame.frame.onload=()=>{if(!tabs.includes(tab))return;tab.loading=false;setStatus('Page loaded · Some websites may require a CAPTCHA or refuse proxy access.','ready',tab);paintTab(tab);if(tab===activeTab)showActive();};
+   tab.panel.append(frame.frame);
+  }
+  tab.loading=true;setStatus('Opening '+new URL(url).hostname+'…','loading',tab);updateAddress(url,tab);tab.frame.go(url);
+ }catch(error){tab.loading=false;setStatus(error.message,'error',tab);paintTab(tab);if(tab===activeTab)showActive();}
+}
+address.addEventListener('input',()=>{activeTab.draft=address.value;activeTab.editing=true;});
+startAddress.addEventListener('input',()=>{activeTab.startDraft=startAddress.value;});
 document.querySelector('#search').addEventListener('submit',event=>{event.preventDefault();navigate(address.value);});
 document.querySelector('#start-search').addEventListener('submit',event=>{event.preventDefault();navigate(startAddress.value);});
 document.querySelectorAll('[data-url]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.url)));
 document.querySelector('#source-link').addEventListener('click',event=>{event.preventDefault();navigate(event.currentTarget.href);});
-document.querySelector('#newtab').onclick=()=>{
-  if(frame){frame.frame.remove();frame=null;}browserPanel.replaceChildren();browserPanel.hidden=true;welcome.hidden=false;siteHelp.hidden=true;history=[];historyIndex=-1;currentUrl='';address.value=startAddress.value='';tabTitle.textContent='New search';syncNavigation();document.body.classList.remove('browsing','loading');setStatus(Date.now()<expires?'Ready · Search results and websites open here.':'Open Orbit Search from the Orbit sidebar to connect your account.',Date.now()<expires?'ready':'connecting');startAddress.focus({preventScroll:true});
+document.querySelector('#newtab').onclick=()=>addTab();
+document.querySelector('#back').onclick=()=>{if(activeTab.index>0){activeTab.index--;navigate(activeTab.history[activeTab.index]);}};
+document.querySelector('#forward').onclick=()=>{if(activeTab.index<activeTab.history.length-1){activeTab.index++;navigate(activeTab.history[activeTab.index]);}};
+document.querySelector('#reload').onclick=()=>{
+ const tab=activeTab;if(tab.frame){tab.loading=true;setStatus('Reloading '+new URL(tab.url).hostname+'…','loading',tab);paintTab(tab);showActive();tab.frame.reload();}else startAddress.focus();
 };
-document.querySelector('#back').onclick=()=>{if(historyIndex>0){historyIndex--;navigate(history[historyIndex]);}};
-document.querySelector('#forward').onclick=()=>{if(historyIndex<history.length-1){historyIndex++;navigate(history[historyIndex]);}};
-document.querySelector('#reload').onclick=()=>{if(frame){document.body.classList.add('loading');setStatus('Reloading '+new URL(currentUrl).hostname+'…','loading');frame.reload();}else startAddress.focus();};
 document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();address.focus();address.select();}});
+addTab();
 ```
 
 ## orbit-search/public/index.html
 
 ```html
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e2b"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/style.css?v=4"><script src="/vendor/scramjet/scramjet.all.js"></script><script src="/vendor/baremux/index.js"></script><script type="module" src="/search.js?v=8"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e2b"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/style.css?v=5"><script src="/vendor/scramjet/scramjet.all.js"></script><script src="/vendor/baremux/index.js"></script><script type="module" src="/search.js?v=9"></script></head>
 <body data-connection="connecting">
 <svg class="icon-defs" aria-hidden="true"><defs>
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
@@ -393,7 +451,7 @@ document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&e
 <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></symbol>
 </defs></svg>
 <header class="browser-chrome">
-  <div class="tab-strip"><div class="active-tab"><img class="tab-logo" src="/orbit-mark.png" width="25" height="18" alt=""><span id="tab-title">New search</span><span class="tab-dot" aria-hidden="true"></span></div><button type="button" id="newtab" class="icon-button new-tab" aria-label="Open start page" title="New search"><svg><use href="#i-plus"/></svg></button><span class="chrome-wordmark">orbit <span>search</span></span></div>
+  <div class="tab-strip"><div id="tabs" class="tabs" role="tablist" aria-label="Open tabs"></div><button type="button" id="newtab" class="icon-button new-tab" aria-label="New tab" title="New tab"><svg><use href="#i-plus"/></svg></button><span class="chrome-wordmark">orbit <span>search</span></span></div>
   <form id="search" class="toolbar"><nav class="navigation" aria-label="Browser controls"><button type="button" id="back" class="icon-button" aria-label="Go back" title="Back" disabled><svg><use href="#i-back"/></svg></button><button type="button" id="forward" class="icon-button" aria-label="Go forward" title="Forward" disabled><svg><use href="#i-forward"/></svg></button><button type="button" id="reload" class="icon-button" aria-label="Reload page" title="Reload"><svg><use href="#i-reload"/></svg></button></nav><div class="omnibox"><svg class="search-icon" aria-hidden="true"><use href="#i-search"/></svg><label class="sr" for="address">Search the web or enter a website</label><input id="address" type="text" placeholder="Search the web or enter a website" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><kbd>Ctrl K</kbd><button id="go" class="omnibox-go" aria-label="Search" title="Search"><svg><use href="#i-arrow"/></svg></button></div></form>
   <div class="connection-line"><span class="connection-dot" aria-hidden="true"></span><p id="status" role="status">Connecting to Orbit…</p></div>
   <aside id="site-help" class="site-help" hidden aria-label="Discord sign-in help"><p>Discord login and CAPTCHA may fail through Orbit Search. Try signing in with your normal browser connection.</p><a href="https://discord.com/login" target="_blank" rel="noopener noreferrer">Open Discord directly ↗</a></aside>
@@ -411,6 +469,26 @@ document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&e
   <div id="browser" hidden></div>
 </main>
 </body></html>
+```
+
+## orbit-search/public/style.css
+
+```css
+:root{color-scheme:dark;font-family:Arial,Helvetica,sans-serif;color:#edf0ff;background:#090e2b;--muted:#a6b0d0;--line:#b9c9ff1a;--accent:#a5b7ff}*{box-sizing:border-box}body{margin:0;height:100dvh;display:flex;flex-direction:column;overflow:hidden}button,input{font:inherit}button{cursor:pointer;color:inherit}button:disabled{cursor:default;opacity:.3}svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}.icon-defs{position:absolute;width:0;height:0;overflow:hidden}button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #9dccff;outline-offset:4px}.browser-chrome{position:relative;flex-shrink:0;background:linear-gradient(180deg,#171d42,#121832);border-bottom:1px solid var(--line);z-index:2;padding:0 14px}.tab-strip{height:40px;display:flex;align-items:end;gap:8px}.active-tab{display:flex;align-items:center;gap:10px;height:33px;width:min(250px,48vw);padding:0 14px;border-radius:14px 14px 0 0;background:#252c50;border:1px solid #b9c9ff1a;border-bottom:0;font-size:12px}.active-tab img{object-fit:contain}.active-tab #tab-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.tab-dot{width:6px;height:6px;border-radius:50%;background:#9eb2fb;opacity:.75}.chrome-wordmark{margin:auto 8px 10px auto;color:#c5ceec;font-size:13px;font-weight:700;letter-spacing:.2px}.chrome-wordmark span{color:#828eaf;font-weight:400;margin-left:3px}.icon-button{display:grid;place-items:center;min-width:38px;width:38px;height:38px;padding:0;border:0;border-radius:50%;background:transparent;color:#b8c3e4;transition:background 140ms,color 140ms,transform 140ms}.icon-button:not(:disabled):hover{background:#a5b7ff1a;color:#fff}.icon-button:active{transform:scale(.92)}.new-tab{width:30px;min-width:30px;height:30px;margin-bottom:1px}.new-tab svg{width:16px;height:16px}.toolbar{display:flex;align-items:center;gap:12px;padding-top:7px}.navigation{display:flex;gap:3px}.omnibox{display:flex;align-items:center;flex:1;min-width:0;height:44px;border-radius:999px;padding:0 5px 0 16px;background:#090f2a;border:1px solid #a5b7ff25;transition:border-color 160ms,box-shadow 160ms,background 160ms}.omnibox:focus-within{border-color:#8faaff;background:#101836;box-shadow:0 0 0 3px #718cfa18}.search-icon{width:17px;height:17px;color:#99a7ce;margin-right:10px}input{min-width:0;flex:1;border:0;background:transparent;color:inherit;outline:none!important;font-size:13px;height:100%;padding:0}input::placeholder{color:#8896bc;opacity:1}kbd{font:10px Arial,sans-serif;white-space:nowrap;color:#8391b5;border:1px solid #6675a044;padding:3px 6px;border-radius:5px;margin:0 12px;pointer-events:none}.omnibox-go{display:grid;place-items:center;width:33px;height:33px;border:0;border-radius:50%;background:#8da4ff;color:#101b48;transition:background 140ms,transform 140ms}.omnibox-go:hover{background:#b3c3ff;transform:translateX(1px)}.omnibox-go svg{width:17px;height:17px}.connection-line{display:flex;align-items:center;gap:7px;min-height:26px;padding:4px 5px 5px}.connection-dot{width:5px;height:5px;flex:none;background:#9cabc9;border-radius:50%}#status{font-size:10px;color:#97a6cb;margin:0;line-height:1.4;overflow-wrap:anywhere}body[data-connection=ready] .connection-dot{background:#80cdb2;box-shadow:0 0 7px #80cdb222}body[data-connection=error] .connection-dot{background:#f5a5a5}body[data-connection=error] #status{color:#ffc2c2}#workspace{position:relative;display:flex;flex-direction:column;flex:1;min-height:0;background:#090e2b}#welcome{position:relative;flex:1;min-height:0;isolation:isolate;overflow:auto;display:flex;flex-direction:column;background:radial-gradient(ellipse 58% 65% at 50% 35%,#28346740,transparent 80%),linear-gradient(145deg,#0d1436,#0a0f2c 55%,#101432)}[hidden]{display:none!important}.ambience{position:absolute;inset:0;overflow:hidden;z-index:-1;pointer-events:none}.orbit-line{position:absolute;left:50%;top:38%;width:1100px;height:420px;margin:-210px 0 0 -550px;border:1px solid #718bcc12;border-radius:50%;transform:rotate(-23deg)}.orbit-line-two{width:1500px;height:650px;margin:-325px 0 0 -750px;transform:rotate(-23deg);border-color:#718bcc0c}.stars{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 12% 22%,#b6c6fa66 99%,transparent),radial-gradient(1px 1px at 81% 18%,#b6c6fa66 99%,transparent),radial-gradient(1px 1px at 91% 65%,#b6c6fa44 99%,transparent),radial-gradient(1px 1px at 17% 78%,#b6c6fa44 99%,transparent),radial-gradient(1.5px 1.5px at 69% 82%,#b6c6fa55 99%,transparent),radial-gradient(1px 1px at 38% 11%,#b6c6fa44 99%,transparent),radial-gradient(1px 1px at 61% 65%,#b6c6fa44 99%,transparent)}.welcome-content{position:relative;width:min(100%,760px);margin:auto;flex-shrink:0;align-self:center;text-align:center;padding:clamp(22px,5vh,64px) 28px 30px;animation:welcome-in 550ms ease both}.brand-mark{width:168px;height:113px;margin:0 auto 6px;animation:planet-float 8s ease-in-out infinite}.brand-mark img{display:block;width:100%;height:100%;object-fit:contain}.eyebrow{font-size:9px;letter-spacing:2.4px;color:#8799cb;margin:9px 0 17px;font-weight:600}h1{font-size:clamp(32px,5vw,48px);font-weight:650;line-height:1.1;letter-spacing:-1.6px;margin:0;color:#f1f4ff}h1 span{font-weight:400;color:#b5c5f6}.welcome-subtitle{font-size:14px;line-height:1.6;color:#9daed1;margin:14px 0 30px}.start-search{height:58px;max-width:600px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:0 8px 0 20px;border-radius:999px;border:1px solid #a9baff33;background:linear-gradient(115deg,#242e50f0,#1b2545f0);box-shadow:0 10px 40px #02051a33,inset 0 1px #ffffff07;transition:border-color 160ms,box-shadow 160ms,transform 160ms}.start-search>svg{width:20px;color:#c2cff4}.start-search:focus-within{border-color:#99b5ff;box-shadow:0 0 0 4px #7b9afa14,0 10px 40px #02051a33;transform:translateY(-1px)}.start-search input{font-size:14px}.start-search button{display:grid;place-items:center;min-width:40px;height:40px;border:0;border-radius:50%;color:#c8d5ff;background:#617ed32b;transition:background 140ms,transform 140ms}.start-search button:hover{background:#617ed355;transform:translateX(1px)}.shortcuts{display:flex;justify-content:center;gap:12px;margin:25px auto 0}.shortcut{display:flex;flex-direction:column;align-items:center;gap:10px;width:82px;min-height:96px;padding:12px 8px;border:1px solid transparent;border-radius:17px;color:#c1cce7;background:transparent;font-size:11px;transition:background 160ms,border-color 160ms,transform 160ms}.shortcut:hover{background:#7f9bff0b;border-color:#a3b7f51c;transform:translateY(-3px)}.shortcut:active{transform:translateY(0)}.shortcut-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:16px;background:#29345377;border:1px solid #96b1f017;box-shadow:0 4px 14px #02051a1a;font-size:24px;font-weight:700}.shortcut-icon svg{width:23px;height:23px}.google{color:#a5c2ff;font-family:Arial,sans-serif}.youtube{color:#e78098}.wikipedia{font-family:Georgia,serif;font-size:25px;color:#e1e5f1}.github{color:#bdc8e8}.welcome-hint{display:flex;justify-content:center;align-items:center;gap:8px;color:#768bb6;font-size:11px;margin:29px 0 0}.welcome-hint svg{width:14px;height:14px;color:#8ba5dc}.start-footer{position:relative;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 24px 20px;color:#667b9f;font-size:10px;line-height:1.6}.start-footer a{color:#7f91b5;text-decoration:none}.start-footer a:hover{color:#c2d2f7;text-decoration:underline}#browser{position:relative;flex:1;min-height:0;margin:10px;border:1px solid #a5b7ff20;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 10px 35px #02051a22}#browser iframe{display:block;width:100%;height:100%;border:0;background:#fff}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@keyframes welcome-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes planet-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@media(min-width:1500px){.welcome-content{padding-top:40px;padding-bottom:80px}}@media(max-width:600px){.browser-chrome{padding:0 8px}.tab-strip{height:35px}.active-tab{height:29px;width:180px;font-size:11px}.chrome-wordmark{font-size:11px}.toolbar{gap:5px}.navigation{gap:0}.icon-button{width:33px;min-width:33px;height:36px}.icon-button svg{width:17px;height:17px}.omnibox{height:41px;padding-left:11px}.omnibox input{font-size:12px}.omnibox kbd{display:none}.search-icon{margin-right:6px;width:15px}.omnibox-go{width:30px;height:30px;flex:none}.welcome-content{padding:28px 18px 24px}.brand-mark{width:140px;height:94px}.eyebrow{font-size:8px;letter-spacing:1.8px}h1{font-size:35px}.welcome-subtitle{font-size:13px;margin-bottom:25px}.start-search{height:54px;padding-left:16px;gap:10px}.start-search input{font-size:12px}.shortcuts{gap:4px;margin-top:20px}.shortcut{width:72px}.welcome-hint{font-size:10px;margin-top:22px}.start-footer{padding:12px 18px;justify-content:center;text-align:center;font-size:9px}#browser{margin:6px;border-radius:12px}}
+@media(max-height:600px){.welcome-content{padding-top:18px;padding-bottom:18px}.brand-mark{width:110px;height:74px}.welcome-subtitle{margin:10px 0 18px}.welcome-hint{margin-top:12px}.shortcuts{margin-top:12px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.start-footer a{display:inline-flex;align-items:center;gap:4px}.start-footer a svg{width:10px;height:10px;transform:rotate(-35deg)}
+
+.site-help{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 6px 10px;padding:10px 14px;border:1px solid #a3b7f533;border-radius:12px;background:#1b2545;color:#c4cfea;font-size:12px;line-height:1.5}.site-help[hidden]{display:none}.site-help p{margin:0}.site-help a{flex-shrink:0;display:inline-block;padding:8px 12px;border-radius:9px;background:#334a87;color:#f1f4ff;text-decoration:none}.site-help a:hover{background:#405da9}.site-help a:focus-visible{outline:2px solid #a5c2ff;outline-offset:2px}@media(max-width:600px){.site-help{align-items:flex-start;flex-direction:column;font-size:11px}.site-help a{max-width:100%}}
+
+/* Only the active tab logo moves while a page is loading. */
+.tab-logo{flex:none;transform-origin:center}.browser-tab.is-loading .tab-logo,body.loading .browser-tab.active-tab .tab-logo{animation:tab-orbit-spin 1.15s linear infinite}@keyframes tab-orbit-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.browser-tab.is-loading .tab-logo,body.loading .browser-tab.active-tab .tab-logo{animation:none;opacity:.65}}
+
+.tabs{display:flex;align-items:flex-end;gap:6px;min-width:0;max-width:calc(100% - 145px);height:40px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}.browser-tab{display:flex;align-items:center;flex:0 0 190px;width:190px;height:33px;padding:0 5px 0 10px;border:1px solid #b9c9ff16;border-bottom:0;border-radius:14px 14px 0 0;background:#171f3b;color:#9eabcd}.browser-tab.active-tab{width:190px;background:#252c50;color:#edf0ff}.tab-select{display:flex;align-items:center;gap:8px;flex:1;min-width:0;height:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;font-size:12px}.tab-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tab-logo{object-fit:contain}.tab-close{display:grid;place-items:center;flex:none;width:25px;height:25px;border:0;border-radius:50%;padding:0;background:transparent;color:inherit;font-size:19px}.tab-close:hover{background:#a5b7ff25;color:#fff}.new-tab{flex-shrink:0}.chrome-wordmark{flex-shrink:0}.browser-tab-panel{height:100%;width:100%}.browser-tab-panel[hidden]{display:none!important}@media(max-width:600px){.tabs{height:35px;max-width:calc(100% - 36px)}.browser-tab,.browser-tab.active-tab{width:150px;flex-basis:150px;height:29px}.tab-select{font-size:11px}.chrome-wordmark{display:none}.tab-close{width:25px;height:25px}}
 ```
 
 ## orbit-search/public/address.js

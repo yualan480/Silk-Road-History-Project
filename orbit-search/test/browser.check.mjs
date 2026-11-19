@@ -23,6 +23,7 @@ const mount=async frame=>{
 const listen=server=>new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve('http://127.0.0.1:'+server.address().port)));
 let workerFetches=0,workerSockets=0;
 const target=http.createServer((req,res)=>{
+ if(req.url==='/background'){setTimeout(()=>{res.setHeader('Content-Type','text/html');res.end('<h1>Background ready</h1>');},1200);return;}
  if(req.url==='/worker-data'){workerFetches++;res.end('Relay fetch');return;}
  if(['/worker.js','/shared.js'].includes(req.url)){
   res.setHeader('Content-Type','application/javascript');
@@ -83,11 +84,11 @@ try{
  assert.equal(await search.locator('#back').isDisabled(),true);
  await search.locator('#start-address').fill('http://fixture.test:'+new URL(targetBase).port+'/first');
  await search.locator('#start-search button').click();
- await search.frameLocator('iframe').getByRole('heading',{name:'Orbit Search fixture'}).waitFor();
+ await search.frameLocator('.browser-tab-panel:not([hidden]) iframe').getByRole('heading',{name:'Orbit Search fixture'}).waitFor();
 
  await search.locator('#address').fill('http://fixture.test:'+new URL(targetBase).port+'/');
  await search.locator('#go').click();
- const content=search.frameLocator('iframe');
+ const content=search.frameLocator('.browser-tab-panel:not([hidden]) iframe');
  await content.getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
  await content.locator('#test').click();
  await content.getByRole('button',{name:'JavaScript works'}).waitFor();
@@ -112,7 +113,29 @@ try{
  await search.locator('#back').click();
  assert.ok((await search.locator('#address').inputValue()).endsWith('/first'));
  await search.locator('#forward').click();assert.ok((await search.locator('#address').inputValue()).endsWith('/'));
- await search.locator('#newtab').click();
+ // A new tab preserves the exact iframe/document; switching and closing never reload survivors.
+ const retainedUrl='http://fixture.test:'+new URL(targetBase).port+'/retained';
+ const retainedNavigation=page.waitForEvent('framenavigated',{predicate:frame=>frame.url()===proxyBase+'/service/'+encodeURIComponent(retainedUrl)});
+ await search.locator('#address').fill(retainedUrl);await search.locator('#go').click();await retainedNavigation;
+ await content.locator('#test').click();await content.getByRole('button',{name:'JavaScript works'}).waitFor();
+ const originalTab=await search.getByRole('tab',{selected:true}).getAttribute('id');
+ const retainedFrame=await search.locator('#browser .browser-tab-panel:not([hidden]) iframe').elementHandle();
+ await search.locator('#newtab').click();assert.equal(await search.getByRole('tab').count(),2);
+ const blankTab=await search.getByRole('tab',{selected:true}).getAttribute('id');
+ assert.ok(await retainedFrame.evaluate(frame=>frame.isConnected));await search.locator('#welcome').waitFor();
+ await search.locator('#'+originalTab).click();assert.equal(await search.locator('#address').inputValue(),retainedUrl);
+ await content.getByRole('button',{name:'JavaScript works'}).waitFor();
+ assert.ok(await search.locator('#browser .browser-tab-panel:not([hidden]) iframe').evaluate((frame,original)=>frame===original,retainedFrame));
+ await search.locator('#'+blankTab).click();await search.getByRole('button',{name:'Close New search tab',exact:true}).click();
+ assert.equal(await search.getByRole('tab').count(),1);assert.equal(await search.locator('#address').inputValue(),retainedUrl);
+ await content.getByRole('button',{name:'JavaScript works'}).waitFor();await search.locator('#newtab').click();
+ const backgroundTab=await search.getByRole('tab',{selected:true}).getAttribute('id');
+ await search.locator('#address').fill('http://fixture.test:'+new URL(targetBase).port+'/background');await search.locator('#go').click();
+ await search.locator('#newtab').click();assert.equal(await search.locator('#address').inputValue(),'');
+ await search.frameLocator('#'+backgroundTab+'-panel iframe').getByRole('heading',{name:'Background ready',includeHidden:true}).waitFor({state:'attached'});
+ assert.equal(await search.locator('#address').inputValue(),'');assert.equal(await search.locator('#welcome').isVisible(),true);
+ await search.locator('#'+backgroundTab).locator('..').locator('.tab-close').click();
+ assert.equal(await search.getByRole('tab').count(),2);
  // Real proxied page with a Discord hostname, routed only to the local test fixture.
  await search.locator('#address').fill('http://discord.com:'+new URL(targetBase).port+'/');await search.locator('#go').click();
  await content.getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
@@ -126,12 +149,12 @@ try{
  await search.locator('#address').fill('http://discord.com:'+new URL(targetBase).port+'/');await search.locator('#go').click();await directDiscord.waitFor({state:'visible'});
  await search.locator('#newtab').click();await search.locator('#welcome').waitFor();
  assert.equal(await search.locator('#site-help').isVisible(),false);
- assert.equal(await search.locator('#browser iframe').count(),0);assert.equal(await search.locator('#back').isDisabled(),true);
+ assert.equal(await search.locator('#browser .browser-tab-panel:not([hidden]) iframe').count(),0);assert.equal(await search.locator('#back').isDisabled(),true);
  await search.locator('#start-address').focus();await page.keyboard.press('Control+k');
  assert.equal(await search.locator('#address').evaluate(input=>input===document.activeElement),true);
- assert.equal(errors.length,0,errors.join('\n'));
+ assert.equal(errors.length,0,errors.join('\n'));await search.locator('body').screenshot({path:'/tmp/orbit-search-real-tabs-desktop.png'});
  await page.setViewportSize({width:390,height:844});
- assert.equal(await search.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);
+ assert.equal(await search.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);await search.locator('body').screenshot({path:'/tmp/orbit-search-real-tabs-phone.png'});
  await page.getByRole('button',{name:'Fullscreen',exact:true}).click();
  await page.waitForFunction(()=>document.fullscreenElement===document.querySelector('#main'));
  await page.evaluate(()=>{document.querySelector('#main').innerHTML='<p>Another Orbit tab</p>';});
@@ -153,6 +176,9 @@ try{
  await direct.locator('.brand-mark img').evaluate(img=>img.decode());await direct.waitForTimeout(650);await direct.screenshot({path:'/tmp/orbit-search-redesign-desktop.png'});
  for(const size of [{width:390,height:844},{width:360,height:640},{width:844,height:390}]){await direct.setViewportSize(size);assert.equal(await direct.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);assert.equal(await direct.locator('#start-search').isVisible(),true);}
  await direct.setViewportSize({width:390,height:844});await direct.screenshot({path:'/tmp/orbit-search-redesign-phone.png'});
+ await direct.locator('#newtab').click();assert.equal(await direct.getByRole('tab').count(),2);
+ await direct.getByRole('tab',{selected:true}).focus();await direct.keyboard.press('ArrowLeft');await direct.keyboard.press('Delete');assert.equal(await direct.getByRole('tab').count(),1);
+ await direct.getByRole('tab',{selected:true}).press('Delete');assert.equal(await direct.getByRole('tab').count(),1);
  await direct.emulateMedia({reducedMotion:'reduce'});await direct.locator('body').evaluate(el=>el.classList.add('loading'));assert.equal(await direct.locator('.tab-logo').evaluate(el=>getComputedStyle(el).animationName),'none');assert.equal(await direct.locator('.brand-mark').evaluate(el=>getComputedStyle(el).animationName),'none');await direct.close();
  // Reproduce a browser that rejects the embedded service, then use an authenticated top-level window.
  const fallback=await browser.newPage();
@@ -169,9 +195,9 @@ try{
  await fallback.getByRole('status').filter({hasText:'Search is connected in the separate window'}).waitFor();
  assert.equal(await fallback.locator('iframe').count(),0);
  await popup.locator('#address').fill('http://fixture.test:'+new URL(targetBase).port+'/');await popup.locator('#go').click();
- await popup.frameLocator('iframe').getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
- await popup.frameLocator('iframe').locator('#test').click();
- await popup.frameLocator('iframe').getByRole('button',{name:'JavaScript works'}).waitFor();
+ await popup.frameLocator('.browser-tab-panel:not([hidden]) iframe').getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
+ await popup.frameLocator('.browser-tab-panel:not([hidden]) iframe').locator('#test').click();
+ await popup.frameLocator('.browser-tab-panel:not([hidden]) iframe').getByRole('button',{name:'JavaScript works'}).waitFor();
  await popup.reload();await popup.locator('#status').filter({hasText:'Ready'}).waitFor({timeout:45000});
  await popup.close();await fallback.close();
  // A wrapper ancestor with a different origin must not prevent the trusted Orbit child from embedding Search.
@@ -185,7 +211,7 @@ try{
  const embedded=wrapped.frameLocator('iframe[title="Orbit wrapper"]').frameLocator('iframe[title="Orbit Search"]');
  await embedded.locator('#status').filter({hasText:'Ready'}).waitFor({timeout:45000});
  await embedded.locator('#address').fill('http://fixture.test:'+new URL(targetBase).port+'/');await embedded.locator('#go').click();
- await embedded.frameLocator('iframe').getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
+ await embedded.frameLocator('.browser-tab-panel:not([hidden]) iframe').getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
  assert.equal(wrapped.context().pages().length,1,'Search stays inside the Orbit screen');
  await wrapped.close();
  const unrelated=await browser.newPage();await unrelated.goto(wrapperBase);
@@ -196,5 +222,5 @@ try{
  await unrelated.evaluate(proxyBase=>document.querySelector('iframe').contentWindow.postMessage({type:'orbit-search-account',accessToken:'test-session'},proxyBase),proxyBase);
  await unrelated.waitForTimeout(500);assert.equal(acceptedSessions,before,'Untrusted parent may not hand off an account');
  assert.match(await untrusted.locator('#status').innerText(),/Connecting/);await unrelated.close();
- console.log('PASS popup permission + proxy-prefixed navigation attempt (popup content unverified); dedicated-worker fetch + WebSocket relay (shared-worker probe opt-in; not verified), no direct fixture requests, no COOP/COEP required; redesigned Chrome-inspired toolbar, central search, back/forward/start-page controls, reduced motion, phone/landscape fit, automatic fullscreen on a real tab click, exit/re-entry controls, actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
+ console.log('PASS real tab creation, iframe/document retention, independent tab navigation, background-load isolation, closing, keyboard controls, mobile scrolling and per-tab loading; popup permission + proxy-prefixed navigation attempt (popup content unverified); dedicated-worker fetch + WebSocket relay (shared-worker probe opt-in; not verified), no direct fixture requests, no COOP/COEP required; redesigned Chrome-inspired toolbar, central search, back/forward/start-page controls, reduced motion, phone/landscape fit, automatic fullscreen on a real tab click, exit/re-entry controls, actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
 }finally{await browser.close();for(const s of [proxy,parent,target,wrapper]){s.closeAllConnections();s.close();}process.exitCode=0;}
