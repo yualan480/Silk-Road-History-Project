@@ -6,7 +6,6 @@
   var BASE = 'https://ysopxengerkvbwhrdnwq.supabase.co/rest/v1/scores';
   var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzb3B4ZW5nZXJrdmJ3aHJkbndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3NTM5MDIsImV4cCI6MjEwNzMyOTkwMn0.7jOqjsJ2yAsRVThEuIyK6KI6D3cgs5SrxHg79nXlDBM';
   var GAMES = ['blockblast', 'tetris', 'game2048', 'snake', 'pacman', 'breakout', 'minesweeper', 'flappy', 'dino', 'blockout', 'slope', 'geodash', 'girder', 'sudoku', 'slither', 'wordle', 'fruitninja'];
-  var MAX_SCORE = 10000000;
   // Capture bests before a game updates its own storage at the end of a round.
   var guideBests = {};
   // A cartridge can be nested inside the Orbit Games launcher. Only relay events
@@ -176,7 +175,7 @@
   }
 
   /* ---------- scores ---------- */
-  function formatScore(game,score){if(game!=='wordle')return Math.min(Math.floor(Number(score)),MAX_SCORE).toLocaleString();var rows=7-Math.floor(score/1000000),seconds=999999-score%1000000;return rows+'/6 · '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
+  function formatScore(game,score){if(game!=='wordle')return Math.floor(Number(score)).toLocaleString();var rows=7-Math.floor(score/1000000),seconds=999999-score%1000000;return rows+'/6 · '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
   function headers(extra) {
     var h = { apikey: KEY, Authorization: 'Bearer ' + KEY };
     for (var k in extra) h[k] = extra[k];
@@ -227,10 +226,8 @@
     score = Math.floor(Number(score));
     var name = getName();
     if (GAMES.indexOf(game) === -1 || !name || !isCleanName(name)) return Promise.resolve(false);
-    if (!Number.isFinite(score) || !(score > 0)) return Promise.resolve(false);
-    // The database permits at most 10 million. Save that cap as a new best
-    // instead of dropping a higher real score and leaving an older 9M result.
-    score = Math.min(score, MAX_SCORE);
+    if (!Number.isSafeInteger(score) || !(score > 0)) return Promise.resolve(false);
+    // Preserve the earned score exactly; never replace it with a lower ceiling.
     markPlayed();   // a real score means a game was played today
     var avatar = getAvatar(), av = hash(avatar);
     var memo = 'lb-sent-' + game + '-' + name.toLowerCase();
@@ -389,8 +386,8 @@
   function submit(game, score) {
     tournamentRound(game, Math.floor(Number(score))); // real round, not historical best
     var p = sendScore(game, score);
-    var numeric = Math.min(Math.floor(Number(score)), MAX_SCORE), previous = guideBests[game];
-    if (GAMES.indexOf(game) !== -1 && Number.isFinite(numeric) && numeric > 0 && numeric > previous) {
+    var numeric = Math.floor(Number(score)), previous = guideBests[game];
+    if (GAMES.indexOf(game) !== -1 && Number.isSafeInteger(numeric) && numeric > 0 && numeric > previous) {
       guideBests[game] = numeric;
       p.then(function (saved) {
         if (!saved) { if (guideBests[game] === numeric) guideBests[game] = previous; return; }
@@ -463,7 +460,7 @@
       if (!old) return;
       var parts = old.split('|'), prevScore = parseInt(parts[0], 10) || 0, prevAv = parts[1] || '';
       var score = prevScore;
-      if (!(score > 0) || score > MAX_SCORE) return;
+      if (!Number.isSafeInteger(score) || !(score > 0)) return;
       if (prevAv === av) return;                                      // already up to date
       try { localStorage.setItem(memo, score + '|' + av); } catch (e) { /* storage unavailable */ }
       jobs.push(fetch(BASE, {
@@ -887,7 +884,7 @@
   // called for every finished round (Leaderboard.submit); never throws into a game
   function coinRound(game, score) {
     score = Math.floor(Number(score));
-    if (GAMES.indexOf(game) === -1 || !(score > 0) || score > MAX_SCORE) return;
+    if (GAMES.indexOf(game) === -1 || !Number.isSafeInteger(score) || !(score > 0)) return;
     var B = window.OrbitBank;
     if (!B || !B.signedIn()) return;
     B.claimGame(game, score).then(function (n) {

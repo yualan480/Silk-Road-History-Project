@@ -966,7 +966,7 @@ window.addEventListener('message', e => {
   const frame = document.querySelector('.gframe');
   if (!frame || e.source !== frame.contentWindow || e.data.uid !== S.me?.id) return;
   const { game, score } = e.data;
-  if (typeof game !== 'string' || game.length > 60 || !Number.isFinite(score) || score < 1 || score > 10000000) return;
+  if (typeof game !== 'string' || game.length > 60 || !Number.isSafeInteger(score) || score < 1) return;
   GUIDE.milestone('score', { game, score });
 });
 /* Orbit Games tells Orbit when a cartridge is chosen: until the player leaves, nothing but the top-left sidebar button

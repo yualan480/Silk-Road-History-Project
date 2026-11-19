@@ -519,7 +519,7 @@
     var l = LB(); if (!l || l.__recW) return; l.__recW = 1;
     ['submit', 'save'].forEach(function (k) {
       var f = l[k]; if (typeof f !== 'function') return;
-      l[k] = function (game, score) { try { if ((S.phase === 'rec' || S.phase === 'saving') && +score > 0) S.score = Math.max(S.score || 0, Math.min(10000000, Math.floor(+score))); } catch (e) { /* ignore */ } return f.apply(this, arguments); };
+      l[k] = function (game, score) { try { if ((S.phase === 'rec' || S.phase === 'saving') && +score > 0) S.score = Math.max(S.score || 0, Number.isSafeInteger(Math.floor(+score)) ? Math.floor(+score) : 0); } catch (e) { /* ignore */ } return f.apply(this, arguments); };
     });
   }
 
