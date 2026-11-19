@@ -57,7 +57,7 @@ export const UNBLOCKED_GAMES=[{
 },{
  id:'retro-bowl',title:'Retro Bowl',category:'Sports',players:'Single player',
  description:'Manage your football team, call the plays, and chase a championship in pixel-art football.',
- image:'../games/retro-bowl/cover.jpg',src:'../games/retro-bowl/index.html?save=1',
+ image:'../games/retro-bowl/quarterback-cover.jpg',src:'../games/retro-bowl/index.html?save=1',
  tags:['retro','bowl','football','sports','quarterback','touchdown'],
  controls:'Click or tap to navigate. Drag back from your quarterback and release to pass; use the game’s tutorial for running and kicking. Progress saves in this browser.'
 },{

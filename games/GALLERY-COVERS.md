@@ -2,7 +2,7 @@
 
 The Unblocked Games gallery uses original game icons/cover art or unaltered screenshots captured from the actual locally hosted game. It does not use the old illustrative SVG placeholders.
 
-- Captured locally: Guess the Pokémon (Cry), Guess the Pokémon (Stats), Paper.io 2, Random Trivia, Retro Bowl, World's Hardest Game, Balloon Bastion, Suika Game, and A Small World Cup.
+- Captured locally: Guess the Pokémon (Cry), Guess the Pokémon (Stats), Paper.io 2, Random Trivia, World's Hardest Game, Balloon Bastion, Suika Game, and A Small World Cup.
 - Pokémon LeafGreen: original Nintendo box art, https://en.wikipedia.org/wiki/File:Pokemon_LeafGreen_box.jpg .
 - Super Mario Bros.: original Nintendo NES box art, https://en.wikipedia.org/wiki/File:Super_Mario_Bros._box.png . The gallery identifies the original game; its Nintendo ROM is not included.
 - Basket Bros: original `thumb.jpg` from the pinned game source.
@@ -12,3 +12,5 @@ The Unblocked Games gallery uses original game icons/cover art or unaltered scre
 Third-party artwork retains its original copyright. The local screenshots show the browser editions actually available in Orbit; a remake is not presented as an official native release.
 
 - Eaglercraft: the black Eagler logo on white requested by the site owner, matching the supplied image. Original raster copied unchanged from https://github.com/Alexx743/Alexx743-games/blob/69a02f9042c8e0c47ed57df3e2384663fdc08ea0/logo%20eaglercraft.jpg .
+
+- Retro Bowl: original pixel quarterback icon matching the owner’s requested cover, copied unchanged from https://github.com/selenite-cc/selenite-old/blob/9c743188888af0986c8c7b293dbac8f9e421a4ee/retrobowl/img/icon.jpg .
