@@ -16,3 +16,5 @@ Third-party artwork retains its original copyright. The local screenshots show t
 - Retro Bowl: original pixel quarterback icon matching the owner’s requested cover, copied unchanged from https://github.com/selenite-cc/selenite-old/blob/9c743188888af0986c8c7b293dbac8f9e421a4ee/retrobowl/img/icon.jpg .
 
 - Minecraft 1.5.2 (Browser Port): existing unaltered screenshot of the locally hosted Eaglercraft client (`eaglercraft/cover.jpg`). This is a clearly labeled alternate gallery entry for the same client/world storage, not a different or newer game build.
+
+Gallery backdrop: `chat/unblocked-marble.webp` is a landscape adaptation of the owner-provided blue/silver marbled star-pattern background, created with image editing and encoded as WebP for delivery. Game cover artwork is unchanged. The stationary background and normal scrolling avoid fixed-attachment/parallax effects.
