@@ -16,7 +16,7 @@ Object.assign(wisp.options, {
   allow_udp_streams: false, port_whitelist: [80, 443],
   stream_limit_total: 256, stream_limit_per_host: 64, parse_real_ip: false
 });
-logging.set_level(logging.ERROR);
+logging.set_level(logging.WARN);
 const vendors = {
   '/vendor/scramjet/': '@mercuryworkshop/scramjet/dist/',
   '/vendor/baremux/': '@mercuryworkshop/bare-mux/dist/',
@@ -59,6 +59,15 @@ const server = http.createServer(async (req, res) => {
     } catch { res.writeHead(401); res.end('Sign in to Orbit again, then retry Orbit Search.'); }
     return;
   }
+  if (url.pathname === '/api/relay-check') {
+    res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');
+    let own=false;try{const origin=new URL(req.headers.origin);own=['http:','https:'].includes(origin.protocol)&&origin.host===req.headers.host;}catch{}
+    if(req.method!=='POST'||!own){res.writeHead(403);return res.end(JSON.stringify({message:'Open Orbit Search from its authorized page.'}));}
+    const session=sessions.get(req.headers['x-orbit-relay-ticket']);
+    if(!session){res.writeHead(401);return res.end(JSON.stringify({message:'Relay ticket expired or the service restarted. Reopen Orbit Search to reconnect your account.'}));}
+    if(session.connections.size>=20){res.writeHead(429);return res.end(JSON.stringify({message:'Your relay has reached 20 connections. Close unused Orbit Search tabs and retry.'}));}
+    return res.end(JSON.stringify({ready:true}));
+  }
   if (url.pathname === '/config.json') { res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify({parent})); }
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); } catch { res.writeHead(400); return res.end(); }
@@ -70,7 +79,7 @@ const server = http.createServer(async (req, res) => {
     file = resolve(root, 'node_modules', directory, name);
   }
   if (!file) {
-    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/relay-recovery.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
+    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/relay-recovery.js', '/relay-probe.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
     file = resolve(root, 'public', pathname === '/' ? 'index.html' : pathname.slice(1));
   }
   try {
@@ -86,9 +95,13 @@ server.on('upgrade', (req, socket, head) => {
   let ownOrigin=false;try{ownOrigin=!!origin&&new URL(origin).host===req.headers.host;}catch{}
   // Only the dedicated proxy origin can open its relay; never expose a public unauthenticated Wisp server.
   if (url.pathname !== '/wisp/' || !session || !ownOrigin || session.connections.size >= 20) {
+    console.warn('[Orbit Search relay] upgrade rejected:',url.pathname!=='/wisp/'?'path':!session?'expired-or-missing-ticket':!ownOrigin?'origin':'connection-limit');
     socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;
   }
   session.connections.add(socket);
+  const connectedAt=Date.now();
+  socket.once('error',error=>console.warn('[Orbit Search relay] socket error:',error.code||error.name));
+  socket.once('close',()=>{if(url.searchParams.get('probe')!=='1'&&Date.now()-connectedAt<3000)console.warn('[Orbit Search relay] socket closed within 3s of upgrade; inspect Wisp/network errors.');});
   let expiry;
   const expire=()=>{const remaining=session.expires-Date.now();if(remaining<=0){socket.destroy();return;}expiry=setTimeout(expire,remaining);expiry.unref();};
   expire(); // Recheck renewed expiry instead of killing a healthy renewed connection.

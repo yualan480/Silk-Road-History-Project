@@ -29,7 +29,7 @@ Object.assign(wisp.options, {
   allow_udp_streams: false, port_whitelist: [80, 443],
   stream_limit_total: 256, stream_limit_per_host: 64, parse_real_ip: false
 });
-logging.set_level(logging.ERROR);
+logging.set_level(logging.WARN);
 const vendors = {
   '/vendor/scramjet/': '@mercuryworkshop/scramjet/dist/',
   '/vendor/baremux/': '@mercuryworkshop/bare-mux/dist/',
@@ -72,6 +72,15 @@ const server = http.createServer(async (req, res) => {
     } catch { res.writeHead(401); res.end('Sign in to Orbit again, then retry Orbit Search.'); }
     return;
   }
+  if (url.pathname === '/api/relay-check') {
+    res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');
+    let own=false;try{const origin=new URL(req.headers.origin);own=['http:','https:'].includes(origin.protocol)&&origin.host===req.headers.host;}catch{}
+    if(req.method!=='POST'||!own){res.writeHead(403);return res.end(JSON.stringify({message:'Open Orbit Search from its authorized page.'}));}
+    const session=sessions.get(req.headers['x-orbit-relay-ticket']);
+    if(!session){res.writeHead(401);return res.end(JSON.stringify({message:'Relay ticket expired or the service restarted. Reopen Orbit Search to reconnect your account.'}));}
+    if(session.connections.size>=20){res.writeHead(429);return res.end(JSON.stringify({message:'Your relay has reached 20 connections. Close unused Orbit Search tabs and retry.'}));}
+    return res.end(JSON.stringify({ready:true}));
+  }
   if (url.pathname === '/config.json') { res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify({parent})); }
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); } catch { res.writeHead(400); return res.end(); }
@@ -83,7 +92,7 @@ const server = http.createServer(async (req, res) => {
     file = resolve(root, 'node_modules', directory, name);
   }
   if (!file) {
-    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/relay-recovery.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
+    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/relay-recovery.js', '/relay-probe.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
     file = resolve(root, 'public', pathname === '/' ? 'index.html' : pathname.slice(1));
   }
   try {
@@ -99,9 +108,13 @@ server.on('upgrade', (req, socket, head) => {
   let ownOrigin=false;try{ownOrigin=!!origin&&new URL(origin).host===req.headers.host;}catch{}
   // Only the dedicated proxy origin can open its relay; never expose a public unauthenticated Wisp server.
   if (url.pathname !== '/wisp/' || !session || !ownOrigin || session.connections.size >= 20) {
+    console.warn('[Orbit Search relay] upgrade rejected:',url.pathname!=='/wisp/'?'path':!session?'expired-or-missing-ticket':!ownOrigin?'origin':'connection-limit');
     socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;
   }
   session.connections.add(socket);
+  const connectedAt=Date.now();
+  socket.once('error',error=>console.warn('[Orbit Search relay] socket error:',error.code||error.name));
+  socket.once('close',()=>{if(url.searchParams.get('probe')!=='1'&&Date.now()-connectedAt<3000)console.warn('[Orbit Search relay] socket closed within 3s of upgrade; inspect Wisp/network errors.');});
   let expiry;
   const expire=()=>{const remaining=session.expires-Date.now();if(remaining<=0){socket.destroy();return;}expiry=setTimeout(expire,remaining);expiry.unref();};
   expire(); // Recheck renewed expiry instead of killing a healthy renewed connection.
@@ -132,6 +145,7 @@ self.addEventListener('fetch', event => event.respondWith((async () => {
 ## orbit-search/public/proxy-runtime.js
 
 ```js
+import {verifyRelay} from './relay-probe.js';
 /* Pinned Scramjet v1 + BareMux v2 + Epoxy v2 runtime. Keep on the isolated Search origin. */
 export const PREFIX='/service/';
 // v1 has no generic `rewriter` or worker-hook flag. Native worker hooks are bundled.
@@ -170,11 +184,32 @@ export function createProxyRuntime(){
   }
   return {async connect(ticket){
     if(typeof ticket!=='string'||!ticket)throw new Error('Connect your Orbit account before browsing.');
+    await verifyRelay(ticket);
     const {controller,connection}=await initialize();
     const wisp=new URL('/wisp/',location.href);wisp.protocol=location.protocol==='https:'?'wss:':'ws:';wisp.searchParams.set('ticket',ticket);
-    await connection.setTransport('/epoxy-fallback.mjs?v=2',[{wisp:wisp.href}]);
+    await connection.setTransport('/epoxy-fallback.mjs?v=3',[{wisp:wisp.href}]);
     return controller; // No proxied frame is loaded before transport setup resolves.
   }};
+}
+```
+
+## orbit-search/public/relay-probe.js
+
+```js
+/* Verify authorization and a real Wisp v1 CONTINUE packet before reporting Ready. */
+export async function verifyRelay(ticket){
+ const response=await fetch('/api/relay-check',{method:'POST',headers:{'X-Orbit-Relay-Ticket':ticket}});
+ const check=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(check.message||'The relay authorization check failed. Reopen Orbit Search.');
+ const url=new URL('/wisp/',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';url.searchParams.set('ticket',ticket);url.searchParams.set('probe','1');
+ await new Promise((resolve,reject)=>{
+  const ws=new WebSocket(url);ws.binaryType='arraybuffer';let settled=false;
+  const finish=error=>{if(settled)return;settled=true;clearTimeout(timer);ws.close();error?reject(error):resolve();};
+  const timer=setTimeout(()=>finish(new Error('Relay handshake timed out. Check the Orbit Search Render logs.')),12000);
+  ws.onmessage=event=>{const data=new Uint8Array(event.data);if(data.length>=9&&data[0]===3&&new DataView(data.buffer).getUint32(1,true)===0)finish();else finish(new Error('Relay returned an unexpected Wisp handshake packet.'));};
+  ws.onerror=()=>finish(new Error('Relay WebSocket could not open. Authorization passed; check Render’s WebSocket upgrade/rejection logs.'));
+  ws.onclose=event=>finish(new Error('Relay closed before its handshake (code '+event.code+'). Check Render’s relay logs.'));
+ });
 }
 ```
 
@@ -187,11 +222,14 @@ import {withHttp1Fallback} from '/http-fallback.js';
 async function makeHttp1(opts,wisp){
  const {default:init,EpoxyClient,EpoxyClientOptions}=await import('/vendor/epoxy-http1/epoxy-bundled.js');
  await init();
- const options=new EpoxyClientOptions();options.user_agent=navigator.userAgent;
- for(const key of ['wisp_v2','udp_extension_required','title_case_headers','redirect_limit','header_limit','buffer_size'])if(opts[key]!=null)options[key]=opts[key];
- // The minimal build omits HTTP/2/ALPN h2; certificate verification stays enabled.
- const client=new EpoxyClient(wisp,options);
- const recover=createRelayRecovery(()=>client.replace_stream_provider());
+ const createClient=()=>{
+  const options=new EpoxyClientOptions();options.user_agent=navigator.userAgent;
+  for(const key of ['wisp_v2','udp_extension_required','title_case_headers','redirect_limit','header_limit','buffer_size'])if(opts[key]!=null)options[key]=opts[key];
+  // Options are consumed by the WASM constructor: allocate fresh ones on reconnect.
+  return new EpoxyClient(wisp,options);
+ };
+ let client=createClient();
+ const recover=createRelayRecovery(()=>{client=createClient();});
  return {async request(remote,method,body,headers,signal){
   if(signal?.aborted)throw new DOMException('The request was aborted.','AbortError');
   if(body instanceof Blob)body=await body.arrayBuffer();
@@ -259,7 +297,7 @@ export function createRelayRecovery(reset){
 }
 export function withRelayRecovery(Base){
  return class extends Base{
-  constructor(...args){super(...args);this.relayRequest=createRelayRecovery(()=>this.client.replace_stream_provider());}
+  constructor(...args){super(...args);this.relayRequest=createRelayRecovery(()=>super.init());}
   request(remote,method,body,headers,signal){return this.relayRequest(()=>super.request(remote,method,body,headers,signal),method,body,signal);}
  };
 }
@@ -343,7 +381,7 @@ document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&e
 
 ```html
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e2b"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/style.css?v=3"><script src="/vendor/scramjet/scramjet.all.js"></script><script src="/vendor/baremux/index.js"></script><script type="module" src="/search.js?v=7"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e2b"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/style.css?v=3"><script src="/vendor/scramjet/scramjet.all.js"></script><script src="/vendor/baremux/index.js"></script><script type="module" src="/search.js?v=8"></script></head>
 <body data-connection="connecting">
 <svg class="icon-defs" aria-hidden="true"><defs>
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>

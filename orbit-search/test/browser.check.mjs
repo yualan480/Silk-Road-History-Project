@@ -137,7 +137,15 @@ try{
  await page.evaluate(()=>{document.querySelector('#main').innerHTML='<p>Another Orbit tab</p>';});
  await page.waitForFunction(()=>!document.fullscreenElement);
 
- const direct=await browser.newPage({viewport:{width:1440,height:1000}});await direct.goto(proxyBase);await direct.getByRole('status').filter({hasText:'Open Orbit Search from the Orbit sidebar'}).waitFor();await direct.locator('.brand-mark img').evaluate(img=>img.decode());await direct.waitForTimeout(650);await direct.screenshot({path:'/tmp/orbit-search-redesign-desktop.png'});
+ const direct=await browser.newPage({viewport:{width:1440,height:1000}});await direct.goto(proxyBase);await direct.getByRole('status').filter({hasText:'Open Orbit Search from the Orbit sidebar'}).waitFor();const invalidProbe=await direct.evaluate(async()=>{try{await(await import('/relay-probe.js')).verifyRelay('expired');return 'unexpected success';}catch(error){return error.message;}});assert.match(invalidProbe,/expired|restarted/);
+ const failedProbe=await direct.evaluate(async()=>{
+  const session=await(await fetch('/api/session',{method:'POST',headers:{Authorization:'Bearer test-session'}})).json();
+  const NativeWebSocket=window.WebSocket;
+  window.WebSocket=class{constructor(){queueMicrotask(()=>this.onclose?.({code:1008}));}close(){}};
+  try{await(await import('/relay-probe.js')).verifyRelay(session.token);return 'unexpected success';}catch(error){return error.message;}finally{window.WebSocket=NativeWebSocket;}
+ });assert.match(failedProbe,/closed before its handshake/);
+
+ await direct.locator('.brand-mark img').evaluate(img=>img.decode());await direct.waitForTimeout(650);await direct.screenshot({path:'/tmp/orbit-search-redesign-desktop.png'});
  for(const size of [{width:390,height:844},{width:360,height:640},{width:844,height:390}]){await direct.setViewportSize(size);assert.equal(await direct.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);assert.equal(await direct.locator('#start-search').isVisible(),true);}
  await direct.setViewportSize({width:390,height:844});await direct.screenshot({path:'/tmp/orbit-search-redesign-phone.png'});
  await direct.emulateMedia({reducedMotion:'reduce'});assert.equal(await direct.locator('.brand-mark').evaluate(el=>getComputedStyle(el).animationName),'none');await direct.close();

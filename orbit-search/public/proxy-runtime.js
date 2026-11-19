@@ -1,3 +1,4 @@
+import {verifyRelay} from './relay-probe.js';
 /* Pinned Scramjet v1 + BareMux v2 + Epoxy v2 runtime. Keep on the isolated Search origin. */
 export const PREFIX='/service/';
 // v1 has no generic `rewriter` or worker-hook flag. Native worker hooks are bundled.
@@ -36,9 +37,10 @@ export function createProxyRuntime(){
   }
   return {async connect(ticket){
     if(typeof ticket!=='string'||!ticket)throw new Error('Connect your Orbit account before browsing.');
+    await verifyRelay(ticket);
     const {controller,connection}=await initialize();
     const wisp=new URL('/wisp/',location.href);wisp.protocol=location.protocol==='https:'?'wss:':'ws:';wisp.searchParams.set('ticket',ticket);
-    await connection.setTransport('/epoxy-fallback.mjs?v=2',[{wisp:wisp.href}]);
+    await connection.setTransport('/epoxy-fallback.mjs?v=3',[{wisp:wisp.href}]);
     return controller; // No proxied frame is loaded before transport setup resolves.
   }};
 }

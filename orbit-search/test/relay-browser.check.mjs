@@ -16,7 +16,7 @@ try{
   const read=async first=>page.evaluate(async({first,minimal,target})=>{
    const {default:Transport}=await import('/epoxy-fallback.mjs');
    if(first){const session=await(await fetch('/api/session',{method:'POST',headers:{Authorization:'Bearer fixture'}})).json();const wisp=new URL('/wisp/',location.href);wisp.protocol='ws:';wisp.searchParams.set('ticket',session.token);window.relayTransport=new Transport({wisp:wisp.href});await window.relayTransport.init();if(minimal)window.relayTransport.http1Origins.add(new URL(target).origin);}
-   const response=await window.relayTransport.request(new URL(target),'GET',null,{});return new Response(response.body).text();
+   try{const response=await window.relayTransport.request(new URL(target),'GET',null,{});return new Response(response.body).text();}catch(error){throw Error(String(error)+' '+(error.errors||[]).map(String).join('; '));}
   },{first,minimal,target:'http://fixture.test:'+new URL(targetBase).port+'/'});
   assert.equal(await read(true),'relay recovered');const before=upgrades;
   for(const socket of sockets)socket.destroy();await page.waitForTimeout(150);

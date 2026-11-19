@@ -25,7 +25,10 @@ test('relay needs an Orbit session and exact parent origin; assets are scoped',a
  assert.equal((await fetch(base+'/api/session',{method:'POST',headers:{Origin:'https://evil.example',Authorization:'Bearer valid'}})).status,403);
  assert.equal((await fetch(base+'/api/session',{method:'POST',headers:{Origin:parentOrigin,Authorization:'Bearer wrong'}})).status,401);
  const result=await fetch(base+'/api/session',{method:'POST',headers:{Origin:parentOrigin,Authorization:'Bearer valid'}});
- assert.equal(result.status,200);assert.ok((await result.json()).token);
+ assert.equal(result.status,200);const issued=await result.json();assert.ok(issued.token);
+ assert.equal((await fetch(base+'/api/relay-check',{method:'POST',headers:{Origin:base,'X-Orbit-Relay-Ticket':issued.token}})).status,200);
+ assert.equal((await fetch(base+'/api/relay-check',{method:'POST',headers:{Origin:base,'X-Orbit-Relay-Ticket':'expired'}})).status,401);
+ assert.equal((await fetch(base+'/api/relay-check',{method:'POST',headers:{Origin:'https://evil.example','X-Orbit-Relay-Ticket':issued.token}})).status,403);
  const local=await fetch(base+'/api/session',{method:'POST',headers:{Origin:base,Authorization:'Bearer valid'}});assert.equal(local.status,200);
  assert.equal((await fetch(base+'/api/session',{method:'POST',headers:{Origin:base,Authorization:'Bearer wrong'}})).status,401);
  for(const path of ['/server.js','/security.js','/node_modules/ws/package.json']) assert.equal((await fetch(base+path)).status,404);

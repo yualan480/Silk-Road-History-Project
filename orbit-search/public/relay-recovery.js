@@ -21,7 +21,7 @@ export function createRelayRecovery(reset){
 }
 export function withRelayRecovery(Base){
  return class extends Base{
-  constructor(...args){super(...args);this.relayRequest=createRelayRecovery(()=>this.client.replace_stream_provider());}
+  constructor(...args){super(...args);this.relayRequest=createRelayRecovery(()=>super.init());}
   request(remote,method,body,headers,signal){return this.relayRequest(()=>super.request(remote,method,body,headers,signal),method,body,signal);}
  };
 }
