@@ -20,7 +20,7 @@ import { server as wisp, logging } from '@mercuryworkshop/wisp-js/server';
 import { authenticate } from '../orbitcraft/server/auth.js';
 import { createSessions } from './security.js';
 const root = dirname(fileURLToPath(import.meta.url));
-export function createSearchServer({verifyIdentity = authenticate, parentOrigin = process.env.ORBIT_SEARCH_PARENT_ORIGIN || 'https://silkroadhistoryproject.onrender.com'} = {}) {
+export function createSearchServer({verifyIdentity = authenticate, parentOrigin = process.env.ORBIT_SEARCH_PARENT_ORIGIN || 'https://silkroadhistoryprojects.onrender.com'} = {}) {
 const parent = new URL(parentOrigin).origin;
 const sessions = createSessions();
 const attempts = new Map();

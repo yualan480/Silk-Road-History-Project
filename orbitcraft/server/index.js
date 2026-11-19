@@ -1,9 +1,10 @@
+import {searchOrigin,searchFramePolicy} from './search-config.js';
 import {createSearchReadiness} from './search-status.js';
 import {showdownGuestAuth} from './showdown-auth.js';
 import {SIZE,HEIGHT,MIN_Y,CHUNK_HEIGHT,CHUNK} from '../world.js';
 import { RELEASE } from '../release.js';
 import http from 'node:http';
-import { stat } from 'node:fs/promises';
+import { stat, readFile } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { resolve, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,8 +25,7 @@ const searchReadiness=createSearchReadiness();
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://local');
   if(url.pathname==='/orbit-search/config'||url.pathname==='/orbit-search/ready') {
-    const configured=process.env.ORBIT_SEARCH_URL;let searchUrl=null;
-    try{if(configured){const target=new URL(configured);if(target.protocol==='https:'&&target.host!==req.headers.host)searchUrl=target.origin;}}catch{}
+    const searchUrl=searchOrigin(process.env.ORBIT_SEARCH_URL,req.headers.host);
     const body=url.pathname.endsWith('/ready')?(searchUrl?await searchReadiness(searchUrl):{ready:false}):{url:searchUrl};
     res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});return res.end(JSON.stringify(body));
   }
@@ -39,7 +39,12 @@ const server=http.createServer(async(req,res)=>{
   else if(!/^\/games\/pokemon-showdown\/data\/[a-z0-9/_-]+\.js$/.test(path)&&!/^\/games\/subway-surfers\/assets\/data\/(config|strings_en|chunks_idle|chunks_game)\.json$/.test(path)&&path.split('/').some(p=>p.startsWith('.')||['node_modules','server','test','data','cloudflare','orbit-search'].includes(p))){res.writeHead(404);return res.end();}
   let file=resolve(root,'.'+path);
   if(file!==root&&!file.startsWith(root+'/')){res.writeHead(403);return res.end();}
-  try{if((await stat(file)).isDirectory())file=resolve(file,'index.html');const info=await stat(file);if(!info.isFile())throw new Error('Not a file');res.writeHead(200,{'Content-Type':mime[extname(file)]||'application/octet-stream','Content-Length':info.size,'X-Content-Type-Options':'nosniff'});const stream=createReadStream(file);stream.once('error',()=>res.destroy());res.once('close',()=>stream.destroy());stream.pipe(res);}catch{res.writeHead(404);res.end('Not found');}
+  try{if((await stat(file)).isDirectory())file=resolve(file,'index.html');const info=await stat(file);if(!info.isFile())throw new Error('Not a file');
+    if(file===resolve(root,'chat/index.html')){
+      const html=searchFramePolicy(await readFile(file,'utf8'),searchOrigin(process.env.ORBIT_SEARCH_URL,req.headers.host));
+      res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Length':Buffer.byteLength(html),'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});return res.end(html);
+    }
+    res.writeHead(200,{'Content-Type':mime[extname(file)]||'application/octet-stream','Content-Length':info.size,'X-Content-Type-Options':'nosniff'});const stream=createReadStream(file);stream.once('error',()=>res.destroy());res.once('close',()=>stream.destroy());stream.pipe(res);}catch{res.writeHead(404);res.end('Not found');}
 });
 const wss=new WebSocketServer({noServer:true,maxPayload:12288,perMessageDeflate:false});
 server.on('upgrade',(req,socket,head)=>{

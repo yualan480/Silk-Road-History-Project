@@ -27,4 +27,4 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: ORBIT_SEARCH_PARENT_ORIGIN
-        value: https://silkroadhistoryproject.onrender.com
+        value: https://silkroadhistoryprojects.onrender.com
