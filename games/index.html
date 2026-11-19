@@ -2013,14 +2013,6 @@
   </header>
 
   <main id="top">
-    <div class="install-wrap" id="installWrap" hidden>
-      <div class="install-card" role="region" aria-label="Install Orbit Games as an app">
-        <img src="icon.png" alt="" width="44" height="44">
-        <div class="install-text"><b>Get Orbit Games as an app</b><span id="installHint">Opens in its own window, with its own icon.</span></div>
-        <button type="button" class="btn" id="installBtn">Install</button>
-        <button type="button" class="install-x" id="installX" aria-label="Hide this">&times;</button>
-      </div>
-    </div>
     <section class="hero">
       <div>
         <h1 class="og-logo" aria-label="Orbit Games"><span class="og-halo" aria-hidden="true"></span>
@@ -6939,42 +6931,6 @@
   })();
   </script>
   <script>
-  /* "Install as an app": only offered in Chrome, and only while the site is not already running as an app */
-  (function () {
-    'use strict';
-    var wrap = document.getElementById('installWrap'), btn = document.getElementById('installBtn'),
-        x = document.getElementById('installX'), hint = document.getElementById('installHint');
-    if (!wrap) return;
-    var ua = navigator.userAgent || '';
-    var isChrome = /Chrome\//.test(ua) && !/Edg\/|OPR\/|SamsungBrowser|Firefox|CriOS|FxiOS/.test(ua);   // real Chrome (desktop or Android)
-    var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-    var KEY = 'install-card-hidden';
-    var hidden = false; try { hidden = localStorage.getItem(KEY) === '1'; } catch (e) { /* storage unavailable */ }
-    if (!isChrome || standalone || hidden) return;
-    var deferred = null;
-
-    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-      navigator.serviceWorker.register('sw.js').catch(function () { /* the card still shows the manual steps */ });
-    }
-    wrap.hidden = false;
-
-    window.addEventListener('beforeinstallprompt', function (e) {      // Chrome says "this site can be installed right now"
-      e.preventDefault(); deferred = e;
-      hint.textContent = 'Opens in its own window, with its own icon.';
-    });
-    btn.addEventListener('click', function () {
-      if (deferred) {                                                  // one click: Chrome shows its own install box
-        var d = deferred; deferred = null;
-        d.prompt();
-        d.userChoice.then(function (c) { if (c && c.outcome === 'accepted') wrap.hidden = true; });
-      } else {                                                         // Chrome has not offered it (yet): show the manual way
-        hint.textContent = 'In Chrome, open the \u22EE menu, choose \u201CCast, save, and share\u201D, then \u201CInstall page as app\u201D (on a phone: \u201CAdd to Home screen\u201D).';
-      }
-    });
-    window.addEventListener('appinstalled', function () { wrap.hidden = true; });
-    x.addEventListener('click', function () { wrap.hidden = true; try { localStorage.setItem(KEY, '1'); } catch (e) { /* ignore */ } });
-  })();
-  
     /* Prize Room: ask for a different percentage on a game (the owner answers in Orbit, Dashboard > Rate requests) */
     (function () {
       var $q = function (id) { return document.getElementById(id); }, NAMES = {};
