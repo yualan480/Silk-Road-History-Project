@@ -14,7 +14,7 @@ const attempts = new Map();
 Object.assign(wisp.options, {
   allow_private_ips: false, allow_loopback_ips: false, allow_direct_ip: false,
   allow_udp_streams: false, port_whitelist: [80, 443],
-  stream_limit_total: 64, stream_limit_per_host: 24, parse_real_ip: false
+  stream_limit_total: 256, stream_limit_per_host: 64, parse_real_ip: false
 });
 logging.set_level(logging.ERROR);
 const vendors = {
@@ -84,7 +84,7 @@ server.on('upgrade', (req, socket, head) => {
   const origin = req.headers.origin;
   let ownOrigin=false;try{ownOrigin=!!origin&&new URL(origin).host===req.headers.host;}catch{}
   // Only the dedicated proxy origin can open its relay; never expose a public unauthenticated Wisp server.
-  if (url.pathname !== '/wisp/' || !session || !ownOrigin || session.connections.size >= 3) {
+  if (url.pathname !== '/wisp/' || !session || !ownOrigin || session.connections.size >= 20) {
     socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;
   }
   session.connections.add(socket);

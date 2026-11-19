@@ -1,5 +1,11 @@
 /* Pinned Scramjet v1 + BareMux v2 + Epoxy v2 runtime. Keep on the isolated Search origin. */
 export const PREFIX='/service/';
+// v1 has no generic `rewriter` or worker-hook flag. Native worker hooks are bundled.
+export const PROXY_FLAGS={strictRewrites:true,serviceworkers:false,syncxhr:false};
+export const PROXY_SITE_FLAGS={
+  // Experimental v1 SW emulation is limited to Discord. Failed hooks must not fall through.
+  '^https://(?:[a-z0-9-]+\\.)?(?:discord\\.com|discordapp\\.com)(?::443)?/':{serviceworkers:true,allowFailedIntercepts:false}
+};
 export function waitForController(serviceWorker,timeout=20000){
   return new Promise((resolve,reject)=>{
     let timer;
@@ -17,7 +23,7 @@ export function createProxyRuntime(){
     boot=(async()=>{
       if(!navigator.serviceWorker||!window.SharedWorker)throw new Error('This browser does not support Orbit Search. Try a current Chrome or Firefox browser.');
       const {ScramjetController}=$scramjetLoadController();
-      const controller=new ScramjetController({prefix:PREFIX,files:{wasm:'/vendor/scramjet/scramjet.wasm.wasm',all:'/vendor/scramjet/scramjet.all.js',sync:'/vendor/scramjet/scramjet.sync.js'}});
+      const controller=new ScramjetController({prefix:PREFIX,flags:PROXY_FLAGS,siteFlags:PROXY_SITE_FLAGS,files:{wasm:'/vendor/scramjet/scramjet.wasm.wasm',all:'/vendor/scramjet/scramjet.all.js',sync:'/vendor/scramjet/scramjet.sync.js'}});
       await controller.init();
       const registration=await navigator.serviceWorker.register('/sw.js',{scope:'/'});
       if(new URL(registration.scope).origin!==location.origin||!new URL(PREFIX,location.origin).href.startsWith(registration.scope))throw new Error('The Search service-worker scope does not cover its proxy prefix.');

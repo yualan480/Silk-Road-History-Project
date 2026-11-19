@@ -57,7 +57,7 @@ export function renderOrbitSearch(main, {sb, menuBtn, bindMenu}, externalWindow 
     const frame = document.createElement('iframe');
     frame.title = 'Orbit Search'; frame.src = origin + '/';
     frame.style.cssText = 'border:0;width:100%;flex:1;min-height:0;background:#080d32';
-    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-downloads');
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox allow-modals');
     const peer=()=>externalWindow||frame.contentWindow;
     status.textContent=externalWindow?'Connecting the search window to your Orbit account…':'Connecting your Orbit account…';
     async function connect() {

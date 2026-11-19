@@ -92,6 +92,15 @@ try{
  await content.locator('#test').click();
  await content.getByRole('button',{name:'JavaScript works'}).waitFor();
  await content.locator('#worker-test').click();await content.locator('#worker-result').filter({hasText:'Relay fetch Relay socket'}).waitFor({timeout:30000});
+ const sandbox=(await search.locator('#browser iframe').getAttribute('sandbox')).split(' ');
+ for(const token of ['allow-scripts','allow-same-origin','allow-forms','allow-downloads','allow-popups','allow-popups-to-escape-sandbox','allow-modals'])assert.ok(sandbox.includes(token),token);
+ await content.locator('body').evaluate(body=>{const button=document.createElement('button');button.id='popup-test';button.textContent='Open fixture popup';button.onclick=()=>window.open('/popup','_blank');body.append(button);});
+ const popupReady=page.context().waitForEvent('page');
+ const popupNavigation=page.context().waitForEvent('request',{predicate:r=>r.isNavigationRequest()&&r.url().startsWith(proxyBase+'/service/')&&decodeURIComponent(r.url()).endsWith('/popup')});
+ await content.locator('#popup-test').click();const fixturePopup=await popupReady;
+ const popupRequest=await popupNavigation;assert.ok(popupRequest.url().startsWith(proxyBase+'/service/'));await fixturePopup.close();
+ // This verifies permission + rewritten navigation only. Popup content stalled in the v1 probe.
+
  assert.ok(workerFetches>=1&&workerSockets>=1);assert.deepEqual(directRequests,[]);assert.ok(nativeSockets.every(url=>url.startsWith(proxyBase.replace('http:','ws:')+'/wisp/')));
  // Known unresolved v1 compatibility probe. Opt in to reproduce, not to hide the result.
  if(process.env.ORBIT_SEARCH_SHARED_WORKER_CHECK==='1'){
@@ -174,5 +183,5 @@ try{
  await unrelated.evaluate(proxyBase=>document.querySelector('iframe').contentWindow.postMessage({type:'orbit-search-account',accessToken:'test-session'},proxyBase),proxyBase);
  await unrelated.waitForTimeout(500);assert.equal(acceptedSessions,before,'Untrusted parent may not hand off an account');
  assert.match(await untrusted.locator('#status').innerText(),/Connecting/);await unrelated.close();
- console.log('PASS dedicated-worker fetch + WebSocket relay (shared-worker probe opt-in; not verified), no direct fixture requests, no COOP/COEP required; redesigned Chrome-inspired toolbar, central search, back/forward/start-page controls, reduced motion, phone/landscape fit, automatic fullscreen on a real tab click, exit/re-entry controls, actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
+ console.log('PASS popup permission + proxy-prefixed navigation attempt (popup content unverified); dedicated-worker fetch + WebSocket relay (shared-worker probe opt-in; not verified), no direct fixture requests, no COOP/COEP required; redesigned Chrome-inspired toolbar, central search, back/forward/start-page controls, reduced motion, phone/landscape fit, automatic fullscreen on a real tab click, exit/re-entry controls, actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
 }finally{await browser.close();for(const s of [proxy,parent,target,wrapper]){s.closeAllConnections();s.close();}process.exitCode=0;}

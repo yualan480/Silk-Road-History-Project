@@ -48,3 +48,7 @@ The browser shell uses Orbit's original planet logo, a local CSS background with
 Discord sign-in: Discord pages show a direct link to https://discord.com/login in a separate browser tab. This uses the user’s ordinary browser connection rather than the shared Orbit Search relay. It does not bypass or solve Discord’s CAPTCHA, guarantee account access, or transfer Discord credentials into Orbit. Other sites continue to open in the Orbit frame.
 
 For the pinned-generation compatibility audit, complete initializer/SW paths, unresolved shared-worker probe, backend policy and validation limits, see [PROXY-AUDIT.md](PROXY-AUDIT.md).
+
+Relay capacity is 256 total streams / 64 per host and 20 connections per authenticated session. Discord-scoped experimental service-worker emulation is enabled, with fail-closed intercepted calls. Popups/modal APIs are permitted by the retained frame sandbox. These compatibility changes do not demonstrate successful Discord authentication or resolve the previously documented shared-worker probe.
+
+Popup compatibility requires both the outer `chat/orbit-search.js` sandbox and inner `public/search.js` sandbox updates: deploy both the main website and separate Search service.

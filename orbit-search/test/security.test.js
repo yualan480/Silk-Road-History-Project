@@ -51,3 +51,16 @@ test('vendor alias, module and WASM MIME types, root worker and embedded-page he
  }
  for(const path of ['/vendor/bare-mux/%2e%2e%2fpackage.json','/vendor/epoxy/package.json'])assert.equal((await fetch(base+path)).status,404);
 });
+
+test('relay accepts twenty authenticated connections and rejects the twenty-first',async t=>{
+ const {default:WebSocket}=await import('../../orbitcraft/node_modules/ws/wrapper.mjs');
+ const server=createSearchServer({parentOrigin:'https://orbit.example',verifyIdentity:async()=>({id:'connection-limit-test',expiresAt:Date.now()+60000})});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const base='http://127.0.0.1:'+server.address().port,sockets=[];
+ t.after(async()=>{for(const ws of sockets)ws.terminate();await new Promise(r=>setImmediate(r));server.closeAllConnections();server.close();});
+ const session=await(await fetch(base+'/api/session',{method:'POST',headers:{Origin:base,Authorization:'Bearer test'}})).json();
+ const url=base.replace('http:','ws:')+'/wisp/?ticket='+encodeURIComponent(session.token);
+ for(let i=0;i<20;i++)await new Promise((resolve,reject)=>{const ws=new WebSocket(url,{origin:base});sockets.push(ws);ws.once('open',resolve);ws.once('error',reject);});
+ const rejected=await new Promise((resolve,reject)=>{const ws=new WebSocket(url,{origin:base});sockets.push(ws);ws.once('unexpected-response',(request,response)=>{response.resume();resolve(response.statusCode);ws.terminate();});ws.once('open',()=>reject(Error('Twenty-first connection unexpectedly accepted')));ws.on('error',()=>{});});
+ assert.equal(rejected,403);assert.equal(wisp.options.stream_limit_total,256);assert.equal(wisp.options.stream_limit_per_host,64);
+});

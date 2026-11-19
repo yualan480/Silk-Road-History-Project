@@ -1,6 +1,6 @@
 import {createGmsDrawer,isGmsChannel} from './gms-drawer.js?v=1';
 import {pollTotals} from './poll-totals.js?v=1';
-import {renderOrbitSearch} from './orbit-search.js?v=6';
+import {renderOrbitSearch} from './orbit-search.js?v=7';
 import {schoolSignupDetails} from './school-signup.js?v=4';
 import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';

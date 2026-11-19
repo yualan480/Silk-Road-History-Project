@@ -70,3 +70,17 @@ Epoxy transport 2.1.29 distributes `index.js` and `index.mjs`; its WASM is embed
 The root `_headers` file contains no COOP/COEP and is used by static-host deployment tooling, not by this Render Node Web Service. Node response headers are set in `orbit-search/server.js`. No `_headers` change or isolation headers are required by the tested pinned runtime. The Wisp upgrade validates the proxy's own browser Origin and relay ticket; Discord's gateway is an outbound destination inside that authenticated tunnel, not an incoming Origin exception. Keep these checks. All named public Discord hosts on 443 are permitted by the existing destination policy; no destination-level connection success is implied.
 
 Full reviewed source snapshots are provided in REVIEWED-FILES.md for copying. They preserve the known limitations above and are not a claim that Discord can never fail or make an unhandled browser network request.
+
+## Connection and Discord compatibility update
+
+Wisp now permits 256 streams per relay connection, 64 per destination host, and up to 20 relay connections per authenticated Orbit session. An integration test opens twenty real relay WebSockets and verifies that the twenty-first is refused with 403. These limits are capacity settings, not evidence that a previous Discord failure was caused by a limit.
+
+The frame keeps its sandbox and adds `allow-popups allow-popups-to-escape-sandbox allow-modals`. Existing `allow-scripts allow-same-origin allow-forms allow-downloads` permissions are retained. The original sandbox already permitted ordinary workers and same-origin storage; the new tokens specifically address popups, popup sandbox inheritance and modal APIs. They do not guarantee CAPTCHA acceptance.
+
+`public/proxy-runtime.js` now explicitly sets supported v1 `strictRewrites:true`, `serviceworkers:false` and `syncxhr:false` defaults. Only HTTPS discord.com / discordapp.com pages and their single-label subdomains receive `serviceworkers:true` and `allowFailedIntercepts:false`. Thus Discord's experimental v1 service-worker emulation is now enabled, superseding the earlier audit's description of the global default for Discord. Failed intercepted Discord calls throw instead of invoking native fallbacks. There is no supported generic `rewriter`, `workers` or `websockets` flag in the installed v1 declarations; existing bundled Worker/WebSocket hooks remain in use.
+
+Service-worker emulation remains experimental and shared-worker completion / Discord login are not verified. This change does not establish a complete zero-direct-network guarantee, nor does it add WebRTC voice/video relay support.
+
+The outer `chat/orbit-search.js` frame also had a sandbox without popup permissions. The real popup test initially reproduced Chrome blocking it despite the inner permission change. The same three permissions are now present on both wrappers, with main-site and Search module cache versions advanced. Deploy **both** Render services for popup compatibility.
+
+Popup validation limit: after both sandbox fixes, a real click opens a new window and its navigation request targets the Search origin’s `/service/` prefix. The full popup-content probe did not finish loading within 30 seconds. The regression test verifies opening and rewritten navigation only; it does not claim popup rendering or CAPTCHA success.
