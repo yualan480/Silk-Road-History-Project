@@ -1,1 +1,3 @@
 Eaglercraft 1.5.2 by lax1dude, imported from https://github.com/lDEVinux/eaglercraft/tree/b2f8bf93839f1827ec4d350c6024addc1d2e71a2/stable-download/web . License retained. Placeholder multiplayer server removed; singleplayer runs locally. No multiplayer server is supplied by Orbit.
+
+Also exposed in the gallery as Minecraft 1.5.2 (Browser Port). Both entries launch this same pinned local client and share worldsFolder MAIN / browser storage. No extra game binary, desktop Java JAR, account requirement, or multiplayer backend is added by that gallery entry. The original Eaglercraft card and owner-selected logo remain intact.

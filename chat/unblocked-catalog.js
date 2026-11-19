@@ -97,6 +97,26 @@ export const UNBLOCKED_GAMES=[{
  "controls": "Arrow keys or swipe to switch lanes, jump, and roll. Follow the in-game tutorial."
 },
 {
+ "id": "minecraft-browser",
+ "title": "Minecraft 1.5.2 (Browser Port)",
+ "category": "Adventure",
+ "players": "Single player / compatible servers",
+ "description": "Survival and creative building through the Eaglercraft 1.5.2 browser port. Shares the client and saved worlds with the Eaglercraft entry.",
+ "image": "../games/eaglercraft/cover.jpg",
+ "src": "../games/eaglercraft/index.html?v=1&save=1",
+ "tags": [
+  "minecraft",
+  "java",
+  "browser port",
+  "eaglercraft",
+  "1.5.2",
+  "survival",
+  "creative",
+  "building"
+ ],
+ "controls": "Keyboard and mouse: WASD moves, Space jumps, E opens inventory, left click mines and right click places blocks. Escape pauses. Worlds save in this browser and are shared with Eaglercraft; export backups before clearing browser data. Multiplayer requires a compatible server."
+},
+{
  "id": "eaglercraft",
  "title": "Eaglercraft",
  "category": "Adventure",

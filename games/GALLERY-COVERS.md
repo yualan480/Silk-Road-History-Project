@@ -14,3 +14,5 @@ Third-party artwork retains its original copyright. The local screenshots show t
 - Eaglercraft: the black Eagler logo on white requested by the site owner, matching the supplied image. Original raster copied unchanged from https://github.com/Alexx743/Alexx743-games/blob/69a02f9042c8e0c47ed57df3e2384663fdc08ea0/logo%20eaglercraft.jpg .
 
 - Retro Bowl: original pixel quarterback icon matching the owner’s requested cover, copied unchanged from https://github.com/selenite-cc/selenite-old/blob/9c743188888af0986c8c7b293dbac8f9e421a4ee/retrobowl/img/icon.jpg .
+
+- Minecraft 1.5.2 (Browser Port): existing unaltered screenshot of the locally hosted Eaglercraft client (`eaglercraft/cover.jpg`). This is a clearly labeled alternate gallery entry for the same client/world storage, not a different or newer game build.
