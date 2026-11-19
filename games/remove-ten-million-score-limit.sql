@@ -7,6 +7,7 @@ begin;
 do $$
 declare t text; c record; p record; definition text; score_column smallint; relation regclass;
 begin
+  if to_regclass('public.scores') is null then raise exception 'Run this file in the GAMES Supabase project (ysopxengerkvbwhrdnwq), which owns public.scores.'; end if;
   foreach t in array array['scores','recordings'] loop
     relation:=to_regclass('public.'||t);
     if relation is null then continue; end if;

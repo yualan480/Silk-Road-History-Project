@@ -20,7 +20,7 @@ for(const name of ['config','strings_en','chunks_idle','chunks_game']){
  const path='games/subway-surfers/assets/data/'+name+'.json';
  if(!(await readFile(resolve(root,path))).equals(await readFile(resolve(out,path))))throw new Error('Missing packaged Subway Surfers data: '+path);
 }
-for(const file of ['game-autosave.js','games/suika/js/fruit.js','games/suika/js/script.js','games/a-small-world-cup/index.html','games/basket-bros/index.html','games/drift-hunters/index.html','games/super-mario-bros/player.js']){if(!(await readFile(resolve(root,file))).equals(await readFile(resolve(out,file))))throw new Error('Missing packaged game file: '+file);}
+for(const file of ['games/tetris-duel.html','games/tetris-duel-engine.js','games/tetris-duel.css','game-autosave.js','games/suika/js/fruit.js','games/suika/js/script.js','games/a-small-world-cup/index.html','games/basket-bros/index.html','games/drift-hunters/index.html','games/super-mario-bros/player.js']){if(!(await readFile(resolve(root,file))).equals(await readFile(resolve(out,file))))throw new Error('Missing packaged game file: '+file);}
 // Guard the generated package as well as source: the Loop is challenge-only.
 const shop=await readFile(resolve(out,'chat/shop.js'),'utf8');
 for(const retired of ['take_orbit_loop','loopBoxHtml','id="olprice"','id="oltake"']){
