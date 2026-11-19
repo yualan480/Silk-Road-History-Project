@@ -115,7 +115,48 @@ address.addEventListener('input',()=>{activeTab.draft=address.value;activeTab.ed
 startAddress.addEventListener('input',()=>{activeTab.startDraft=startAddress.value;});
 document.querySelector('#search').addEventListener('submit',event=>{event.preventDefault();navigate(address.value);});
 document.querySelector('#start-search').addEventListener('submit',event=>{event.preventDefault();navigate(startAddress.value);});
-document.querySelectorAll('[data-url]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.url)));
+
+const shortcutDefaults=[
+ {name:'Discord',url:'https://discord.com/app',symbol:'D'},
+ {name:'TikTok',url:'https://www.tiktok.com/',symbol:'♪'},
+ {name:'X',url:'https://x.com/',symbol:'𝕏'},
+ {name:'Instagram',url:'https://www.instagram.com/',symbol:'◎'},
+ {name:'Poki',url:'https://poki.com/',symbol:'P'}
+];
+const shortcutContainer=document.querySelector('#search-shortcuts');
+const shortcutEditor=document.querySelector('#shortcut-editor');
+const shortcutError=document.querySelector('#shortcut-editor-error');
+let shortcutKey='',userShortcuts=[];
+function saveUserShortcuts(){if(shortcutKey)try{localStorage.setItem(shortcutKey,JSON.stringify(userShortcuts));}catch{}}
+function renderShortcuts(){
+ shortcutContainer.replaceChildren();
+ for(const item of [...shortcutDefaults,...userShortcuts]){
+  const custom=userShortcuts.includes(item);
+  const wrap=document.createElement('div');wrap.className='shortcut-entry';
+  const button=document.createElement('button');button.type='button';button.className='shortcut';
+  button.title='Open '+item.name;
+  const icon=document.createElement('span');icon.className='shortcut-icon';icon.setAttribute('aria-hidden','true');icon.textContent=item.symbol||item.name.slice(0,1).toUpperCase();
+  const label=document.createElement('span');label.textContent=item.name;
+  button.append(icon,label);button.onclick=()=>navigate(item.url);wrap.append(button);
+  if(custom){const remove=document.createElement('button');remove.type='button';remove.className='shortcut-delete';remove.textContent='×';remove.setAttribute('aria-label','Remove '+item.name);remove.onclick=()=>{userShortcuts=userShortcuts.filter(x=>x!==item);saveUserShortcuts();renderShortcuts();};wrap.append(remove);}
+  shortcutContainer.append(wrap);
+ }
+ const add=document.createElement('button');add.type='button';add.className='shortcut shortcut-new';
+ const icon=document.createElement('span');icon.className='shortcut-icon';icon.textContent='+';
+ const label=document.createElement('span');label.textContent='Add shortcut';add.append(icon,label);
+ add.onclick=()=>{shortcutEditor.hidden=false;shortcutError.hidden=true;shortcutEditor.elements.name.focus();};
+ shortcutContainer.append(add);
+}
+shortcutEditor.addEventListener('submit',event=>{
+ event.preventDefault();shortcutError.hidden=true;
+ const name=shortcutEditor.elements.name.value.trim(),value=shortcutEditor.elements.url.value.trim();
+ let url;try{url=new URL(value);if(!['http:','https:'].includes(url.protocol))throw Error('protocol');}catch{shortcutError.textContent='Enter a valid http or https URL.';shortcutError.hidden=false;return;}
+ if(!name||userShortcuts.length>=30){shortcutError.textContent='Enter a name (up to 30 personal shortcuts).';shortcutError.hidden=false;return;}
+ userShortcuts.push({name,url:url.href});saveUserShortcuts();renderShortcuts();shortcutEditor.reset();shortcutEditor.hidden=true;
+});
+document.querySelector('#shortcut-editor-cancel').onclick=()=>{shortcutEditor.hidden=true;shortcutEditor.reset();shortcutError.hidden=true;};
+renderShortcuts();
+
 document.querySelector('#source-link').addEventListener('click',event=>{event.preventDefault();navigate(event.currentTarget.href);});
 document.querySelector('#newtab').onclick=()=>addTab();
 document.querySelector('#back').onclick=()=>{if(activeTab.index>0){activeTab.index--;navigate(activeTab.history[activeTab.index]);}};
