@@ -82,7 +82,20 @@ try{
  await search.locator('#back').click();
  assert.ok((await search.locator('#address').inputValue()).endsWith('/first'));
  await search.locator('#forward').click();assert.ok((await search.locator('#address').inputValue()).endsWith('/'));
+ await search.locator('#newtab').click();
+ // Real proxied page with a Discord hostname, routed only to the local test fixture.
+ await search.locator('#address').fill('http://discord.com:'+new URL(targetBase).port+'/');await search.locator('#go').click();
+ await content.getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
+ const directDiscord=search.getByRole('link',{name:'Open Discord directly'});
+ await directDiscord.waitFor({state:'visible'});assert.equal(await directDiscord.getAttribute('href'),'https://discord.com/login');
+ assert.equal(await directDiscord.getAttribute('target'),'_blank');assert.equal(await directDiscord.getAttribute('rel'),'noopener noreferrer');
+ await page.setViewportSize({width:390,height:844});assert.equal(await search.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);
+ await search.locator('#newtab').click();
+ await search.locator('#address').fill('http://notdiscord.com:'+new URL(targetBase).port+'/');await search.locator('#go').click();await search.locator('#site-help').waitFor({state:'hidden'});
+ await search.locator('#newtab').click();
+ await search.locator('#address').fill('http://discord.com:'+new URL(targetBase).port+'/');await search.locator('#go').click();await directDiscord.waitFor({state:'visible'});
  await search.locator('#newtab').click();await search.locator('#welcome').waitFor();
+ assert.equal(await search.locator('#site-help').isVisible(),false);
  assert.equal(await search.locator('#browser iframe').count(),0);assert.equal(await search.locator('#back').isDisabled(),true);
  await search.locator('#start-address').focus();await page.keyboard.press('Control+k');
  assert.equal(await search.locator('#address').evaluate(input=>input===document.activeElement),true);

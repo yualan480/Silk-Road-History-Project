@@ -5,3 +5,5 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 .start-footer a{display:inline-flex;align-items:center;gap:4px}.start-footer a svg{width:10px;height:10px;transform:rotate(-35deg)}
+
+.site-help{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 6px 10px;padding:10px 14px;border:1px solid #a3b7f533;border-radius:12px;background:#1b2545;color:#c4cfea;font-size:12px;line-height:1.5}.site-help[hidden]{display:none}.site-help p{margin:0}.site-help a{flex-shrink:0;display:inline-block;padding:8px 12px;border-radius:9px;background:#334a87;color:#f1f4ff;text-decoration:none}.site-help a:hover{background:#405da9}.site-help a:focus-visible{outline:2px solid #a5c2ff;outline-offset:2px}@media(max-width:600px){.site-help{align-items:flex-start;flex-direction:column;font-size:11px}.site-help a{max-width:100%}}
