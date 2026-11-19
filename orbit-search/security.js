@@ -5,11 +5,14 @@ export function createSessions() {
   return {
     issue(identity) {
       prune();
-      // A repeated refresh replaces this user's old ticket instead of growing memory forever.
-      for (const [token, s] of sessions) if (s.user === identity.id) sessions.delete(token);
+      // Renew this account's ticket without breaking other tabs or active relay sockets.
+      const expires = Math.min(identity.expiresAt, Date.now() + 30 * 60 * 1000);
+      for (const [token, session] of sessions) if (session.user === identity.id) {
+        session.expires = expires;
+        return {token, expires};
+      }
       if (sessions.size >= 500) throw new Error('Orbit Search is busy. Try again shortly.');
       const token = randomBytes(32).toString('base64url');
-      const expires = Math.min(identity.expiresAt, Date.now() + 30 * 60 * 1000);
       sessions.set(token, { user: identity.id, expires, connections: new Set() });
       return { token, expires };
     },

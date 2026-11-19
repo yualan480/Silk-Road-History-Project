@@ -92,3 +92,9 @@ The reported screenshot identifies Hyper HTTP/2 Reset(StreamId(1), PROTOCOL_ERRO
 See README.md for retry policy and validation. The actual minimal-WASM browser test observes HTTP/1.1 at an authenticated local relay destination. Unit tests cover the exact screenshot error, one retry, origin reuse, no POST/body/aborted-request replay, no retry for 403/TLS failures, and preservation of both errors if fallback fails. This is transport error recovery, not bypassing authentication, CAPTCHAs or destination blocks.
 
 A read-only live YouTube probe from this execution environment failed earlier during TLS negotiation (`tls handshake eof`), before the reported HTTP/2 stage. The HTTP/2-only retry correctly did not treat that different failure as a trigger. Live YouTube playback on the Render deployment is therefore not verified by the local transport tests.
+
+## Ended mux recovery and renewable tickets
+
+`public/relay-recovery.js` recognizes the reported `MuxTaskEnded` separately from HTTP/2 reset errors. It uses Epoxy's native `replace_stream_provider()`, deduplicates simultaneous reconnects, and retries bodyless GET/HEAD requests only once. Both the full transport and minimal HTTP/1 adapter use it. Failed reauthentication is surfaced; expired/invalid tickets, POST bodies and existing WebSocket messages are not replayed.
+
+`security.js` renews the account's existing unexpired ticket instead of invalidating other tabs. The relay expiry callback rechecks the current authenticated expiration, so renewed live sockets are not killed at their original deadline. Real socket tests cover renewal past the old deadline, eventual expiration, and real disconnections/recovery for both Epoxy builds. The browser regression suite passes. This repairs verified relay lifecycle gaps but does not establish why Render closed the specific reported connection or prove successful Discord login.

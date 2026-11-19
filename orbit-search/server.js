@@ -70,7 +70,7 @@ const server = http.createServer(async (req, res) => {
     file = resolve(root, 'node_modules', directory, name);
   }
   if (!file) {
-    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
+    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/relay-recovery.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
     file = resolve(root, 'public', pathname === '/' ? 'index.html' : pathname.slice(1));
   }
   try {
@@ -89,7 +89,9 @@ server.on('upgrade', (req, socket, head) => {
     socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;
   }
   session.connections.add(socket);
-  const expiry = setTimeout(() => socket.destroy(), Math.max(1, session.expires - Date.now())); expiry.unref();
+  let expiry;
+  const expire=()=>{const remaining=session.expires-Date.now();if(remaining<=0){socket.destroy();return;}expiry=setTimeout(expire,remaining);expiry.unref();};
+  expire(); // Recheck renewed expiry instead of killing a healthy renewed connection.
   socket.on('close', () => { clearTimeout(expiry); session.connections.delete(socket); });
   req.url = '/wisp/';
   wisp.routeRequest(req, socket, head);

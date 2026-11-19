@@ -83,7 +83,7 @@ const server = http.createServer(async (req, res) => {
     file = resolve(root, 'node_modules', directory, name);
   }
   if (!file) {
-    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
+    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/relay-recovery.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
     file = resolve(root, 'public', pathname === '/' ? 'index.html' : pathname.slice(1));
   }
   try {
@@ -102,7 +102,9 @@ server.on('upgrade', (req, socket, head) => {
     socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;
   }
   session.connections.add(socket);
-  const expiry = setTimeout(() => socket.destroy(), Math.max(1, session.expires - Date.now())); expiry.unref();
+  let expiry;
+  const expire=()=>{const remaining=session.expires-Date.now();if(remaining<=0){socket.destroy();return;}expiry=setTimeout(expire,remaining);expiry.unref();};
+  expire(); // Recheck renewed expiry instead of killing a healthy renewed connection.
   socket.on('close', () => { clearTimeout(expiry); session.connections.delete(socket); });
   req.url = '/wisp/';
   wisp.routeRequest(req, socket, head);
@@ -170,7 +172,7 @@ export function createProxyRuntime(){
     if(typeof ticket!=='string'||!ticket)throw new Error('Connect your Orbit account before browsing.');
     const {controller,connection}=await initialize();
     const wisp=new URL('/wisp/',location.href);wisp.protocol=location.protocol==='https:'?'wss:':'ws:';wisp.searchParams.set('ticket',ticket);
-    await connection.setTransport('/epoxy-fallback.mjs',[{wisp:wisp.href}]);
+    await connection.setTransport('/epoxy-fallback.mjs?v=2',[{wisp:wisp.href}]);
     return controller; // No proxied frame is loaded before transport setup resolves.
   }};
 }
@@ -180,6 +182,7 @@ export function createProxyRuntime(){
 
 ```js
 import EpoxyTransport from '/vendor/epoxy/index.mjs';
+import {createRelayRecovery,withRelayRecovery} from '/relay-recovery.js';
 import {withHttp1Fallback} from '/http-fallback.js';
 async function makeHttp1(opts,wisp){
  const {default:init,EpoxyClient,EpoxyClientOptions}=await import('/vendor/epoxy-http1/epoxy-bundled.js');
@@ -188,14 +191,15 @@ async function makeHttp1(opts,wisp){
  for(const key of ['wisp_v2','udp_extension_required','title_case_headers','redirect_limit','header_limit','buffer_size'])if(opts[key]!=null)options[key]=opts[key];
  // The minimal build omits HTTP/2/ALPN h2; certificate verification stays enabled.
  const client=new EpoxyClient(wisp,options);
+ const recover=createRelayRecovery(()=>client.replace_stream_provider());
  return {async request(remote,method,body,headers,signal){
   if(signal?.aborted)throw new DOMException('The request was aborted.','AbortError');
   if(body instanceof Blob)body=await body.arrayBuffer();
-  const response=await client.fetch(remote.href,{method,body,headers,redirect:'manual'});
+  const response=await recover(()=>client.fetch(remote.href,{method,body,headers,redirect:'manual'}),method,body,signal);
   return {body:response.body,headers:response.rawHeaders,status:response.status,statusText:response.statusText};
  }};
 }
-export default withHttp1Fallback(EpoxyTransport,makeHttp1);
+export default withHttp1Fallback(withRelayRecovery(EpoxyTransport),makeHttp1);
 ```
 
 ## orbit-search/public/http-fallback.js
@@ -225,6 +229,38 @@ export function withHttp1Fallback(Base,makeHttp1){
     return response;
    }
   }
+ };
+}
+```
+
+## orbit-search/public/relay-recovery.js
+
+```js
+/* A dead Wisp mux needs replacement; replay only bodyless read-only requests. */
+export function isEndedMux(error){
+ const seen=new Set();
+ for(let current=error;current&&!seen.has(current)&&seen.size<5;current=current.cause){seen.add(current);if(/MuxTaskEnded|Multiplexor task ended/i.test(String(current)))return true;}
+ return false;
+}
+export function createRelayRecovery(reset){
+ let generation=0,pending;
+ return async function request(run,method,body,signal){
+  const before=generation;
+  try{return await run();}catch(error){
+   if(!isEndedMux(error)||!['GET','HEAD'].includes(String(method).toUpperCase())||body!=null||signal?.aborted)throw error;
+   if(before===generation){
+    if(!pending)pending=Promise.resolve().then(reset).then(()=>{generation++;}).finally(()=>{pending=null;});
+    try{await pending;}catch(reconnectError){throw new AggregateError([error,reconnectError],'The relay disconnected and reconnection failed. Reopen Orbit Search to reconnect your account.',{cause:reconnectError});}
+   }
+   if(signal?.aborted)throw new DOMException('The request was aborted.','AbortError');
+   return run(); // One retry only; repeated failure propagates.
+  }
+ };
+}
+export function withRelayRecovery(Base){
+ return class extends Base{
+  constructor(...args){super(...args);this.relayRequest=createRelayRecovery(()=>this.client.replace_stream_provider());}
+  request(remote,method,body,headers,signal){return this.relayRequest(()=>super.request(remote,method,body,headers,signal),method,body,signal);}
  };
 }
 ```
@@ -307,7 +343,7 @@ document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&e
 
 ```html
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e2b"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/style.css?v=3"><script src="/vendor/scramjet/scramjet.all.js"></script><script src="/vendor/baremux/index.js"></script><script type="module" src="/search.js?v=6"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e2b"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/style.css?v=3"><script src="/vendor/scramjet/scramjet.all.js"></script><script src="/vendor/baremux/index.js"></script><script type="module" src="/search.js?v=7"></script></head>
 <body data-connection="connecting">
 <svg class="icon-defs" aria-hidden="true"><defs>
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
@@ -366,11 +402,14 @@ export function createSessions() {
   return {
     issue(identity) {
       prune();
-      // A repeated refresh replaces this user's old ticket instead of growing memory forever.
-      for (const [token, s] of sessions) if (s.user === identity.id) sessions.delete(token);
+      // Renew this account's ticket without breaking other tabs or active relay sockets.
+      const expires = Math.min(identity.expiresAt, Date.now() + 30 * 60 * 1000);
+      for (const [token, session] of sessions) if (session.user === identity.id) {
+        session.expires = expires;
+        return {token, expires};
+      }
       if (sessions.size >= 500) throw new Error('Orbit Search is busy. Try again shortly.');
       const token = randomBytes(32).toString('base64url');
-      const expires = Math.min(identity.expiresAt, Date.now() + 30 * 60 * 1000);
       sessions.set(token, { user: identity.id, expires, connections: new Set() });
       return { token, expires };
     },

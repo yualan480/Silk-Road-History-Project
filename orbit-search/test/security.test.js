@@ -9,10 +9,10 @@ test('web addresses, searches and rejected non-web schemes',()=>{
  assert.equal(normalizeAddress('silk road history'),'https://www.google.com/search?q=silk%20road%20history');
  for(const value of ['javascript:alert(1)','file:///etc/passwd','https://user:pass@example.com','']) assert.throws(()=>normalizeAddress(value));
 });
-test('short-lived tickets replace old tickets and expire',()=>{
+test('short-lived tickets renew in place and expire',()=>{
  const sessions=createSessions();const identity={id:'one',expiresAt:Date.now()+60000};
  const first=sessions.issue(identity);assert.ok(sessions.get(first.token));
- const next=sessions.issue(identity);assert.equal(sessions.get(first.token),undefined);assert.ok(sessions.get(next.token));
+ const next=sessions.issue(identity);assert.equal(next.token,first.token);assert.ok(sessions.get(first.token));assert.ok(sessions.get(next.token));
  const expired=sessions.issue({id:'expired',expiresAt:Date.now()-1});assert.equal(sessions.get(expired.token),undefined);
 });
 test('relay needs an Orbit session and exact parent origin; assets are scoped',async t=>{
@@ -63,4 +63,16 @@ test('relay accepts twenty authenticated connections and rejects the twenty-firs
  for(let i=0;i<20;i++)await new Promise((resolve,reject)=>{const ws=new WebSocket(url,{origin:base});sockets.push(ws);ws.once('open',resolve);ws.once('error',reject);});
  const rejected=await new Promise((resolve,reject)=>{const ws=new WebSocket(url,{origin:base});sockets.push(ws);ws.once('unexpected-response',(request,response)=>{response.resume();resolve(response.statusCode);ws.terminate();});ws.once('open',()=>reject(Error('Twenty-first connection unexpectedly accepted')));ws.on('error',()=>{});});
  assert.equal(rejected,403);assert.equal(wisp.options.stream_limit_total,256);assert.equal(wisp.options.stream_limit_per_host,64);
+});
+
+test('renewal keeps active relay sockets alive past their original deadline, then expires them',async t=>{
+ const {default:WebSocket}=await import('../../orbitcraft/node_modules/ws/wrapper.mjs');
+ const server=createSearchServer({verifyIdentity:async()=>({id:'renewal-test',expiresAt:Date.now()+1000})});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
+ let ws;t.after(()=>{ws?.terminate();server.closeAllConnections();server.close();});
+ const issue=async()=> (await fetch(base+'/api/session',{method:'POST',headers:{Origin:base,Authorization:'Bearer test'}})).json();
+ const first=await issue();ws=new WebSocket(base.replace('http:','ws:')+'/wisp/?ticket='+first.token,{origin:base});await new Promise((resolve,reject)=>{ws.once('open',resolve);ws.once('error',reject);});
+ await new Promise(resolve=>setTimeout(resolve,400));const next=await issue();assert.equal(next.token,first.token);assert.ok(next.expires>first.expires);
+ await new Promise(resolve=>setTimeout(resolve,Math.max(1,first.expires-Date.now()+100)));assert.equal(ws.readyState,WebSocket.OPEN);
+ await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('Expired relay stayed open')),2000);ws.once('close',()=>{clearTimeout(timeout);resolve();});});
 });
