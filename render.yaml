@@ -13,7 +13,7 @@ services:
         value: 0.0.0.0
 
       - key: ORBIT_SEARCH_URL
-        sync: false
+        value: https://orbit-search-wx0l.onrender.com
   - type: web
     name: silk-road-orbit-search
     runtime: node

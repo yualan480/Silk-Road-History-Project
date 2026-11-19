@@ -1,4 +1,8 @@
+const deployedSearch={
+ 'silkroadhistoryprojects.onrender.com':'https://orbit-search-wx0l.onrender.com'
+};
 export function searchOrigin(configured,requestHost){
+ configured=configured||deployedSearch[String(requestHost||'').toLowerCase()];
  try{const url=new URL(configured);return url.protocol==='https:'&&!url.username&&!url.password&&url.host!==requestHost?url.origin:null;}catch{return null;}
 }
 export function searchFramePolicy(html,origin){
