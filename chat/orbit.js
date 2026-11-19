@@ -2,6 +2,7 @@
    Home page, announcements, events + calendar, whiteboards, AI (assistant, summaries, conversation starters), formatting toolbar.
    app.js hands over what this needs through initOrbit(ctx) and calls the hooks that come back. */
 
+import {isGmsChannel} from './gms-drawer.js?v=1';
 import { startStars, startLogo } from './fx.js?v=5';
 import { openCalendarImport } from './calendar-import.js?v=2';
 import { classifyCalendarEvent, prioritizeCalendarEvents } from './calendar-role-tone.js?v=1';
@@ -260,7 +261,7 @@ export function initOrbit(c) {
       <div class="oann-main"><img src="logo.svg" width="34" height="34" alt=""><div class="oann-t"><b>${esc(a ? a.title : 'Welcome to Orbit!')}</b>${body ? `<div class="oann-body">${a ? md(body, 'ann' + a.id) : esc(body)}</div>` : ''}${!a && can ? '<small class="oann-hint">Nothing posted yet. Tap Add to tell everyone the news.</small>' : ''}</div></div>${readActions}</section>`;
   }
   function renderHome(main) {
-    const sv = S.sv, text = S.chans.filter(x => x.kind === 'text');
+    const sv = S.sv, text = S.chans.filter(x => x.kind === 'text' && !isGmsChannel(x));
     const up = upcoming(), weekEnd = Date.now() + 7 * 864e5, thisWeek = up.filter(e => +new Date(e.starts_at) <= weekEnd).length;
     const dms = c.unreadDms();
     const a0 = O.ann[0], links = [
@@ -270,7 +271,6 @@ export function initOrbit(c) {
       ['communities', 'compass', 'Explore Communities', 'Find your people'],
       ['dm', 'dm', 'Direct Messages', 'Your conversations'],
       ['roles', 'tag', 'School Roles', 'Your classes and groups'],
-      ['gms', 'video', 'GMS Recaps', 'Daily school announcements'],
       ['shop', 'shop', 'Orbit Shop', 'Explore customizations'],
     ];
     const inN = (S.incoming || []).length, oq0 = main.querySelector('#oq'), oqVal = oq0 ? oq0.value : '', oqFocus = !!oq0 && document.activeElement === oq0;

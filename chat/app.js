@@ -1,3 +1,4 @@
+import {createGmsDrawer,isGmsChannel} from './gms-drawer.js?v=1';
 import {pollTotals} from './poll-totals.js?v=1';
 import {renderOrbitSearch} from './orbit-search.js?v=5';
 import {schoolSignupDetails} from './school-signup.js?v=4';
@@ -9,7 +10,7 @@ import { initGuides } from './guides.js?v=4';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js?v=2';
-import { initOrbit } from './orbit.js?v=30';
+import { initOrbit } from './orbit.js?v=31';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=13').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
@@ -287,6 +288,7 @@ SHOP = !initShop ? NO_SHOP : initShop({ S, sb, $, esc, ic, I, modal, toast, menu
 const GB = !initGamble ? NO_GB : initGamble({ S, sb, esc, ic, I, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
 const AR = !initArena ? NO_AR : initArena({ S, sb, esc, ic, I, modal, toast, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), openChan: id => { S.view = 'server'; openChan(id); },  });
 const UB = initUnblockedGames({menuBtn,bindMenu,ic,onPlaying: active => O.gameOpen(active)});
+const GMS = createGmsDrawer({render:(target,options)=>renderGms(target,{drawer:true,...options}),load:()=>loadGms()});
 const GUIDE = initGuides({ S, sb, esc, toast, navTo: k => navTo(k), onChange: () => { if (S.me) { renderSide(); if (S.view === 'ai') renderMain(); } } });
 
 /* ───────── device lock: the first account to sign in on a browser owns it ───────── */
@@ -881,11 +883,12 @@ async function startApp(session, force) {
   if (S.servers[0]) openServer(S.servers[0].id, null, true); else renderAll();
   GUIDE.start(session.user, S.friends);
 }
-function teardown() { GUIDE.stop(); UB.stop(); O.stop(); CM.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
+function teardown() { GMS.destroy(); S.gmsPosts=[]; S.gmsErr=''; GUIDE.stop(); UB.stop(); O.stop(); CM.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
 const renderAll = () => { renderSide(); renderMain(); renderMembers(); };
 const onlineCount = () => S.members.filter(m => statusOf(prof(m.user_id)) !== 'offline').length;
 
 function navTo(k) {
+  if(k==='gms'){closeSide();GMS.open();return;}
   if (['intelligence','tournaments','tournament'].includes(k)) k='home';
   closeSide(); if (k !== 'gamer') { gamesLock(false); O.gameOpen(false); }   // leaving Orbit Games: the music comes back
   if (k === 'dm' || k === 'communities' || k === 'friends') S.socialOpen = true;
@@ -897,7 +900,7 @@ function navTo(k) {
     if (id) return openConv(id); S.active = null; return renderAll();
   }
   const wasGamer = S.view === 'gamer'; S.view = k; if (wasGamer || k === 'gamer') trackStatus();   // the orange "playing" dot follows the person in and out of Orbit Games
-  renderAll(); UB.onNav(k); O.onNav(k); CM.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'gms') loadGms(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
+  renderAll(); UB.onNav(k); O.onNav(k); CM.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
   if (k === 'roles') loadClassRoles().then(() => S.view === 'roles' && renderMain());
   if (k === 'home') loadHomeSchedule();
 }
@@ -942,7 +945,7 @@ function openMobileDmContacts() {
 function socialList() {
   const c = S.chans.find(x => x.kind === 'text' && !isRulesCh(x)) || S.chans.find(x => x.kind === 'text');
   if (!c) return `<p class="empty">${S.loaded ? 'No chat yet.' : 'Loading...'}</p>`;
-  const all = S.chans.filter(x => x.kind === 'text');
+  const all = S.chans.filter(x => x.kind === 'text' && !isGmsChannel(x));
   const list = all.map(x => `<button class="ch ${(x.special === 'suggestions' ? S.view === 'suggestions' : x.special === 'videos' ? S.view === 'tutorials' : x.special === 'gms' ? S.view === 'gms' : x.name === 'tesd-calendar' ? S.view === 'tesd-calendar' : x.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[x.id] ? 'unr' : ''}${x.special === 'suggestions' && S.hot?.sug && S.view !== 'suggestions' ? ' hot' : ''}" data-ch="${x.id}"${x.special ? ` data-sp="${x.special}"` : ''}>${chIcon(x)}<span>${esc(x.name)}</span>${S.chUnread[x.id] ? `<span class="pill red">${S.chUnread[x.id] > 99 ? '99+' : S.chUnread[x.id]}</span>` : ''}</button>`).join('');
   return `<div class="sect">Channels</div>${list}${voiceList()}`;
 }
@@ -1032,7 +1035,7 @@ function serverList() {
   const row = c => c.kind === 'voice'
     ? voiceRow(c)
     : `<button class="ch ${(c.special === 'suggestions' ? S.view === 'suggestions' : c.special === 'videos' ? S.view === 'tutorials' : c.special === 'gms' ? S.view === 'gms' : c.name === 'tesd-calendar' ? S.view === 'tesd-calendar' : c.id === S.active && S.view === 'server') ? 'on' : ''} ${S.chUnread[c.id] ? 'unr' : ''}" data-ch="${c.id}"${c.special ? ` data-sp="${c.special}"` : ''}>${chIcon(c)}<span>${esc(c.name)}</span>${S.chUnread[c.id] ? `<span class="pill red">${S.chUnread[c.id] > 99 ? '99+' : S.chUnread[c.id]}</span>` : ''}</button>`;
-  const groups = [...S.cats.map(k => [k, S.chans.filter(c => c.category_id === k.id)]), [{ id: '_other', name: 'Channels' }, S.chans.filter(c => !c.category_id)]].filter(([, cs]) => cs.length);
+  const groups = [...S.cats.map(k => [k, S.chans.filter(c => c.category_id === k.id && !isGmsChannel(c))]), [{ id: '_other', name: 'Channels' }, S.chans.filter(c => !c.category_id && !isGmsChannel(c))]].filter(([, cs]) => cs.length);
   return `<div class="sect">Your server</div>
   <button class="srv" id="sm" aria-label="Server menu">${svIcon(sv)}<span class="t"><b>${esc(sv.name)}</b><small>${S.members.length ? S.members.length + ' members' : ''}</small></span>${ic('chev', 18)}</button>
   ${groups.map(([k, cs]) => { const shut = S.collapsed.has(k.id); return `<div class="cat"><button class="cat-h ${shut ? 'shut' : ''}" data-cat="${k.id}" aria-expanded="${!shut}">${ic('chev', 14)}<span>${esc(k.name)}</span></button>${isAdm() ? `<button class="ib sm" data-add title="Create channel" aria-label="Create channel">${ic('plus', 16)}</button>` : ''}</div>${shut ? '' : cs.map(row).join('')}`; }).join('')}`;
@@ -1416,20 +1419,20 @@ function homeDayBadge() {
   const dayIcon = closed ? '🏫' : dayKind === 'gray' ? '⚪' : dayKind === 'garnet' ? '🔴' : '📅';
   const detail = confirmed ? 'Confirmed by today’s GMS' : predicted ? 'Pending today’s GMS' :
     closed ? 'Scheduled district closure' : 'No verified day type yet';
-  const title = confirmed ? 'Verified from today’s GMS announcement. Open #gms.' :
-    predicted ? 'Provisional color based on the previous verified GMS day and TESD calendar. May change. Open #gms.' :
+  const title = confirmed ? 'Verified from today’s GMS announcement. Open GMS summaries.' :
+    predicted ? 'Provisional color based on the previous verified GMS day and TESD calendar. May change. Open GMS summaries.' :
     closed ? 'No school according to the published TESD 2026–27 calendar.' :
-    'Waiting for today’s GMS announcement. Open #gms.';
+    'Waiting for today’s GMS announcement. Open GMS summaries.';
   return '<button type="button" id="homeDayBadge" data-o="go" data-k="gms" class="home-day-badge ' +
     (dayKind ? 'day-' + dayKind : closed ? 'day-closed' : 'day-pending') +
     (predicted ? ' day-predicted' : '') + '" title="' + esc(title) +
     '" aria-label="Today\'s school schedule: ' + esc(label) +
-    '. Open GMS channel"><span class="home-day-icon">' + dayIcon +
+    '. Open GMS summaries"><span class="home-day-icon">' + dayIcon +
     '</span><span class="home-day-words"><b>' + esc(label) +
     '</b><small>' + esc(detail) + '</small></span></button>';
 }
 function renderHome(main) {
-  const sv = S.sv, text = S.chans.filter(c => c.kind === 'text');
+  const sv = S.sv, text = S.chans.filter(c => c.kind === 'text' && !isGmsChannel(c));
   const dayBadge = homeDayBadge();
   const quickLinks = [
     { key: 'events', name: 'Events', desc: 'School calendar', icon: 'tag' },
@@ -1483,7 +1486,7 @@ function renderMainInner(loading) {
   if (S.view === 'home') return renderHome(main);
   if (S.view === 'suggestions') return renderSuggestions(main);
   if (S.view === 'tutorials') return renderTutorials(main);
-  if (S.view === 'gms') return renderGms(main);
+  if (S.view === 'gms') {S.view='home';queueMicrotask(()=>GMS.open());return renderHome(main);}
   if (S.view === 'tesd-calendar') return renderTesdCalendar(main);
   if (S.view === 'search') return renderOrbitSearch(main, {sb, menuBtn, bindMenu});
   if (S.view === 'unblocked') return UB.render(main);
@@ -1819,7 +1822,7 @@ function bindOrbitSearch(inp, out) {
     const q = inp.value.trim(), ql = q.toLowerCase(), my = ++seq;
     if (!q) { out.hidden = true; out.innerHTML = ''; return; }
     const pg = pages.filter(([, l]) => l.toLowerCase().includes(ql)).slice(0, 4).map(([k, l]) => item('nav', k, l, 'Page'));
-    const ch = (S.chans || []).filter(c => c.kind === 'text' && (c.name || '').toLowerCase().includes(ql)).slice(0, 5).map(c => item('chan', c.id, '#' + c.name, 'Channel'));
+    const ch = (S.chans || []).filter(c => c.kind === 'text' && !isGmsChannel(c) && (c.name || '').toLowerCase().includes(ql)).slice(0, 5).map(c => item('chan', c.id, '#' + c.name, 'Channel'));
     const pp = [...S.profiles.values()].filter(p => p.id !== S.me.id && ((p.display_name || '').toLowerCase().includes(ql) || (p.username || '').toLowerCase().includes(ql))).slice(0, 6).map(p => item('user', p.id, p.display_name, '@' + p.username));
     const paint = msgs => { if (my !== seq) return; out.hidden = false; out.innerHTML = group('People', pp) + group('Channels', ch) + group('Pages', pg) + group('Messages in this chat', msgs) || '<p class="ores-none">No matches.</p>'; };
     paint([]);
@@ -2026,7 +2029,7 @@ async function openChan(id) {
   const ch = S.chans.find(x => x.id === id); if (!ch || ch.kind === 'voice') return;
   if (ch.special === 'suggestions') return navTo('suggestions');   // #suggestions is the Suggestions board
   if (ch.special === 'videos') return navTo('tutorials');
-  if (ch.special === 'gms') return navTo('gms');          // #tutorials is the Tutorials page (add videos, no chat)
+  if (isGmsChannel(ch)) return navTo('gms');          // #tutorials is the Tutorials page (add videos, no chat)
   if (ch.name === 'tesd-calendar') return navTo('tesd-calendar');
   clearPending();
   Object.assign(S, { view: 'server', ch, active: id, list: [], rx: new Map(), hasMore: true, replyTo: null, readMark: getLr(id), typingUntil: 0, pins: new Set(), pinRows: [], polls: new Map(), typers: new Map() }); S.chUnread[id] = 0;
@@ -2769,7 +2772,7 @@ function acUpdate(ta) {
     const name = p => (p.display_name || '').toLowerCase(), score = p => String(p.username).startsWith(q) ? 0 : name(p).startsWith(q) ? 1 : 2;
     items = pool.filter(p => p.username && (p.username.includes(q) || name(p).includes(q))).sort((a, b) => score(a) - score(b) || name(a).localeCompare(name(b))).slice(0, 8).map(p => ({ t: 'u', ins: '@' + p.username, p }));
     if (S.view === 'server' && isStaff()) items = [...['everyone', 'here'].filter(k => k.startsWith(q)).map(k => ({ t: 'g', ins: '@' + k, label: '@' + k, sub: k === 'here' ? 'Notify everyone who is online' : 'Notify every member' })), ...items].slice(0, 8);
-  } else items = S.chans.filter(c => c.kind === 'text' && c.name.includes(q)).sort((a, b) => b.name.startsWith(q) - a.name.startsWith(q)).slice(0, 8).map(c => ({ t: 'c', ins: '#' + c.name, c }));
+  } else items = S.chans.filter(c => c.kind === 'text' && !isGmsChannel(c) && c.name.includes(q)).sort((a, b) => b.name.startsWith(q) - a.name.startsWith(q)).slice(0, 8).map(c => ({ t: 'c', ins: '#' + c.name, c }));
   if (type === '@' && S.view === 'server' && S.croles.length) {
     const flat = x => x.toLowerCase().replace(/[^a-z0-9]/g, ''), fq = flat(q), seen = new Set(), cand = [];
     for (const r of S.croles) for (const [label, ids] of [[crLabel(r), [r.id]], [r.subject, S.croles.filter(x => x.subject === r.subject).map(x => x.id)]]) {
@@ -3568,9 +3571,8 @@ async function loadGms() {
     .order('published_on', { ascending: false })
     .order('created_at', { ascending: false }).limit(200);
   S.gmsErr = error ? error.message : ''; S.gmsPosts = data || [];
-  if (S.view === 'gms') renderMain();
 }
-function renderGms(main) {
+function renderGms(main,{drawer=false,loading=false}={}) {
   const dateText = value => {
     const d = new Date(String(value) + 'T12:00:00');
     return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
@@ -3603,15 +3605,15 @@ function renderGms(main) {
       </div>
     </article>`;
   }).join('');
-  main.innerHTML = `<div class="top">${menuBtn()}<span class="hashi">${ic('hash', 20)}</span><b class="title">gms</b><span class="grow"></span><span class="muted gms-readonly">${ic('lock', 15)} Read-only</span></div>
+  main.innerHTML = `${drawer?'':`<div class="top">${menuBtn()}<b class="title">GMS summaries</b></div>`}
     <div class="panel gms-page">
       <div class="gms-intro"><h1>Good Morning 'Stoga</h1><p>Daily summaries of T/E TV's official GMS broadcasts, newest first. The date on each post is the broadcast's actual YouTube publication date.</p>
         <a href="https://www.youtube.com/@T-E-TV/streams" target="_blank" rel="noopener noreferrer">Official T/E TV livestreams ${ic('arrow', 14)}</a>
       </div>
-      ${S.gmsErr ? `<p class="err">Could not load GMS updates: ${esc(S.gmsErr)}</p>` : cards || '<p class="empty">No GMS summaries published yet. Check back after the next broadcast is reviewed.</p>'}
+      ${loading && !S.gmsPosts.length ? '<p class="empty" role="status">Loading GMS summaries…</p>' : S.gmsErr ? `<p class="err">Could not load GMS updates: ${esc(S.gmsErr)}</p>` : cards || '<p class="empty">No GMS summaries published yet. Check back after the next broadcast is reviewed.</p>'}
       <p class="muted gms-disclaimer">Summaries are AI-assisted. Every recap includes its original broadcast video; additional pictures show verified moments from that episode.</p>
     </div>`;
-  bindMenu();
+  if(!drawer)bindMenu();
 }
 
 /* ───────── #tesd-calendar: official school district calendar reference ───────── */
