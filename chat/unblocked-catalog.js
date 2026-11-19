@@ -298,6 +298,6 @@ export const UNBLOCKED_GAMES=[{
   "nintendo",
   "platformer"
  ],
- "controls": "Keyboard or connected controller. Enter starts; arrow keys move, X jumps, Z attacks. No on-screen console controls. Progress saves on this device; keep browser data to retain it."
+ "controls": "Press Enter to start Mario. If it doesn’t respond, click inside the game first, then press Enter again. Arrow keys move, X jumps, Z attacks. Keyboard or connected controller required. Progress saves on this device; keep browser data to retain it."
 }
 ];
