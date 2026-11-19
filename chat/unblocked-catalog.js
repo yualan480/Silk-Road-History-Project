@@ -102,7 +102,7 @@ export const UNBLOCKED_GAMES=[{
  "category": "Adventure",
  "players": "Single player / server client",
  "description": "Eaglercraft 1.5.2 browser client with local singleplayer worlds. Multiplayer requires a compatible server.",
- "image": "../games/eaglercraft/cover.jpg",
+ "image": "../games/eaglercraft/cover-logo.jpg",
  "src": "../games/eaglercraft/index.html?v=1&save=1",
  "tags": [
   "eaglercraft",
