@@ -12,15 +12,15 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
   <style>
-    :root { --vh: 100vh; --pixel: "Pixelify Sans", "Courier New", monospace; --gold: #ffd166; --pink: #d4285f; --line: #26263f; }
+    :root { --vh: 100vh; --pixel: "Pixelify Sans", "Courier New", monospace; --gold: #ffd166; --pink: #d4285f; --line: #1f3a5c; }
     @supports (height: 100dvh) { :root { --vh: 100dvh; } }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
     body {
       min-height: var(--vh); overflow: hidden; overscroll-behavior: none;
-      background: #0b0b14; color: #ecebf5; font-family: var(--pixel);
+      background: #07182b; color: #ecebf5; font-family: var(--pixel);
       -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent;
     }
     :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
@@ -28,7 +28,7 @@
     [hidden] { display: none !important; }
 
     .app { height: var(--vh); display: flex; flex-direction: column; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
-    .bar { flex: none; height: 52px; display: flex; align-items: center; gap: 16px; padding: 0 12px; background: #14142a; border-bottom: 1px solid var(--line); }
+    .bar { flex: none; height: 52px; display: flex; align-items: center; gap: 16px; padding: 0 12px; background: #0d1f38; border-bottom: 1px solid var(--line); }
     .embed .bar { padding-left: 112px; }
     .stat { display: flex; align-items: baseline; gap: 6px; font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
     .stat small { font-size: 0.75rem; font-weight: 500; color: #a9a8c4; }
@@ -67,14 +67,14 @@
     .btn { padding: 9px 16px; border-radius: 8px; border: 2px solid #1b1b2f; background: #e8497d; color: #fff; font-weight: 700; font-size: 1rem; cursor:var(--cur-pointer,pointer); box-shadow: 0 3px 0 #8e1b46; }
     .btn:hover { filter: brightness(1.08); }
     .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #8e1b46; }
-    .btn.alt { background: #4a4a8a; box-shadow: 0 3px 0 #2a2a5a; }
+    .btn.alt { background: #2d5f93; box-shadow: 0 3px 0 #163a63; }
     .btn.go { background: #3aa655; box-shadow: 0 3px 0 #1d6a33; }
     .btn[disabled] { opacity: 0.4; cursor: not-allowed; filter: none; }
     .btn.small { padding: 6px 12px; font-size: 0.85rem; }
 
     /* centre cards: menu, lobby, results */
-    .ov { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(8, 8, 18, 0.66); overflow: auto; touch-action: pan-y; }
-    .card { width: min(100%, 440px); margin: auto; text-align: center; padding: 22px 20px; border-radius: 14px; background: rgba(20, 20, 42, 0.97); border: 3px solid #3a3a66; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+    .ov { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(4, 14, 28, 0.66); overflow: auto; touch-action: pan-y; }
+    .card { width: min(100%, 440px); margin: auto; text-align: center; padding: 22px 20px; border-radius: 14px; background: rgba(9, 28, 50, 0.97); border: 3px solid #2d5078; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
     .card h1 { font-size: clamp(1.9rem, 9vw, 2.8rem); line-height: 1; letter-spacing: 1px; color: #ff6b8b; text-shadow: 0 4px 0 #14142a, 0 0 18px rgba(255, 90, 140, 0.35); }
     .card h1 small { display: block; margin-top: 6px; font-size: 0.5em; letter-spacing: 6px; color: var(--gold); text-shadow: none; }
     .card h2 { font-size: 1.6rem; line-height: 1.15; }
@@ -119,6 +119,21 @@
 :where(.slots li.empty){border-radius:var(--round,10px)}
 :where(.rank li.top){border-radius:var(--round,10px)}
 .touch-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;justify-content:center;padding-top:5px}.touch-controls button{min-height:44px;flex:1;min-width:0;font:700 14px var(--pixel);color:#fff;background:#29294d;border:1px solid #6966a0;touch-action:none}.board{border-radius:6px}.duel{padding-bottom:48px}
+
+    /* Matchmaking and lobby aligned with Orbit's other multiplayer games. */
+    #pMenu, #pJoin, #pConnect, #pLobby { max-width: 420px; }
+    #pMenu h1 { text-shadow: 0 4px 0 #0a2540, 0 0 18px rgba(80,170,255,.35); }
+    #pMenu .col, #pJoin .col { gap: 10px; }
+    #pMenu .col .btn, #pJoin .col > .btn { width: 100%; }
+    .match-rules { margin: 14px 0 0; text-align: left; border: 1px solid #2d5078; border-radius: 9px; background: rgba(7,24,43,.6); }
+    .match-rules summary { padding: 9px 12px; cursor: pointer; color: #cfe0f5; font-weight: 700; }
+    .match-rules .rules { margin: 0 12px 12px; }
+    #pConnect .spin { margin: 16px auto; }
+    #pLobby .lbl { margin-top: 15px; text-align: left; }
+    #pLobby .slots { margin-top: 8px; }
+    #pLobby .row { margin-top: 16px; }
+    #pLobby .code { user-select: text; -webkit-user-select: text; }
+    @media (max-width: 480px) { #pMenu, #pJoin, #pConnect, #pLobby { padding: 18px 14px; } #pLobby .row .btn { flex: 1 1 125px; } }
 </style>
 <link rel="stylesheet" href="tetris-duel.css?v=1"><link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script></head>
 <body>
@@ -153,9 +168,9 @@
         <section class="card" id="pMenu">
           <h1>TETRIS<small>DUEL</small></h1>
           <p>Two players, the same seven-piece bags. Fast drops and a 90-second clock keep every duel moving.</p>
-          <ul class="rules"><li>Blocks start dropping every 0.24 seconds and accelerate</li><li>Clear 2, 3 or 4 lines to send garbage to your rival</li><li>Top out and your opponent wins</li><li>Still standing after 90 seconds? Higher score wins</li></ul>
+          <details class="match-rules"><summary>How to play</summary><ul class="rules"><li>Blocks start dropping every 0.24 seconds and accelerate</li><li>Clear 2, 3 or 4 lines to send garbage to your rival</li><li>Top out and your opponent wins</li><li>Still standing after 90 seconds? Higher score wins</li></ul></details>
           <div class="col">
-            <button class="btn" id="bQuick" type="button">Find an opponent</button>
+            <button class="btn" id="bQuick" type="button">Find an opponent online</button>
             <button class="btn alt" id="bCreate" type="button">Create a room (share a code)</button>
             <button class="btn alt" id="bJoinMenu" type="button">Join with a code</button>
             <button class="btn go" id="bSolo" type="button">Play the computer</button>
@@ -175,22 +190,22 @@
         </section>
 
         <section class="card" id="pConnect" hidden>
-          <h2 id="cTitle">Connecting...</h2>
+          <h2 id="cTitle" role="status" aria-live="polite">Connecting...</h2>
           <div class="spin" aria-hidden="true"></div>
-          <p id="cText">Looking for a room.</p>
+          <p id="cText" aria-live="polite">Looking for a room.</p>
           <div class="row"><button class="btn alt small" id="bCancel" type="button">Cancel</button></div>
         </section>
 
         <section class="card" id="pLobby" hidden>
-          <h2 id="lTitle">Lobby</h2>
-          <div class="code" id="lCode" hidden></div>
-          <p id="lSub"></p>
-          <ul class="slots" id="slots"></ul>
+          <h2 id="lTitle">Match lobby</h2>
+          <div class="code" id="lCode" aria-label="Room code" hidden></div>
+          <p id="lSub" aria-live="polite"></p>
+          <div class="lbl">Players</div><ul class="slots" id="slots" aria-label="Players in match"></ul>
           <div class="row">
             <button class="btn go" id="bStart" type="button">Start match</button>
             <button class="btn alt" id="bLeave" type="button">Leave</button>
           </div>
-          <p class="fine" id="lFine"></p>
+          <p class="fine" id="lFine" aria-live="polite"></p>
         </section>
 
         <section class="card" id="pOver" hidden>
