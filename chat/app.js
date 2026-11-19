@@ -1423,13 +1423,13 @@ function homeDayBadge() {
     predicted ? 'Provisional color based on the previous verified GMS day and TESD calendar. May change. Open GMS summaries.' :
     closed ? 'No school according to the published TESD 2026–27 calendar.' :
     'Waiting for today’s GMS announcement. Open GMS summaries.';
-  return '<button type="button" id="homeDayBadge" data-o="go" data-k="gms" class="home-day-badge ' +
+  return '<span class="home-day-action"><button type="button" id="homeDayBadge" data-o="go" data-k="gms" class="home-day-badge ' +
     (dayKind ? 'day-' + dayKind : closed ? 'day-closed' : 'day-pending') +
     (predicted ? ' day-predicted' : '') + '" title="' + esc(title) +
     '" aria-label="Today\'s school schedule: ' + esc(label) +
     '. Open GMS summaries"><span class="home-day-icon">' + dayIcon +
     '</span><span class="home-day-words"><b>' + esc(label) +
-    '</b><small>' + esc(detail) + '</small></span></button>';
+    '</b><small>' + esc(detail) + '</small></span></button><small class="home-day-hint">Click for more</small></span>';
 }
 function renderHome(main) {
   const sv = S.sv, text = S.chans.filter(c => c.kind === 'text' && !isGmsChannel(c));
