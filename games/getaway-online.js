@@ -558,10 +558,10 @@
       var conn = newPC();   // resets any old connection/mirror first
       var mcv = startMirror(cv);
       if (!mcv.captureStream) throw new Error('canvas captureStream unsupported');
-      outStream=mcv.captureStream(0);
+      outStream=mcv.captureStream(30);
       var track=outStream.getVideoTracks()[0];
-      if(track&&typeof track.requestFrame==='function')manualFrameTrack=track;
-      else{outStream.getTracks().forEach(function(t){t.stop();});outStream=mcv.captureStream(60);track=outStream.getVideoTracks()[0];}
+      // Automatic capture avoids browsers silently producing zero frames with requestFrame().
+      manualFrameTrack=null;
       if (!track) throw new Error('no video track');
       try { track.contentHint = 'motion'; } catch (e) { /* ignore */ }
       var sender = conn.addTrack(track, outStream); vSender = sender; startMonitor();
