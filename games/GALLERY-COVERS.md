@@ -18,3 +18,5 @@ Third-party artwork retains its original copyright. The local screenshots show t
 - Minecraft 1.5.2 (Browser Port): existing unaltered screenshot of the locally hosted Eaglercraft client (`eaglercraft/cover.jpg`). This is a clearly labeled alternate gallery entry for the same client/world storage, not a different or newer game build.
 
 Gallery backdrop: `chat/unblocked-marble.webp` is a landscape adaptation of the owner-provided blue/silver marbled star-pattern background, created with image editing and encoded as WebP for delivery. Game cover artwork is unchanged. The stationary background and normal scrolling avoid fixed-attachment/parallax effects.
+
+Gallery UI typography uses locally hosted Oxanium for titles and Outfit for descriptive text. Font sources and SIL Open Font License notices are retained under `chat/fonts/`. The gallery’s fullscreen control and hover styling do not alter game artwork.

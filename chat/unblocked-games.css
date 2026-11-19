@@ -24,13 +24,12 @@
 .ub-card{display:flex;flex-direction:column;align-items:stretch;gap:0;width:100%;min-width:0;padding:0;background:transparent;border:0;border-radius:14px;text-align:left;color:var(--text);cursor:pointer;transition:transform .18s ease}
 .ub-cover{display:block;width:100%;aspect-ratio:1;flex-shrink:0;position:relative;overflow:hidden;border-radius:14px;background:var(--panel2);box-shadow:0 4px 18px #0003}
 .ub-cover img{height:100%;width:100%;object-fit:cover;display:block;transition:transform .25s ease}
-.ub-card-play{position:absolute;inset:0;z-index:1;margin:auto;display:grid;place-items:center;width:50px;height:50px;padding-left:3px;border-radius:50%;border:1px solid #ffffff80;background:#12205cbb;color:#fff;box-shadow:0 5px 25px #0005;font-size:19px;opacity:0;transform:scale(.85);transition:opacity .18s,transform .18s}
+
 .ub-card-body{display:block;width:100%;padding:10px 0 0;line-height:1.4;text-shadow:0 2px 8px #000c}
 .ub-card-body b{font-size:15px;font-weight:650;overflow-wrap:anywhere}
 .ub-card-body>b{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
 .ub-card:hover{transform:translateY(-3px);background:transparent;border-color:transparent;box-shadow:none}
 .ub-card:hover img{transform:scale(1.035)}
-.ub-card:hover .ub-card-play,.ub-card:focus-visible .ub-card-play{opacity:1;transform:scale(1)}
 .ub-page button:focus-visible{outline:3px solid var(--accent2);outline-offset:4px}
 .ub-empty{text-align:center;color:var(--muted);padding:38px 15px}
 .ub-empty>span{font-size:42px}.ub-empty h2{color:var(--text);margin:10px 0 8px;font-size:21px}.ub-empty p{font-size:13px}.ub-empty .btn{width:auto;margin-top:12px}
@@ -47,8 +46,18 @@
 @media(max-width:650px){
  .ub-scroll{padding:24px 15px 30px}.ub-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px}.ub-cover{border-radius:12px}.ub-card-body{padding:9px 0 0}.ub-card-body b{font-size:13px}.ub-hero{margin-bottom:24px}.ub-hero h1{font-size:34px}.ub-search{padding:0 14px}.ub-search input{height:48px}.ub-player-top{gap:6px}.ub-player-top .title{font-size:13px}.ub-player-top .btn{font-size:10px;padding:6px 8px}#ub-restart{font-size:0}#ub-restart::after{content:'↻';font-size:17px}.ub-player-footer{font-size:10px}.ub-orbit{width:57px;height:50px}
 }
-@media(prefers-reduced-motion:reduce){.ub-card,.ub-cover img,.ub-card-play{transition:none}.ub-card:hover{transform:none}.ub-card:hover img{transform:none}}
+@media(prefers-reduced-motion:reduce){.ub-card,.ub-cover img,.ub-card:hover{transform:none}.ub-card:hover img{transform:none}}
 /* LeafGreen fills the Orbit browser view even when the fullscreen API is unavailable. */
 .ub-page.ub-leafgreen{position:fixed;inset:0;width:100%;height:100dvh;z-index:1200;background:#000}
 .ub-page.ub-leafgreen.ub-leafgreen-running .ub-player-top,.ub-page.ub-leafgreen.ub-leafgreen-running .ub-player-footer{display:none}
 .ub-page.ub-leafgreen .ub-player-wrap{width:100%;min-height:0;flex:1}
+
+.ub-page:fullscreen{width:100%;height:100dvh}.ub-gallery-fullscreen{margin-left:auto;flex-shrink:0;width:auto;font-size:12px;padding:7px 11px;white-space:nowrap}
+
+@font-face{font-family:'Oxanium';font-style:normal;font-weight:400 700;font-display:swap;src:url('fonts/gallery-oxanium-latin.woff2') format('woff2')}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:400 600;font-display:swap;src:url('fonts/gallery-outfit-latin.woff2') format('woff2')}
+.ub-page{font-family:'Outfit',Arial,sans-serif}
+.ub-hero h1,.ub-card-body b,.ub-page>.top>.title{font-family:'Oxanium','Outfit',Arial,sans-serif;font-weight:600;letter-spacing:-.015em}
+.ub-description{font-family:'Outfit',Arial,sans-serif;font-size:15px;font-weight:400;line-height:1.65;letter-spacing:.01em}
+.ub-card-body b{line-height:1.45;letter-spacing:.005em}
+.ub-page:not(.ub-player)>.top .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
