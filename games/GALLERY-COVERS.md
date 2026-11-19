@@ -4,7 +4,7 @@ The Unblocked Games gallery uses original game icons/cover art or unaltered scre
 
 - Captured locally: Guess the Pokémon (Cry), Guess the Pokémon (Stats), Paper.io 2, Random Trivia, World's Hardest Game, Balloon Bastion, Suika Game, and A Small World Cup.
 - Pokémon LeafGreen: original Nintendo box art, https://en.wikipedia.org/wiki/File:Pokemon_LeafGreen_box.jpg .
-- Super Mario Bros.: original Nintendo NES box art, https://en.wikipedia.org/wiki/File:Super_Mario_Bros._box.png . The gallery identifies the original game; its Nintendo ROM is not included.
+- Super Mario 64: unaltered title-screen screenshot captured from the locally hosted game using the owner-supplied N64 ROM. The archived NES player retains its original Nintendo NES box art.
 - Basket Bros: original `thumb.jpg` from the pinned game source.
 - Drift Hunters: original `icon.png` from the pinned game source.
 - Other existing raster covers are retained original game art/icons, with upstream sources recorded in the relevant game source notes and IMPORTED-GAMES-SOURCES.md.

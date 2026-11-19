@@ -5,7 +5,7 @@ import {schoolSignupDetails} from './school-signup.js?v=4';
 import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
-import {initUnblockedGames} from './unblocked-games.js?v=40';
+import {initUnblockedGames} from './unblocked-games.js?v=41';
 import { initGuides } from './guides.js?v=4';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';

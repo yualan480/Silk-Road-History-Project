@@ -19,4 +19,6 @@ The Baloo 2 font used by the Fancade-based Drive Mad runtime is covered by `driv
 
 All games launch from Orbit's existing alphabetical Unblocked Games gallery, with automatic fullscreen, restart, and gallery-return controls. Assets and engines are loaded on demand when a game is selected.
 
-New imports: A Small World Cup, Basket Bros, Drift Hunters, and the JSNES-based Super Mario Bros. player. Each directory contains ORBIT-SOURCE.md with its pinned source and credits. No Nintendo ROM is bundled. Geometry Dash’s Scratch port was removed; RobTop lists native releases but no official browser release at https://www.robtopgames.com/ .
+New imports: A Small World Cup, Basket Bros, Drift Hunters, and the JSNES-based Super Mario Bros. player. Each directory contains ORBIT-SOURCE.md with its pinned source and credits. The archived NES player does not bundle an NES ROM. Geometry Dash’s Scratch port was removed; RobTop lists native releases but no official browser release at https://www.robtopgames.com/ .
+
+Super Mario 64 replaces the NES entry in the gallery using the N64 ROM uploaded by the owner. EmulatorJS 4.2.3 and the mupen64plus_next core are pinned and hosted locally; exact source, license, ROM member and SHA-256 are recorded in super-mario-64/SOURCES.md.

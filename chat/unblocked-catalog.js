@@ -282,22 +282,22 @@ export const UNBLOCKED_GAMES=[{
 }
 ,
 {
- "id": "super-mario-bros",
- "title": "Super Mario Bros.",
+ "id": "super-mario-64",
+ "title": "Super Mario 64",
  "category": "Adventure",
- "players": "Single player \u00b7 your NES file required",
- "description": "Play the original NES game using your own authorized .nes file. No Nintendo ROM is bundled.",
- "image": "../games/super-mario-bros/cover.png",
- "src": "../games/super-mario-bros/index.html?v=1",
+ "players": "Single player",
+ "description": "Explore Princess Peach’s castle and collect Power Stars in the original Nintendo 64 adventure.",
+ "image": "../games/super-mario-64/cover.png",
+ "src": "../games/super-mario-64/index.html?v=1",
  "save": "resume",
  "tags": [
   "super",
   "mario",
-  "bros",
-  "nes",
+  "64",
+  "n64",
   "nintendo",
   "platformer"
  ],
- "controls": "Load your own .nes file. Arrows move; X jumps, Z runs, Enter starts. Touch controls are available. Progress autosaves every two seconds; export a backup before clearing browser data."
+ "controls": "Keyboard or connected controller. Enter starts; arrow keys move, X jumps, Z attacks. No on-screen console controls. Progress saves on this device; keep browser data to retain it."
 }
 ];
