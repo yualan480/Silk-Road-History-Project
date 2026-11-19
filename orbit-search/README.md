@@ -39,3 +39,8 @@ Pinned packages, installed by lockfile (not unversioned CDN scripts):
 - [Wisp JS 0.5.3](https://github.com/MercuryWorkshop/wisp-js): LGPL-3.0-or-later.
 
 Dependencies retain their upstream licenses. Orbit integration source is available in this repository. No upstream package was modified.
+
+
+## Search interface
+
+The browser shell uses Orbit's original planet logo, a local CSS background with faint orbital lines and static stars, a Chrome-inspired rounded toolbar, a central search field, website shortcuts, and a fresh-search control. Back/forward navigation and reload run inside the proxy. The shared account handoff and original Google search default are unchanged. Entry/focus/hover animations and a slow four-pixel logo float respect the system reduced-motion setting. All new visual assets are served by this service; no additional font, wallpaper or icon CDN is needed. The browser checks cover the actual Orbit CSP, central and toolbar navigation, history controls, fullscreen, reduced motion, and phone/landscape widths.

@@ -126,3 +126,5 @@
 /* Keep Search controls and its browser together in fullscreen. */
 #main[data-view="search"]:fullscreen{display:flex;flex-direction:column;width:100vw;height:100dvh;background:#080d32;overflow:hidden}
 #main[data-view="search"]:fullscreen>.top{flex-shrink:0}
+
+.search-shell-top{font-family:Arial,Helvetica,sans-serif;min-height:54px;padding:10px 18px;border-bottom:1px solid #b9c9ff18;background:linear-gradient(110deg,#0b112f,#10163b);gap:12px}.search-shell-top .title{font-size:14px;font-weight:600;letter-spacing:.15px}.search-shell-top [data-search-fullscreen]{padding:8px 13px;border:1px solid #a5b7ff25;border-radius:999px;background:#8da4ff12;color:#cad6ff;font:500 12px Arial,Helvetica,sans-serif;transition:background 140ms}.search-shell-top [data-search-fullscreen]:hover{background:#8da4ff24}@media(max-width:560px){.search-shell-top{padding:8px 12px}}

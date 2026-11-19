@@ -1,12 +1,16 @@
 import { normalizeAddress } from '/address.js';
 const status = document.querySelector('#status');
 const address = document.querySelector('#address');
+const startAddress=document.querySelector('#start-address');
+const welcome=document.querySelector('#welcome'),browserPanel=document.querySelector('#browser');
+const tabTitle=document.querySelector('#tab-title');
+function setStatus(message,state='ready'){status.textContent=message;document.body.dataset.connection=state;}
 let frame, controller, connection, expires = 0;
 const connectionId=crypto.randomUUID();
 const orbitWindow=parent!==window?parent:window.opener;
 const notify=message=>orbitWindow?.postMessage(message,config.parent);
 const config = await fetch('/config.json').then(r => r.json());
-status.textContent=!orbitWindow?'Open Orbit Search from the Orbit sidebar to connect your account.':'Connecting to your Orbit account…';
+setStatus(!orbitWindow?'Open Orbit Search from the Orbit sidebar to connect your account.':'Connecting to your Orbit account…','connecting');
 let boot;
 async function initialize() {
   if (boot) return boot;
@@ -38,29 +42,42 @@ window.addEventListener('message', async event => {
     url.searchParams.set('ticket', session.token);
     await connection.setTransport('/vendor/epoxy/index.mjs', [{wisp:url.href}]);
     expires = session.expires;
-    status.textContent = 'Ready · Search results and websites open here.';
+    setStatus('Ready · Search results and websites open here.');
     notify({type:'orbit-search-connected'});
-  } catch (error) {status.textContent = error.message;notify({type:'orbit-search-error',message:error.message});}
+  } catch (error) {setStatus(error.message,'error');notify({type:'orbit-search-error',message:error.message});}
 });
 notify({type:'orbit-search-ready',connectionId});
-document.querySelector('#search').addEventListener('submit', async event => {
-  event.preventDefault();
-  try {
-    if (Date.now() >= expires) throw new Error('Connecting to Orbit. If this persists, reopen the Orbit Search tab.');
-    const url = normalizeAddress(address.value);
-    if (!frame) {
-      frame = controller.createFrame();
-      frame.frame.title = 'Orbit Search browser';
-      // Sites can navigate within the proxy, but cannot replace the surrounding Orbit page.
-      frame.frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-downloads');
-      frame.addEventListener('urlchange', event => {if (event.url) address.value=String(event.url);});
-      document.querySelector('#browser').replaceChildren(frame.frame);
-    }
-    frame.go(url);
-    status.textContent = 'Opening ' + new URL(url).hostname + '…';
-    frame.frame.onload = () => {status.textContent = 'Page loaded · Some websites may require a CAPTCHA or refuse proxy access.';};
-  } catch (error) {status.textContent = error.message;}
-});
-for (const [id, method] of [['back','back'],['forward','forward'],['reload','reload']]) {
-  document.getElementById(id).onclick = () => {if (frame) frame[method]();};
+let history=[],historyIndex=-1,currentUrl='';
+function syncNavigation(){document.querySelector('#back').disabled=historyIndex<=0;document.querySelector('#forward').disabled=historyIndex>=history.length-1;}
+function updateAddress(url){
+  try{const target=new URL(url);if(!['https:','http:'].includes(target.protocol))return;currentUrl=target.href;address.value=currentUrl;tabTitle.textContent=target.hostname;
+    if(history[historyIndex]!==currentUrl){history.splice(historyIndex+1);history.push(currentUrl);historyIndex=history.length-1;}syncNavigation();
+  }catch{/* Ignore non-web notifications from an unloaded frame. */}
 }
+function navigate(value){
+  try{
+    const url=normalizeAddress(value);
+    if(Date.now()>=expires)throw new Error('Connect to your Orbit account before searching. Reopen Orbit Search if the connection has expired.');
+    if(!frame){
+      frame=controller.createFrame();frame.frame.title='Orbit Search browser';
+      frame.frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads');
+      const opened=frame;
+      frame.addEventListener('urlchange',event=>{if(frame===opened&&event.url)updateAddress(String(event.url));});
+      frame.frame.onload=()=>{if(frame!==opened)return;document.body.classList.remove('loading');setStatus('Page loaded · Some websites may require a CAPTCHA or refuse proxy access.');};
+      browserPanel.replaceChildren(frame.frame);
+    }
+    welcome.hidden=true;browserPanel.hidden=false;document.body.classList.add('browsing','loading');
+    updateAddress(url);setStatus('Opening '+new URL(url).hostname+'…','loading');frame.go(url);
+  }catch(error){document.body.classList.remove('loading');setStatus(error.message,'error');}
+}
+document.querySelector('#search').addEventListener('submit',event=>{event.preventDefault();navigate(address.value);});
+document.querySelector('#start-search').addEventListener('submit',event=>{event.preventDefault();navigate(startAddress.value);});
+document.querySelectorAll('[data-url]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.url)));
+document.querySelector('#source-link').addEventListener('click',event=>{event.preventDefault();navigate(event.currentTarget.href);});
+document.querySelector('#newtab').onclick=()=>{
+  if(frame){frame.frame.remove();frame=null;}browserPanel.replaceChildren();browserPanel.hidden=true;welcome.hidden=false;history=[];historyIndex=-1;currentUrl='';address.value=startAddress.value='';tabTitle.textContent='New search';syncNavigation();document.body.classList.remove('browsing','loading');setStatus(Date.now()<expires?'Ready · Search results and websites open here.':'Open Orbit Search from the Orbit sidebar to connect your account.',Date.now()<expires?'ready':'connecting');startAddress.focus({preventScroll:true});
+};
+document.querySelector('#back').onclick=()=>{if(historyIndex>0){historyIndex--;navigate(history[historyIndex]);}};
+document.querySelector('#forward').onclick=()=>{if(historyIndex<history.length-1){historyIndex++;navigate(history[historyIndex]);}};
+document.querySelector('#reload').onclick=()=>{if(frame){document.body.classList.add('loading');setStatus('Reloading '+new URL(currentUrl).hostname+'…','loading');frame.reload();}else startAddress.focus();};
+document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();address.focus();address.select();}});

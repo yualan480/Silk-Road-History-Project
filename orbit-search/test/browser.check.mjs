@@ -67,12 +67,25 @@ try{
  await search.locator('#status').filter({hasText:'Ready'}).waitFor({timeout:45000});
  assert.ok(readinessChecks>=3);
  await page.locator('[data-search-notice]').waitFor({state:'hidden'});
+ await search.locator('.brand-mark img').evaluate(img=>img.decode());
+ assert.equal(await search.locator('#back').isDisabled(),true);
+ await search.locator('#start-address').fill('http://fixture.test:'+new URL(targetBase).port+'/first');
+ await search.locator('#start-search button').click();
+ await search.frameLocator('iframe').getByRole('heading',{name:'Orbit Search fixture'}).waitFor();
+
  await search.locator('#address').fill('http://fixture.test:'+new URL(targetBase).port+'/');
  await search.locator('#go').click();
  const content=search.frameLocator('iframe');
  await content.getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
  await content.locator('#test').click();
  await content.getByRole('button',{name:'JavaScript works'}).waitFor();
+ await search.locator('#back').click();
+ assert.ok((await search.locator('#address').inputValue()).endsWith('/first'));
+ await search.locator('#forward').click();assert.ok((await search.locator('#address').inputValue()).endsWith('/'));
+ await search.locator('#newtab').click();await search.locator('#welcome').waitFor();
+ assert.equal(await search.locator('#browser iframe').count(),0);assert.equal(await search.locator('#back').isDisabled(),true);
+ await search.locator('#start-address').focus();await page.keyboard.press('Control+k');
+ assert.equal(await search.locator('#address').evaluate(input=>input===document.activeElement),true);
  assert.equal(errors.length,0,errors.join('\n'));
  await page.setViewportSize({width:390,height:844});
  assert.equal(await search.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);
@@ -81,7 +94,10 @@ try{
  await page.evaluate(()=>{document.querySelector('#main').innerHTML='<p>Another Orbit tab</p>';});
  await page.waitForFunction(()=>!document.fullscreenElement);
 
- const direct=await browser.newPage();await direct.goto(proxyBase);await direct.getByRole('status').filter({hasText:'Open Orbit Search from the Orbit sidebar'}).waitFor();await direct.close();
+ const direct=await browser.newPage({viewport:{width:1440,height:1000}});await direct.goto(proxyBase);await direct.getByRole('status').filter({hasText:'Open Orbit Search from the Orbit sidebar'}).waitFor();await direct.locator('.brand-mark img').evaluate(img=>img.decode());await direct.waitForTimeout(650);await direct.screenshot({path:'/tmp/orbit-search-redesign-desktop.png'});
+ for(const size of [{width:390,height:844},{width:360,height:640},{width:844,height:390}]){await direct.setViewportSize(size);assert.equal(await direct.locator('body').evaluate(el=>el.scrollWidth<=innerWidth),true);assert.equal(await direct.locator('#start-search').isVisible(),true);}
+ await direct.setViewportSize({width:390,height:844});await direct.screenshot({path:'/tmp/orbit-search-redesign-phone.png'});
+ await direct.emulateMedia({reducedMotion:'reduce'});assert.equal(await direct.locator('.brand-mark').evaluate(el=>getComputedStyle(el).animationName),'none');await direct.close();
  // Reproduce a browser that rejects the embedded service, then use an authenticated top-level window.
  const fallback=await browser.newPage();
  await fallback.route(parentBase+'/orbit-search/config',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({url:proxyBase})}));
@@ -124,5 +140,5 @@ try{
  await unrelated.evaluate(proxyBase=>document.querySelector('iframe').contentWindow.postMessage({type:'orbit-search-account',accessToken:'test-session'},proxyBase),proxyBase);
  await unrelated.waitForTimeout(500);assert.equal(acceptedSessions,before,'Untrusted parent may not hand off an account');
  assert.match(await untrusted.locator('#status').innerText(),/Connecting/);await unrelated.close();
- console.log('PASS automatic fullscreen on a real tab click, exit/re-entry controls, actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
+ console.log('PASS redesigned Chrome-inspired toolbar, central search, back/forward/start-page controls, reduced motion, phone/landscape fit, automatic fullscreen on a real tab click, exit/re-entry controls, actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
 }finally{await browser.close();for(const s of [proxy,parent,target,wrapper]){s.closeAllConnections();s.close();}process.exitCode=0;}
