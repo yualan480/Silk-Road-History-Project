@@ -68,7 +68,7 @@ const server = http.createServer(async (req, res) => {
     file = resolve(root, 'node_modules', directory, name);
   }
   if (!file) {
-    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
+    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
     file = resolve(root, 'public', pathname === '/' ? 'index.html' : pathname.slice(1));
   }
   try {

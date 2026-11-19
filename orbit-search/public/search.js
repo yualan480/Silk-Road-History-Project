@@ -1,4 +1,5 @@
 import { normalizeAddress } from '/address.js';
+import { createProxyRuntime } from '/proxy-runtime.js';
 const status = document.querySelector('#status');
 const address = document.querySelector('#address');
 const startAddress=document.querySelector('#start-address');
@@ -6,27 +7,13 @@ const welcome=document.querySelector('#welcome'),browserPanel=document.querySele
 const tabTitle=document.querySelector('#tab-title');
 const siteHelp=document.querySelector('#site-help');
 function setStatus(message,state='ready'){status.textContent=message;document.body.dataset.connection=state;}
-let frame, controller, connection, expires = 0;
+let frame, controller, expires = 0;
 const connectionId=crypto.randomUUID();
 const orbitWindow=parent!==window?parent:window.opener;
 const notify=message=>orbitWindow?.postMessage(message,config.parent);
 const config = await fetch('/config.json').then(r => r.json());
 setStatus(!orbitWindow?'Open Orbit Search from the Orbit sidebar to connect your account.':'Connecting to your Orbit account…','connecting');
-let boot;
-async function initialize() {
-  if (boot) return boot;
-  boot = (async () => {
-    if (!navigator.serviceWorker || !window.SharedWorker) throw new Error('This browser does not support Orbit Search. Try a current Chrome or Firefox browser.');
-    const { ScramjetController } = $scramjetLoadController();
-    controller = new ScramjetController({prefix:'/service/', files:{wasm:'/vendor/scramjet/scramjet.wasm.wasm',all:'/vendor/scramjet/scramjet.all.js',sync:'/vendor/scramjet/scramjet.sync.js'}});
-    await controller.init();
-    await navigator.serviceWorker.register('/sw.js');
-    await navigator.serviceWorker.ready;
-    if (!navigator.serviceWorker.controller) await new Promise(resolve => navigator.serviceWorker.addEventListener('controllerchange', resolve, {once:true}));
-    connection = new BareMux.BareMuxConnection('/vendor/baremux/worker.js');
-  })().catch(error => {boot = null; throw error;});
-  return boot;
-}
+const runtime=createProxyRuntime();
 window.addEventListener('message', async event => {
   if (event.source !== orbitWindow || event.origin !== config.parent) return;
   if(event.data?.type==='orbit-search-hello'){notify({type:'orbit-search-ready',connectionId});return;}
@@ -38,10 +25,7 @@ window.addEventListener('message', async event => {
       if(!response.ok)throw new Error('Could not connect your Orbit account. Sign in again and reopen Orbit Search.');
       session=await response.json();
     }
-    await initialize();
-    const url = new URL('/wisp/', location.href); url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    url.searchParams.set('ticket', session.token);
-    await connection.setTransport('/vendor/epoxy/index.mjs', [{wisp:url.href}]);
+    controller=await runtime.connect(session.token);
     expires = session.expires;
     setStatus('Ready · Search results and websites open here.');
     notify({type:'orbit-search-connected'});

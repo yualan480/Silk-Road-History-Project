@@ -1,6 +1,7 @@
 import {readFile} from 'node:fs/promises';
 import http from 'node:http';
 import assert from 'node:assert/strict';
+import {WebSocketServer} from '../../orbitcraft/node_modules/ws/wrapper.mjs';
 import {chromium} from '../../orbitcraft/node_modules/@playwright/test/index.mjs';
 import {server as wisp} from '@mercuryworkshop/wisp-js/server';
 import {createSearchServer} from '../server.js';
@@ -20,7 +21,17 @@ const mount=async frame=>{
  await frame.locator('#search-test-tab').click();
 };
 const listen=server=>new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve('http://127.0.0.1:'+server.address().port)));
-const target=http.createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end('<!doctype html><h1>Orbit Search fixture</h1><button id="test" onclick="this.textContent=\'JavaScript works\'">Test JavaScript</button>');});
+let workerFetches=0,workerSockets=0;
+const target=http.createServer((req,res)=>{
+ if(req.url==='/worker-data'){workerFetches++;res.end('Relay fetch');return;}
+ if(['/worker.js','/shared.js'].includes(req.url)){
+  res.setHeader('Content-Type','application/javascript');
+  const run=`async function run(send){try{const text=await fetch('/worker-data').then(r=>r.text());const socket=new WebSocket('ws://fixture.test:${target.address().port}/echo');socket.onopen=()=>socket.send('Relay socket');socket.onmessage=e=>{send(text+' '+e.data);socket.close();};socket.onerror=()=>send('socket failed');}catch(e){send('error '+e.message);}}`;
+  res.end(run+(req.url==='/worker.js'?"run(text=>postMessage(text));":"onconnect=e=>{const port=e.ports[0];port.start();run(text=>port.postMessage(text));};"));return;
+ }
+ res.setHeader('Content-Type','text/html');res.end(`<!doctype html><h1>Orbit Search fixture</h1><button id="test" onclick="this.textContent='JavaScript works'">Test JavaScript</button><button id="worker-test" onclick="const worker=new Worker('/worker.js');worker.onmessage=e=>document.querySelector('#worker-result').textContent=e.data;">Test worker</button><output id="worker-result"></output><button id="shared-test" onclick="const worker=new SharedWorker('/shared.js','orbit-fixture');worker.onerror=e=>document.querySelector('#shared-result').textContent='Shared error: '+e.message;worker.port.onmessage=e=>document.querySelector('#shared-result').textContent=e.data;worker.port.start();">Test shared worker</button><output id="shared-result"></output>`);
+});
+const echo=new WebSocketServer({noServer:true});target.on('upgrade',(req,socket,head)=>echo.handleUpgrade(req,socket,head,ws=>{workerSockets++;ws.on('message',data=>ws.send(data,{binary:false}));}));
 const targetBase=await listen(target);
 const parent=http.createServer((req,res)=>{
  if(req.url==='/test-render.js'){res.setHeader('Content-Type','text/javascript');res.end('window.testRender='+renderOrbitSearch.toString());return;}
@@ -47,7 +58,8 @@ try{
  },proxyBase);
  await blocked.waitForFunction(()=>window.violations.includes('frame-src'));
  await blocked.close();
- const page=await browser.newPage();const errors=[];
+ const page=await browser.newPage();const errors=[],directRequests=[],nativeSockets=[];
+ page.on('request',r=>{if(new URL(r.url()).hostname==='fixture.test')directRequests.push(r.url());});page.on('websocket',ws=>nativeSockets.push(ws.url()));
  page.on('pageerror',error=>errors.push(error.message));
  page.on('console',message=>{if(message.type()==='error')console.log('browser:',message.text().slice(0,300));});
  await page.route(parentBase+'/orbit-search/config',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({url:proxyBase})}));
@@ -79,6 +91,15 @@ try{
  await content.getByRole('heading',{name:'Orbit Search fixture'}).waitFor({timeout:45000});
  await content.locator('#test').click();
  await content.getByRole('button',{name:'JavaScript works'}).waitFor();
+ await content.locator('#worker-test').click();await content.locator('#worker-result').filter({hasText:'Relay fetch Relay socket'}).waitFor({timeout:30000});
+ assert.ok(workerFetches>=1&&workerSockets>=1);assert.deepEqual(directRequests,[]);assert.ok(nativeSockets.every(url=>url.startsWith(proxyBase.replace('http:','ws:')+'/wisp/')));
+ // Known unresolved v1 compatibility probe. Opt in to reproduce, not to hide the result.
+ if(process.env.ORBIT_SEARCH_SHARED_WORKER_CHECK==='1'){
+  await content.locator('#shared-test').click();
+  await content.locator('#shared-result').filter({hasText:'Relay fetch Relay socket'}).waitFor({timeout:15000});
+  assert.ok(workerFetches>=2&&workerSockets>=2);
+ }
+
  await search.locator('#back').click();
  assert.ok((await search.locator('#address').inputValue()).endsWith('/first'));
  await search.locator('#forward').click();assert.ok((await search.locator('#address').inputValue()).endsWith('/'));
@@ -153,5 +174,5 @@ try{
  await unrelated.evaluate(proxyBase=>document.querySelector('iframe').contentWindow.postMessage({type:'orbit-search-account',accessToken:'test-session'},proxyBase),proxyBase);
  await unrelated.waitForTimeout(500);assert.equal(acceptedSessions,before,'Untrusted parent may not hand off an account');
  assert.match(await untrusted.locator('#status').innerText(),/Connecting/);await unrelated.close();
- console.log('PASS redesigned Chrome-inspired toolbar, central search, back/forward/start-page controls, reduced motion, phone/landscape fit, automatic fullscreen on a real tab click, exit/re-entry controls, actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
+ console.log('PASS dedicated-worker fetch + WebSocket relay (shared-worker probe opt-in; not verified), no direct fixture requests, no COOP/COEP required; redesigned Chrome-inspired toolbar, central search, back/forward/start-page controls, reduced motion, phone/landscape fit, automatic fullscreen on a real tab click, exit/re-entry controls, actual Orbit CSP negative/positive controls, in-screen nested-wrapper browsing, blocked-iframe popup recovery, same-origin account authentication, cold-start readiness, connection acknowledgement, standalone guidance, isolated Scramjet service worker, authenticated Wisp relay, proxied HTML/JavaScript and phone layout.');
 }finally{await browser.close();for(const s of [proxy,parent,target,wrapper]){s.closeAllConnections();s.close();}process.exitCode=0;}
