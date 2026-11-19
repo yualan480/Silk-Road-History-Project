@@ -13,3 +13,16 @@
 @media(prefers-reduced-motion:reduce){.browser-tab.is-loading .tab-logo,body.loading .browser-tab.active-tab .tab-logo{animation:none;opacity:.65}}
 
 .tabs{display:flex;align-items:flex-end;gap:6px;min-width:0;max-width:calc(100% - 145px);height:40px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}.browser-tab{display:flex;align-items:center;flex:0 0 190px;width:190px;height:33px;padding:0 5px 0 10px;border:1px solid #b9c9ff16;border-bottom:0;border-radius:14px 14px 0 0;background:#171f3b;color:#9eabcd}.browser-tab.active-tab{width:190px;background:#252c50;color:#edf0ff}.tab-select{display:flex;align-items:center;gap:8px;flex:1;min-width:0;height:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;font-size:12px}.tab-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tab-logo{object-fit:contain}.tab-close{display:grid;place-items:center;flex:none;width:25px;height:25px;border:0;border-radius:50%;padding:0;background:transparent;color:inherit;font-size:19px}.tab-close:hover{background:#a5b7ff25;color:#fff}.new-tab{flex-shrink:0}.chrome-wordmark{flex-shrink:0}.browser-tab-panel{height:100%;width:100%}.browser-tab-panel[hidden]{display:none!important}@media(max-width:600px){.tabs{height:35px;max-width:calc(100% - 36px)}.browser-tab,.browser-tab.active-tab{width:150px;flex-basis:150px;height:29px}.tab-select{font-size:11px}.chrome-wordmark{display:none}.tab-close{width:25px;height:25px}}
+
+/* Homepage shortcuts: consistent tiles, editable per-browser links. */
+.shortcuts{flex-wrap:wrap;max-width:650px;row-gap:10px}
+.shortcut-entry{position:relative;flex:none}
+.shortcut-new .shortcut-icon{font-size:29px;color:#c5d5ff;border-style:dashed}
+.shortcut-delete{position:absolute;right:0;top:0;width:23px;height:23px;border:1px solid #6277ac;border-radius:50%;background:#15234b;color:white;cursor:pointer;font-size:17px;line-height:18px}
+.shortcut-editor{max-width:410px;margin:10px auto;padding:14px;border:1px solid #43578a;border-radius:12px;background:#111d42;color:#dfe8ff;display:flex;flex-direction:column;gap:10px;text-align:left}
+.shortcut-editor[hidden]{display:none}
+.shortcut-editor label{display:flex;flex-direction:column;gap:5px;font-size:12px}
+.shortcut-editor input{width:100%;padding:9px;border:1px solid #5d72a5;border-radius:8px;background:#0b1430;color:white}
+.shortcut-editor-actions{display:flex;gap:8px}
+.shortcut-editor-actions button{padding:8px 12px;border:1px solid #7287b9;border-radius:8px;background:#293d76;color:white;cursor:pointer}
+#shortcut-editor-error{color:#ffb6c2;font-size:12px}
