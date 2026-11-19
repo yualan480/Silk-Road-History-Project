@@ -21,6 +21,7 @@ const vendors = {
   '/vendor/scramjet/': '@mercuryworkshop/scramjet/dist/',
   '/vendor/baremux/': '@mercuryworkshop/bare-mux/dist/',
   '/vendor/bare-mux/': '@mercuryworkshop/bare-mux/dist/', // Alias; retain existing worker URL/storage compatibility.
+  '/vendor/epoxy-http1/': '@mercuryworkshop/epoxy-tls/minimal/',
   '/vendor/epoxy/': '@mercuryworkshop/epoxy-transport/dist/'
 };
 const mime = {'.js':'text/javascript', '.mjs':'text/javascript', '.html':'text/html; charset=utf-8', '.css':'text/css', '.json':'application/json', '.wasm':'application/wasm', '.png':'image/png'};
@@ -69,7 +70,7 @@ const server = http.createServer(async (req, res) => {
     file = resolve(root, 'node_modules', directory, name);
   }
   if (!file) {
-    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
+    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
     file = resolve(root, 'public', pathname === '/' ? 'index.html' : pathname.slice(1));
   }
   try {

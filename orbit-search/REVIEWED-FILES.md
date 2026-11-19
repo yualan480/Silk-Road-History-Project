@@ -6,6 +6,8 @@ Snapshot for the November 19 audit. These are full file contents, not snippets. 
 
 The outer `chat/orbit-search.js` wrapper also needs the popup permissions; its complete contents are included below. Deploy both services. Main `chat/app.js` and `chat/index.html` module cache versions have also been advanced in the repository.
 
+HTTP/2 reset recovery uses the full Epoxy transport plus a lazy HTTP/1.1-only adapter. The added adapter and retry-policy modules are included below; install dependencies from the updated lockfile.
+
 ## orbit-search/server.js
 
 ```js
@@ -32,6 +34,7 @@ const vendors = {
   '/vendor/scramjet/': '@mercuryworkshop/scramjet/dist/',
   '/vendor/baremux/': '@mercuryworkshop/bare-mux/dist/',
   '/vendor/bare-mux/': '@mercuryworkshop/bare-mux/dist/', // Alias; retain existing worker URL/storage compatibility.
+  '/vendor/epoxy-http1/': '@mercuryworkshop/epoxy-tls/minimal/',
   '/vendor/epoxy/': '@mercuryworkshop/epoxy-transport/dist/'
 };
 const mime = {'.js':'text/javascript', '.mjs':'text/javascript', '.html':'text/html; charset=utf-8', '.css':'text/css', '.json':'application/json', '.wasm':'application/wasm', '.png':'image/png'};
@@ -80,7 +83,7 @@ const server = http.createServer(async (req, res) => {
     file = resolve(root, 'node_modules', directory, name);
   }
   if (!file) {
-    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
+    if (!['/', '/index.html', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
     file = resolve(root, 'public', pathname === '/' ? 'index.html' : pathname.slice(1));
   }
   try {
@@ -167,9 +170,62 @@ export function createProxyRuntime(){
     if(typeof ticket!=='string'||!ticket)throw new Error('Connect your Orbit account before browsing.');
     const {controller,connection}=await initialize();
     const wisp=new URL('/wisp/',location.href);wisp.protocol=location.protocol==='https:'?'wss:':'ws:';wisp.searchParams.set('ticket',ticket);
-    await connection.setTransport('/vendor/epoxy/index.mjs',[{wisp:wisp.href}]);
+    await connection.setTransport('/epoxy-fallback.mjs',[{wisp:wisp.href}]);
     return controller; // No proxied frame is loaded before transport setup resolves.
   }};
+}
+```
+
+## orbit-search/public/epoxy-fallback.mjs
+
+```js
+import EpoxyTransport from '/vendor/epoxy/index.mjs';
+import {withHttp1Fallback} from '/http-fallback.js';
+async function makeHttp1(opts,wisp){
+ const {default:init,EpoxyClient,EpoxyClientOptions}=await import('/vendor/epoxy-http1/epoxy-bundled.js');
+ await init();
+ const options=new EpoxyClientOptions();options.user_agent=navigator.userAgent;
+ for(const key of ['wisp_v2','udp_extension_required','title_case_headers','redirect_limit','header_limit','buffer_size'])if(opts[key]!=null)options[key]=opts[key];
+ // The minimal build omits HTTP/2/ALPN h2; certificate verification stays enabled.
+ const client=new EpoxyClient(wisp,options);
+ return {async request(remote,method,body,headers,signal){
+  if(signal?.aborted)throw new DOMException('The request was aborted.','AbortError');
+  if(body instanceof Blob)body=await body.arrayBuffer();
+  const response=await client.fetch(remote.href,{method,body,headers,redirect:'manual'});
+  return {body:response.body,headers:response.rawHeaders,status:response.status,statusText:response.statusText};
+ }};
+}
+export default withHttp1Fallback(EpoxyTransport,makeHttp1);
+```
+
+## orbit-search/public/http-fallback.js
+
+```js
+/* Retry only read-only, bodyless requests after a recognizable HTTP/2 reset. */
+export function isHttp2Reset(error){
+  const parts=[];const seen=new Set();
+  for(let current=error;current&&!seen.has(current)&&seen.size<5;current=current.cause){seen.add(current);parts.push(String(current),String(current.stack||''));}
+  const text=parts.join('\n');
+  return /http2|http\/2|\bh2\b/i.test(text)&&/protocol_error|stream.*reset|reset\(|goaway/i.test(text);
+}
+export function withHttp1Fallback(Base,makeHttp1){
+ return class extends Base{
+  constructor(...args){super(...args);this.http1Origins=new Set();this.http1Ready=null;}
+  http1(){return this.http1Ready||=(Promise.resolve().then(()=>makeHttp1(this.opts,this.wisp)).catch(error=>{this.http1Ready=null;throw error;}));}
+  async request(remote,method,body,headers,signal){
+   if(this.http1Origins.has(remote.origin))return (await this.http1()).request(remote,method,body,headers,signal);
+   try{return await super.request(remote,method,body,headers,signal);}
+   catch(error){
+    if(!['GET','HEAD'].includes(String(method).toUpperCase())||body!=null||signal?.aborted||!isHttp2Reset(error))throw error;
+    let response;
+    try{response=await(await this.http1()).request(remote,method,body,headers,signal);}
+    catch(fallbackError){throw new AggregateError([error,fallbackError],'The HTTP/2 request and HTTP/1.1 fallback both failed.',{cause:fallbackError});}
+    if(this.http1Origins.size>=64)this.http1Origins.delete(this.http1Origins.values().next().value);
+    this.http1Origins.add(remote.origin);
+    return response;
+   }
+  }
+ };
 }
 ```
 
@@ -251,7 +307,7 @@ document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&e
 
 ```html
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e2b"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/style.css?v=3"><script src="/vendor/scramjet/scramjet.all.js"></script><script src="/vendor/baremux/index.js"></script><script type="module" src="/search.js?v=5"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e2b"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/style.css?v=3"><script src="/vendor/scramjet/scramjet.all.js"></script><script src="/vendor/baremux/index.js"></script><script type="module" src="/search.js?v=6"></script></head>
 <body data-connection="connecting">
 <svg class="icon-defs" aria-hidden="true"><defs>
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
@@ -340,6 +396,7 @@ export function createSessions() {
   },
   "dependencies": {
     "@mercuryworkshop/bare-mux": "2.1.9",
+    "@mercuryworkshop/epoxy-tls": "2.1.20-1",
     "@mercuryworkshop/epoxy-transport": "2.1.29",
     "@mercuryworkshop/scramjet": "1.1.0",
     "@mercuryworkshop/wisp-js": "0.5.3"

@@ -29,7 +29,7 @@ test('relay needs an Orbit session and exact parent origin; assets are scoped',a
  const local=await fetch(base+'/api/session',{method:'POST',headers:{Origin:base,Authorization:'Bearer valid'}});assert.equal(local.status,200);
  assert.equal((await fetch(base+'/api/session',{method:'POST',headers:{Origin:base,Authorization:'Bearer wrong'}})).status,401);
  for(const path of ['/server.js','/security.js','/node_modules/ws/package.json']) assert.equal((await fetch(base+path)).status,404);
- for(const path of ['/','/sw.js','/address.js','/vendor/scramjet/scramjet.all.js','/vendor/scramjet/scramjet.wasm.wasm','/vendor/epoxy/index.mjs','/vendor/baremux/worker.js','/orbit-mark.png']) assert.equal((await fetch(base+path)).status,200,path);
+ for(const path of ['/','/sw.js','/address.js','/vendor/scramjet/scramjet.all.js','/vendor/scramjet/scramjet.wasm.wasm','/vendor/epoxy/index.mjs','/vendor/epoxy-http1/epoxy-bundled.js','/epoxy-fallback.mjs','/http-fallback.js','/vendor/baremux/worker.js','/orbit-mark.png']) assert.equal((await fetch(base+path)).status,200,path);
  assert.equal(wisp.options.allow_private_ips,false);assert.equal(wisp.options.allow_loopback_ips,false);assert.deepEqual(wisp.options.port_whitelist,[80,443]);
 });
 

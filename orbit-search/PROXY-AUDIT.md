@@ -84,3 +84,11 @@ Service-worker emulation remains experimental and shared-worker completion / Dis
 The outer `chat/orbit-search.js` frame also had a sandbox without popup permissions. The real popup test initially reproduced Chrome blocking it despite the inner permission change. The same three permissions are now present on both wrappers, with main-site and Search module cache versions advanced. Deploy **both** Render services for popup compatibility.
 
 Popup validation limit: after both sandbox fixes, a real click opens a new window and its navigation request targets the Search origin’s `/service/` prefix. The full popup-content probe did not finish loading within 30 seconds. The regression test verifies opening and rewritten navigation only; it does not claim popup rendering or CAPTCHA success.
+
+## YouTube HTTP/2 PROTOCOL_ERROR recovery
+
+The reported screenshot identifies Hyper HTTP/2 Reset(StreamId(1), PROTOCOL_ERROR). The pinned Epoxy transport has no force-HTTP/1 setting. `/epoxy-fallback.mjs` now wraps it with the HTTP/1-only minimal build from the same pinned `@mercuryworkshop/epoxy-tls@2.1.20-1`; this is now a direct dependency. `proxy-runtime.js` selects the wrapper, which delegates regular HTTP and every WebSocket connection to the original full transport.
+
+See README.md for retry policy and validation. The actual minimal-WASM browser test observes HTTP/1.1 at an authenticated local relay destination. Unit tests cover the exact screenshot error, one retry, origin reuse, no POST/body/aborted-request replay, no retry for 403/TLS failures, and preservation of both errors if fallback fails. This is transport error recovery, not bypassing authentication, CAPTCHAs or destination blocks.
+
+A read-only live YouTube probe from this execution environment failed earlier during TLS negotiation (`tls handshake eof`), before the reported HTTP/2 stage. The HTTP/2-only retry correctly did not treat that different failure as a trigger. Live YouTube playback on the Render deployment is therefore not verified by the local transport tests.

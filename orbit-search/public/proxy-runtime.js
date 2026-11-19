@@ -38,7 +38,7 @@ export function createProxyRuntime(){
     if(typeof ticket!=='string'||!ticket)throw new Error('Connect your Orbit account before browsing.');
     const {controller,connection}=await initialize();
     const wisp=new URL('/wisp/',location.href);wisp.protocol=location.protocol==='https:'?'wss:':'ws:';wisp.searchParams.set('ticket',ticket);
-    await connection.setTransport('/vendor/epoxy/index.mjs',[{wisp:wisp.href}]);
+    await connection.setTransport('/epoxy-fallback.mjs',[{wisp:wisp.href}]);
     return controller; // No proxied frame is loaded before transport setup resolves.
   }};
 }
