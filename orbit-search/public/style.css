@@ -26,3 +26,14 @@
 .shortcut-editor-actions{display:flex;gap:8px}
 .shortcut-editor-actions button{padding:8px 12px;border:1px solid #7287b9;border-radius:8px;background:#293d76;color:white;cursor:pointer}
 #shortcut-editor-error{color:#ffb6c2;font-size:12px}
+
+/* Google-style start-page shortcut grid: round icon above a single-line label. */
+#search-shortcuts.shortcuts{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:16px 8px;max-width:900px;margin:25px auto 0}
+#search-shortcuts .shortcut-entry{position:relative;flex:0 0 104px;width:104px}
+#search-shortcuts .shortcut{width:104px;min-height:112px;padding:9px 4px;gap:12px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;border-radius:14px;background:transparent}
+#search-shortcuts .shortcut-icon{width:56px;height:56px;flex:none;border-radius:50%;display:grid;place-items:center;background:#202d4c;border:1px solid #637bb133;font-size:27px}
+#search-shortcuts .shortcut>span:last-child{display:block;width:100%;max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:12px;line-height:20px}
+#search-shortcuts .shortcut-new{flex:0 0 104px;width:104px}
+#search-shortcuts .shortcut-new .shortcut-icon{font-size:30px}
+#search-shortcuts .shortcut-delete{right:12px;top:4px;z-index:1}
+@media(max-width:600px){#search-shortcuts.shortcuts{gap:8px 0;max-width:100%}#search-shortcuts .shortcut-entry,#search-shortcuts .shortcut,#search-shortcuts .shortcut-new{flex-basis:86px;width:86px}#search-shortcuts .shortcut>span:last-child{max-width:86px}}
