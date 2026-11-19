@@ -1,11 +1,11 @@
 import {createGmsDrawer,isGmsChannel} from './gms-drawer.js?v=1';
 import {pollTotals} from './poll-totals.js?v=1';
-import {renderOrbitSearch} from './orbit-search.js?v=7';
+import {renderOrbitSearch} from './orbit-search.js?v=8';
 import {schoolSignupDetails} from './school-signup.js?v=4';
 import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
-import {initUnblockedGames} from './unblocked-games.js?v=47';
+import {initUnblockedGames} from './unblocked-games.js?v=48';
 import { initGuides } from './guides.js?v=4';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
@@ -287,7 +287,7 @@ const CM = initCommunities({ S, sb, $, esc, ic, I, modal, toast, confirmBox, pro
 SHOP = !initShop ? NO_SHOP : initShop({ S, sb, $, esc, ic, I, modal, toast, menuBtn, renderMain: () => renderMain(), renderSide: () => renderSide(), navTo: k => navTo(k), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
 const GB = !initGamble ? NO_GB : initGamble({ S, sb, esc, ic, I, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
 const AR = !initArena ? NO_AR : initArena({ S, sb, esc, ic, I, modal, toast, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), openChan: id => { S.view = 'server'; openChan(id); },  });
-const UB = initUnblockedGames({menuBtn,bindMenu,ic,onPlaying: active => O.gameOpen(active)});
+const UB = initUnblockedGames({menuBtn,bindMenu,ic,openSearch:url=>{S.searchNextUrl=url;navTo('search');},onPlaying: active => O.gameOpen(active)});
 const GMS = createGmsDrawer({render:(target,options)=>renderGms(target,{drawer:true,...options}),load:()=>loadGms()});
 const GUIDE = initGuides({ S, sb, esc, toast, navTo: k => navTo(k), onChange: () => { if (S.me) { renderSide(); if (S.view === 'ai') renderMain(); } } });
 
@@ -1488,7 +1488,7 @@ function renderMainInner(loading) {
   if (S.view === 'tutorials') return renderTutorials(main);
   if (S.view === 'gms') {S.view='home';queueMicrotask(()=>GMS.open());return renderHome(main);}
   if (S.view === 'tesd-calendar') return renderTesdCalendar(main);
-  if (S.view === 'search') return renderOrbitSearch(main, {sb, menuBtn, bindMenu});
+  if (S.view === 'search') {const initialUrl=S.searchNextUrl||'';S.searchNextUrl='';return renderOrbitSearch(main, {sb, menuBtn, bindMenu, initialUrl});}
   if (S.view === 'unblocked') return UB.render(main);
   if (S.view === 'leaderboard') return renderLeaderboard(main);
   if (S.view === 'shop') return SHOP.render(main);

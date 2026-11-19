@@ -1,4 +1,4 @@
-export function renderOrbitSearch(main, {sb, menuBtn, bindMenu}, externalWindow = null) {
+export function renderOrbitSearch(main, {sb, menuBtn, bindMenu, initialUrl = ''}, externalWindow = null) {
   if (main.querySelector('[data-orbit-search]')) return;
   main.innerHTML = `<div class="top search-shell-top">${menuBtn()}<b class="title">Orbit Search</b><span class="grow"></span><button type="button" class="btn ghost" data-search-fullscreen style="width:auto">Fullscreen</button></div><section data-orbit-search style="display:flex;flex-direction:column;flex:1;min-height:0;height:100%"><div data-search-notice style="padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" data-search-window disabled style="width:auto">Open search window</button><span role="status">Starting Orbit Search… Render may take a minute to wake up.</span><button type="button" class="btn ghost" data-search-retry hidden style="width:auto;display:none">Retry connection</button></div></section>`;
   bindMenu();
@@ -18,7 +18,7 @@ export function renderOrbitSearch(main, {sb, menuBtn, bindMenu}, externalWindow 
     if(externalWindow&&!externalWindow.closed){externalWindow.focus();return;}
     const popup=window.open(searchOrigin+'/#orbit-window','_blank');
     if(!popup){status.textContent='Your browser blocked the new window. Allow popups for this site, then click Open search window again.';return;}
-    observer.disconnect();cleanup();container.remove();renderOrbitSearch(main,{sb,menuBtn,bindMenu},popup);
+    observer.disconnect();cleanup();container.remove();renderOrbitSearch(main,{sb,menuBtn,bindMenu,initialUrl},popup);
   };
   let refreshTimer, helloTimer, timeout, listener, stopped=false, inFlight;
   const pending = new AbortController();
@@ -35,7 +35,7 @@ export function renderOrbitSearch(main, {sb, menuBtn, bindMenu}, externalWindow 
     if (!container.isConnected) return;
     notice.hidden=false;notice.style.display='flex';status.textContent=message;retry.hidden=false;retry.style.display='inline-flex';
   };
-  retry.onclick=()=>{observer.disconnect();cleanup();container.remove();renderOrbitSearch(main,{sb,menuBtn,bindMenu});};
+  retry.onclick=()=>{observer.disconnect();cleanup();container.remove();renderOrbitSearch(main,{sb,menuBtn,bindMenu,initialUrl});};
   (async () => {
     const response = await fetch('/orbit-search/config', {cache:'no-store',signal:pending.signal});
     const {url} = await response.json();
@@ -67,7 +67,7 @@ export function renderOrbitSearch(main, {sb, menuBtn, bindMenu}, externalWindow 
         const {data} = await sb.auth.getSession();
         if (!data.session) throw new Error('Sign in to Orbit to use Orbit Search.');
         // Authenticate inside the search origin so browsers need no cross-site API request from Orbit.
-        if(!stopped)peer().postMessage({type:'orbit-search-account',accessToken:data.session.access_token},origin);
+        if(!stopped)peer().postMessage({type:'orbit-search-account',accessToken:data.session.access_token,initialUrl},origin);
       })().finally(()=>{inFlight=null;});
       return inFlight;
     }

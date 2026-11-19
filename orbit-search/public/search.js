@@ -11,7 +11,7 @@ function setStatus(message,state='ready',tab=activeTab){
  if(tab){tab.message=message;tab.state=state;}
  if(!tab||tab===activeTab){status.textContent=message;document.body.dataset.connection=state;}
 }
-let controller, expires = 0;
+let controller, expires = 0, initialUrlOpened = false;
 const connectionId=crypto.randomUUID();
 const orbitWindow=parent!==window?parent:window.opener;
 const notify=message=>orbitWindow?.postMessage(message,config.parent);
@@ -33,6 +33,10 @@ window.addEventListener('message', async event => {
     expires = session.expires;
     setStatus('Ready · Search results and websites open here.');
     notify({type:'orbit-search-connected'});
+    if(!initialUrlOpened&&typeof event.data.initialUrl==='string'&&event.data.initialUrl){
+      const target=new URL(event.data.initialUrl);
+      if(['https:','http:'].includes(target.protocol)) {initialUrlOpened=true;navigate(target.href);}
+    }
   } catch (error) {setStatus(error.message,'error');notify({type:'orbit-search-error',message:error.message});}
 });
 notify({type:'orbit-search-ready',connectionId});
