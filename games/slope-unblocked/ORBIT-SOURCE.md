@@ -5,3 +5,9 @@ Original game credits retained in the game. Archive tracking entrypoint removed.
 Removed the archive’s external WebSocket/XHR proxy rewrites and Google Analytics snippet; assets load directly from the local game directory. Optional original Y8 login/leaderboard services remain controlled by the game.
 
 A local-only Content Security Policy blocks external tracking and third-party login services; play as Guest.
+
+2026-11-19 loading fix: permit `blob:` scripts in the local page CSP. This Unity
+loader turns its bundled framework into a Blob script; blocking that URL left
+loading stuck at 90%. External tracking/login endpoints remain blocked. Removed
+a stale missing favicon reference. Verified Unity runtime initialization, the
+Guest menu, Play, and keyboard steering in Chromium with the actual game assets.

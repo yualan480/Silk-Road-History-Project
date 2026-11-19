@@ -20,3 +20,5 @@ Third-party artwork retains its original copyright. The local screenshots show t
 Gallery backdrop: `chat/unblocked-marble.webp` is a landscape adaptation of the owner-provided blue/silver marbled star-pattern background, created with image editing and encoded as WebP for delivery. Game cover artwork is unchanged. The stationary background and normal scrolling avoid fixed-attachment/parallax effects.
 
 Gallery UI typography uses locally hosted Oxanium for titles and Outfit for descriptive text. Font sources and SIL Open Font License notices are retained under `chat/fonts/`. The gallery’s fullscreen control and hover styling do not alter game artwork.
+
+- Krillion: unchanged official `https://krillion.io/icon.png`, retrieved 2026-11-19. The clearly labeled gallery entry opens the official site in a new tab, respecting its embedding restrictions.

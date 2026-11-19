@@ -61,3 +61,5 @@
 .ub-description{font-family:'Outfit',Arial,sans-serif;font-size:15px;font-weight:400;line-height:1.65;letter-spacing:.01em}
 .ub-card-body b{line-height:1.45;letter-spacing:.005em}
 .ub-page:not(.ub-player)>.top .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+.ub-external { display:block; margin-top:5px; color:#bfcef0; font:400 12px/1.4 Outfit,sans-serif; }

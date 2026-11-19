@@ -1,5 +1,11 @@
-// Curated games are played inside Orbit. Add future entries here.
+// Games play inside Orbit unless explicitly marked with externalUrl.
 export const UNBLOCKED_GAMES=[{
+ id:'krillion',title:'Krillion',category:'Quiz',players:'Single player',
+ description:'The official daily trivia dive: seven prompts, with rarer answers taking you deeper. Opens the official website in a new tab.',
+ image:'../games/krillion/cover.png',externalUrl:'https://krillion.io/',
+ tags:['krillion','daily','trivia','quiz','rare','answers'],
+ controls:'Opens the official Krillion website in a separate tab because it does not permit embedding. Progress is managed by that website.'
+},{
  id:'cookie-clicker',save:'resume',title:'Cookie Clicker',category:'Clicker',players:'Single player',
  description:'Bake cookies, buy buildings, and grow your own cookie empire.',
  image:'../games/cookie-clicker/cover.png',src:'../games/cookie-clicker/index.html?v=2&save=1',
@@ -191,7 +197,7 @@ export const UNBLOCKED_GAMES=[{
  "players": "Single player",
  "description": "Steer a rolling ball down an endless neon slope and stay on the track.",
  "image": "../games/slope-unblocked/slope4.jpeg",
- "src": "../games/slope-unblocked/index.html?v=1&save=1",
+ "src": "../games/slope-unblocked/index.html?v=2&save=1",
  "tags": [
   "slope",
   "ball",
