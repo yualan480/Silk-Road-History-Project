@@ -1,3 +1,4 @@
+import {signupWindowPanel} from './signup-window.js?v=1';
 import {createGmsDrawer,isGmsChannel} from './gms-drawer.js?v=1';
 import {pollTotals} from './poll-totals.js?v=1';
 import {renderOrbitSearch} from './orbit-search.js?v=8';
@@ -2609,17 +2610,18 @@ DASH.games = async () => [`<p class="muted" style="margin-top:0">The Orbit Games
   <p><a class="btn" href="../games/admin.html" target="_blank" rel="noopener">Open Orbit Games admin</a></p>
   <p class="muted">It opens in a new tab. You are already signed in to Orbit; the panel also asks for the staff Google account the games database knows.</p>`];
 DASH.signup_requests = async () => {
-  const { data, error } = await sb.rpc('admin_list_signup_requests');
+  const [{data,error},windowPanel]=await Promise.all([sb.rpc('admin_list_signup_requests'),signupWindowPanel({sb,toast})]);
   if (error) return errBox(error);
   const rows = data || [];
   const pending = rows.filter(r => r.status === 'pending').length;
-  return [`<p class="muted">Review school account requests here. Approving an email lets the student finish registration and verify their inbox. No account or password is created by a request.</p>
+  return [`${windowPanel.html}<p class="muted">Review school account requests here. Approving an email lets the student finish registration and verify their inbox. No account or password is created by a request.</p>
     <p><b>${pending} pending</b> · ${rows.length} requests shown</p>
     <div class="list">${rows.map(r => `<div class="row drow" style="cursor:default;align-items:center">
       <span class="t"><b>${esc(r.email)}</b><small>Requested ${esc(stamp(r.requested_at))} · ${esc(r.status)}</small></span>
       ${r.status === 'pending' ? `<div class="inline-actions"><button type="button" class="btn sm" data-approval="yes" data-email="${esc(r.email)}">Approve</button><button type="button" class="btn ghost sm" data-approval="no" data-email="${esc(r.email)}">Reject</button></div>` : ''}
     </div>`).join('') || '<p class="muted">No signup requests yet.</p>'}</div>
     <button type="button" class="btn ghost sm" id="refresh-signups">Refresh</button>`, el => {
+      windowPanel.bind(el);
       $('#refresh-signups', el).onclick = () => renderDash();
       el.querySelectorAll('[data-approval]').forEach(b => b.onclick = () => {
         const approve = b.dataset.approval === 'yes', email = b.dataset.email;
