@@ -16,6 +16,6 @@ try{
  frame.frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox');
  frame.frame.setAttribute('allow','autoplay; fullscreen');frame.frame.allowFullscreen=true;
  frame.frame.onload=()=>{status.hidden=true;};container.append(frame.frame);
- status.textContent='Loading website through the proxy…';frame.go(connection.target);
+ frame.go(connection.target);
  setInterval(async()=>{try{const renewed=await session();if(renewed.token!==activeTicket){await runtime.connect(renewed.token);activeTicket=renewed.token;}}catch(error){fail(error);}},15*60*1000);
 }catch(error){fail(error);}
