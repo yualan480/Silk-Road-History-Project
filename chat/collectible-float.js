@@ -1,3 +1,4 @@
+import {moduleAsset} from './asset-url.js?v=1';
 /* Orbit home: the collectibles you own drift slowly across the page. Click one and it makes the sound that object would make
    (dice rattle, coin ching, potion bubbles, sword shing...). The sounds are built live with Web Audio, so there are no sound files to load.
    - Only collectibles the member owns float (equipped one first, at most MAX at a time).
@@ -101,7 +102,7 @@ let layer = null, host = null, list = [], raf = 0, last = 0, cssDone = false;
 
 function ensureCss() {
   if (cssDone) return; cssDone = true;
-  try { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = new URL('collectible-float.css?v=2', import.meta.url).href; document.head.appendChild(l); } catch (e) { /* the page still works without the style */ }
+  try { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = moduleAsset('collectible-float.css?v=2', import.meta.url); document.head.appendChild(l); } catch (e) { /* the page still works without the style */ }
 }
 function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; last = 0; }
 function place(f, w, h) {

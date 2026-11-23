@@ -6,11 +6,11 @@ import {isGmsChannel} from './gms-drawer.js?v=1';
 import { startStars, startLogo } from './fx.js?v=5';
 import { openCalendarImport } from './calendar-import.js?v=2';
 import { classifyCalendarEvent, prioritizeCalendarEvents } from './calendar-role-tone.js?v=1';
-import { createBackdrop } from './orbit-bg.js?v=4';
-import { ambient, cycleTime } from './ambient.js?v=6';
+import { createBackdrop } from './orbit-bg.js?v=5';
+import { ambient, cycleTime } from './ambient.js?v=7';
 import { createDrift } from './orbit-drift.js?v=3';
 import { createHomeThemes } from './home-themes.js?v=2';
-import { mountFloaters } from './collectible-float.js?v=3';
+import { mountFloaters } from './collectible-float.js?v=4';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX = /^#[0-9a-fA-F]{6}$/;

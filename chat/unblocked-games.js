@@ -1,8 +1,9 @@
+import {moduleAsset} from './asset-url.js?v=1';
 import{UNBLOCKED_GAMES}from'./unblocked-catalog.js?v=46';
 export function initUnblockedGames({menuBtn,bindMenu,ic,onPlaying=()=>{},openSearch=()=>{}}){
  let root=null,query='',category='All games',current=null;
  const $=q=>root?.querySelector(q),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const logo=new URL('./orbit-logo-planet.png',import.meta.url).href;
+ const logo=moduleAsset('./orbit-logo-planet.png',import.meta.url);
  const games=[...UNBLOCKED_GAMES].sort((a,b)=>a.title.localeCompare(b.title));
  function ownsFullscreen(){return !!root&&!!document.fullscreenElement&&(document.fullscreenElement===root||root.contains(document.fullscreenElement));}
  function syncFullscreen(){const button=$('#ub-gallery-fullscreen');if(!button)return;button.hidden=!root?.requestFullscreen;button.textContent=ownsFullscreen()?'Exit fullscreen':'Fullscreen';button.setAttribute('aria-label',button.textContent);}

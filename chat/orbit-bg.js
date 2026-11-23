@@ -1,3 +1,4 @@
+import {moduleAsset} from './asset-url.js?v=1';
 /* Orbit home backdrop: the supplied blue space picture (orbit-space.jpg: ringed planet, big curved planet with city lights, two moons, purple nebula), brought to life on a canvas.
    Everything is SLOW and repeats exactly every LOOP seconds (49s), so the loop never jumps:
    • a very slow camera drift and breathing zoom over the whole scene, with the layers moving at different depths
@@ -84,7 +85,7 @@ export function createBackdrop() {
   let playing = false, raf = 0, clock0 = 0, off = 0, ready = false, lite = !!((navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory <= 4)), lastT = 0, avg = 16, nfr = 0;   // lite: drops the heaviest extras on slow devices
   const img = new Image(); img.decoding = 'async';
   img.onload = () => { ready = true; base = null; if (cv.isConnected && !playing) draw(off % LOOP); };
-  img.src = new URL(IMG, import.meta.url).href;
+  img.src = moduleAsset(IMG, import.meta.url);
 
   /* soft glow and spike sprites, drawn once */
   const glow = (() => { const c = mk(64, 64), g = c.getContext('2d'), q = g.createRadialGradient(32, 32, 0, 32, 32, 32); q.addColorStop(0, 'rgba(255,255,255,1)'); q.addColorStop(.12, 'rgba(205,225,255,.8)'); q.addColorStop(.4, 'rgba(110,150,255,.25)'); q.addColorStop(1, 'rgba(60,90,255,0)'); g.fillStyle = q; g.fillRect(0, 0, 64, 64); return c; })();

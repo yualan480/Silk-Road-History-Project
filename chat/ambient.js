@@ -1,3 +1,4 @@
+import {moduleAsset} from './asset-url.js?v=1';
 /* Orbit home ambience: one seamless sound loop (orbit-ambient.wav) plus the matching phase for the horizon animation.
    The loop file was cut from the design video and cross-faded end-into-start, so its last sample flows straight into its first.
    Web Audio plays it as a looping buffer, which has no gap or click at the join (a plain <audio loop> can leave a tiny gap).
@@ -35,7 +36,7 @@ function ensure() {
 
 function load() {
   if (buf) return Promise.resolve(buf);
-  loading ??= fetch(new URL(SRC, import.meta.url))
+  loading ??= fetch(moduleAsset(SRC, import.meta.url))
     .then(r => { if (!r.ok) throw new Error('audio ' + r.status); return r.arrayBuffer(); })
     .then(d => new Promise((ok, no) => ctx.decodeAudioData(d, ok, no)))
     .then(b => (buf = b))
@@ -45,7 +46,7 @@ function load() {
 
 function loadMusic() {
   if (mBuf) return Promise.resolve(mBuf);
-  mLoading ??= fetch(new URL(MUSIC, import.meta.url))
+  mLoading ??= fetch(moduleAsset(MUSIC, import.meta.url))
     .then(r => { if (!r.ok) throw new Error('music ' + r.status); return r.arrayBuffer(); })
     .then(d => new Promise((ok, no) => ctx.decodeAudioData(d, ok, no)))
     .then(b => (mBuf = b))

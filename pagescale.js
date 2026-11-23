@@ -14,6 +14,10 @@
     d.style.zoom = String(z); d.style.setProperty('--pz', String(z));
   }
   function calc() {
+    // Direct Orbit replaces the old unscaled chat iframe, including in Scramjet.
+    // Do not apply a second desktop shrink simply because the proxy presents it
+    // as a top-level document.
+    if (/^\/chat(?:\/|$)/.test(location.pathname) && new URLSearchParams(location.search).get('entry') === 'orbit') return 1;
     try {
       if (window.top !== window.self) return 1;
     } catch (e) { if (window.top !== window.self) return 1; }
