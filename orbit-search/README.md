@@ -1,3 +1,21 @@
+# Current Orbit Search page
+
+The public launcher now embeds **https://search.orbitstayintheloop.workers.dev/**
+as the page itself. It has no local address bar, search form or account handoff.
+Fullscreen and Open site controls remain. The main Orbit tab also embeds this
+exact URL directly, so it no longer waits for this service or calls its session API.
+The target currently returns the Silk Road history homepage; that is the supplied
+URL's content. The wrapper does not change that remote site.
+
+The existing Node server and legacy proxy code remain in the repository for
+compatibility, but the new page does not initialize Scramjet, Wisp or the old UI.
+The former proxy browser checks describe that retired UI. The current page check
+is `node test/site-embed-browser.check.mjs` (requires Playwright and Chromium).
+Existing Node deployments still build with `npm ci --omit=dev` and start with
+`npm start` when this directory is the repository root.
+
+---
+
 # Orbit Search
 
 Scramjet browser proxy embedded in Orbit, directly below Ask Your Guide. Includes web search, website address entry, back/forward/reload, mobile layout and an authenticated Wisp relay.

@@ -7,10 +7,10 @@ export const UNBLOCKED_GAMES=[{
  controls:'Type an answer and press Enter. Rarer accepted answers score more. This community edition uses sample questions. Settings and logbook save in this browser; server progress can reset on a Render redeploy. No Orbit account sync.'
 },{
  id:'krillion',title:'Krillion',category:'Quiz',players:'Single player',
- description:'The official daily trivia dive: seven prompts, with rarer answers taking you deeper. Opens the official website inside Orbit Search.',
- image:'../games/krillion/cover.png',searchUrl:'https://krillion.io/',
+ description:'The official daily trivia dive: seven prompts, with rarer answers taking you deeper. Opens the official website in a new tab.',
+ image:'../games/krillion/cover.png',externalUrl:'https://krillion.io/',
  tags:['krillion','daily','trivia','quiz','rare','answers'],
- controls:'Opens official Krillion through Orbit Search. The original website manages progress; availability depends on the site and the proxy connection.'
+ controls:'Opens official Krillion in a new tab. The original website manages progress.'
 },{
  id:'cookie-clicker',save:'resume',title:'Cookie Clicker',category:'Clicker',players:'Single player',
  description:'Bake cookies, buy buildings, and grow your own cookie empire.',

@@ -1,37 +1,3 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e2b"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/style.css?v=6"><script src="/vendor/scramjet/scramjet.all.js"></script><script src="/vendor/baremux/index.js"></script><script type="module" src="/search.js?v=11"></script></head>
-<body data-connection="connecting">
-<svg class="icon-defs" aria-hidden="true"><defs>
-<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
-<symbol id="i-back" viewBox="0 0 24 24"><path d="m12 5-7 7 7 7M5 12h15"/></symbol>
-<symbol id="i-forward" viewBox="0 0 24 24"><path d="m12 5 7 7-7 7M19 12H4"/></symbol>
-<symbol id="i-reload" viewBox="0 0 24 24"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5M20 7l-3-3"/></symbol>
-<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
-<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
-<symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></symbol>
-</defs></svg>
-<header class="browser-chrome">
-  <div class="tab-strip"><div id="tabs" class="tabs" role="tablist" aria-label="Open tabs"></div><button type="button" id="newtab" class="icon-button new-tab" aria-label="New tab" title="New tab"><svg><use href="#i-plus"/></svg></button><span class="chrome-wordmark">orbit <span>search</span></span></div>
-  <form id="search" class="toolbar"><nav class="navigation" aria-label="Browser controls"><button type="button" id="back" class="icon-button" aria-label="Go back" title="Back" disabled><svg><use href="#i-back"/></svg></button><button type="button" id="forward" class="icon-button" aria-label="Go forward" title="Forward" disabled><svg><use href="#i-forward"/></svg></button><button type="button" id="reload" class="icon-button" aria-label="Reload page" title="Reload"><svg><use href="#i-reload"/></svg></button></nav><div class="omnibox"><svg class="search-icon" aria-hidden="true"><use href="#i-search"/></svg><label class="sr" for="address">Search the web or enter a website</label><input id="address" type="text" placeholder="Search the web or enter a website" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><kbd>Ctrl K</kbd><button id="go" class="omnibox-go" aria-label="Search" title="Search"><svg><use href="#i-arrow"/></svg></button></div></form>
-  <div class="connection-line"><span class="connection-dot" aria-hidden="true"></span><p id="status" role="status">Connecting to Orbit…</p></div>
-  <aside id="site-help" class="site-help" hidden aria-label="Discord sign-in help"><p>Discord login and CAPTCHA may fail through Orbit Search. Try signing in with your normal browser connection.</p><a href="https://discord.com/login" target="_blank" rel="noopener noreferrer">Open Discord directly ↗</a></aside>
-</header>
-<main id="workspace">
-  <section id="welcome" aria-label="Search start page">
-    <div class="ambience" aria-hidden="true"><div class="orbit-line orbit-line-one"></div><div class="orbit-line orbit-line-two"></div><div class="stars"></div></div>
-    <div class="welcome-content"><div class="brand-mark"><img src="/orbit-mark.png" alt="" width="168" height="113"></div><p class="eyebrow">A LITTLE CURIOSITY GOES A LONG WAY</p><h1>Orbit <span>Search</span></h1><p class="welcome-subtitle">Where will your curiosity take you?</p>
-      <form id="start-search" class="start-search"><svg aria-hidden="true"><use href="#i-search"/></svg><label class="sr" for="start-address">Search the web</label><input id="start-address" type="text" placeholder="Search the web or enter a website" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="submit" aria-label="Start search"><svg><use href="#i-arrow"/></svg></button></form>
-      <div class="shortcuts" id="search-shortcuts" aria-label="Website shortcuts"></div>
-      <form id="shortcut-editor" class="shortcut-editor" hidden>
-        <label>Shortcut name<input name="name" maxlength="32" required placeholder="Website name"></label>
-        <label>Website URL<input name="url" type="url" required placeholder="https://example.com"></label>
-        <div class="shortcut-editor-actions"><button type="submit">Save shortcut</button><button type="button" id="shortcut-editor-cancel">Cancel</button></div>
-        <p id="shortcut-editor-error" role="alert" hidden></p>
-      </form>
-      <div class="welcome-hint"><svg aria-hidden="true"><use href="#i-spark"/></svg><span>A new perspective is only a search away.</span></div>
-    </div>
-    <footer class="start-footer"><span>Stay curious. Stay in the loop.</span><a id="source-link" href="https://github.com/yualan480/Silk-Road-History-Project/tree/main/orbit-search">Powered by Scramjet · Source &amp; licenses <svg aria-hidden="true"><use href="#i-arrow"/></svg></a></footer>
-  </section>
-  <div id="browser" hidden></div>
-</main>
-</body></html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080d32"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; frame-src https://search.orbitstayintheloop.workers.dev; base-uri 'none'; object-src 'none'"><title>Orbit Search</title><link rel="icon" href="/orbit-mark.png"><link rel="stylesheet" href="/embed.css"><script src="/embed.js" defer></script></head>
+<body><header><strong>Orbit Search</strong><nav><a href="https://search.orbitstayintheloop.workers.dev/" target="_blank" rel="noopener noreferrer">Open site</a><button id="fullscreen" type="button">Fullscreen</button></nav></header><main><iframe title="Orbit Search website" src="https://search.orbitstayintheloop.workers.dev/" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox" allow="autoplay; fullscreen" allowfullscreen></iframe></main></body></html>
