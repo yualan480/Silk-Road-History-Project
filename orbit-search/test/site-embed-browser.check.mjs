@@ -20,6 +20,6 @@ try{for(const width of [1280,390]){
  const id=await page.evaluate(()=>sessionStorage.getItem('orbit-search-guest'));
  await page.reload();await frame.getByRole('heading',{name:'Fixed website through proxy'}).waitFor({timeout:45000});assert.equal(await page.evaluate(()=>sessionStorage.getItem('orbit-search-guest')),id);
  assert.deepEqual(direct,[]);assert.deepEqual(accounts,[]);assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
- await page.getByRole('button',{name:'Fullscreen',exact:true}).click();await page.waitForFunction(()=>!!document.fullscreenElement);await page.getByRole('button',{name:'Exit fullscreen'}).click();await page.waitForFunction(()=>!document.fullscreenElement);
+ assert.equal(await page.locator('header,nav,button,a').count(),0);const box=await page.locator('#site iframe').boundingBox();assert.ok(box.width===width&&box.height>=800,'Orbit fills the viewport without a toolbar');
  await context.close();
-}assert.equal(identities,0);assert.ok(hits>=4);console.log('PASS real Scramjet/Wisp: fixed website proxied and interactive, reload and fullscreen work, no direct destination requests, no Orbit account, desktop/phone layout.');}finally{await browser.close();for(const s of [server,target]){s.closeAllConnections();s.close();}}
+}assert.equal(identities,0);assert.ok(hits>=4);console.log('PASS real Scramjet/Wisp: fixed website proxied and interactive, reload and toolbar-free layout work, no direct destination requests, no Orbit account, desktop/phone layout.');}finally{await browser.close();for(const s of [server,target]){s.closeAllConnections();s.close();}}

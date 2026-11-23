@@ -1,6 +1,6 @@
 # Current Orbit Search page
 
-The page automatically loads **https://search.orbitstayintheloop.workers.dev/**
+The page automatically loads **https://search.orbitstayintheloop.workers.dev/chat/?entry=orbit**
 through the existing Scramjet/BareMux/Epoxy/Wisp proxy. It does not embed that
 remote origin directly. There is no address bar or local search form, and no
 Orbit account connection is requested or sent to the website.
@@ -16,8 +16,9 @@ The main Orbit tab embeds `https://orbitsearch.onrender.com/`, so the separate
 Node proxy service must be deployed. The proxy then loads the Workers target.
 Set `ORBIT_SEARCH_PARENT_ORIGIN` to the actual main site's origin as before.
 `ORBIT_SEARCH_TARGET_URL` optionally changes the server-selected destination;
-it defaults to the Workers URL above. Fullscreen, Reload site and Open in new
-tab controls are available. Opening a new tab keeps proxy loading enabled.
+it defaults to the Workers URL above. The wrapper has no header, Open in new tab, Reload site or Fullscreen controls.
+Orbit fills the viewport. The direct entry requires the updated main-site
+`gate.js`; it skips the history/Morse front page without bypassing Orbit login.
 
 Standalone deployment: build `npm ci --omit=dev`, start `npm start`.
 This Wisp service requires Node hosting; the main site can remain on Cloudflare.
@@ -27,7 +28,9 @@ checks that no browser request contacts the destination directly.
 
 Proxied sites can still reject proxy/datacenter traffic or impose CAPTCHAs.
 This change does not modify school/network rules or guarantee access to every
-site. The target currently serves the Silk Road history homepage.
+site. The destination is Orbit’s own page; the history homepage is no longer the
+starting view. Deploy the main Cloudflare website as well as this Node service
+to activate the direct-entry change.
 
 ---
 

@@ -1,9 +1,5 @@
 import {createProxyRuntime} from './proxy-runtime.js?v=2';
-const button=document.querySelector('#fullscreen'),status=document.querySelector('#site-status'),container=document.querySelector('#site');
-const sync=()=>{button.textContent=document.fullscreenElement?'Exit fullscreen':'Fullscreen';button.setAttribute('aria-pressed',String(!!document.fullscreenElement));};
-button.onclick=()=>{try{const result=document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.();result?.catch(()=>{});}catch{}};
-document.addEventListener('fullscreenchange',sync);sync();
-document.querySelector('#retry').onclick=()=>location.reload();
+const status=document.querySelector('#site-status'),container=document.querySelector('#site');
 let guestId;try{guestId=sessionStorage.getItem('orbit-search-guest');}catch{}
 if(!/^[a-f0-9-]{36}$/i.test(guestId||'')){guestId=crypto.randomUUID();try{sessionStorage.setItem('orbit-search-guest',guestId);}catch{}}
 const runtime=createProxyRuntime();
@@ -16,7 +12,7 @@ function fail(error){status.hidden=false;status.textContent=error.message||'Coul
 try{
  const connection=await session(),controller=await runtime.connect(connection.token);
  let activeTicket=connection.token;
- const frame=controller.createFrame();frame.frame.title='Orbit Search website';
+ const frame=controller.createFrame();frame.frame.title='Orbit';
  frame.frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox');
  frame.frame.setAttribute('allow','autoplay; fullscreen');frame.frame.allowFullscreen=true;
  frame.frame.onload=()=>{status.hidden=true;};container.append(frame.frame);

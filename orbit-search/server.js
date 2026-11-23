@@ -8,9 +8,10 @@ import { server as wisp, logging } from '@mercuryworkshop/wisp-js/server';
 import { authenticate } from './auth.js';
 import { createSessions } from './security.js';
 const root = dirname(fileURLToPath(import.meta.url));
-export function createSearchServer({targetUrl = process.env.ORBIT_SEARCH_TARGET_URL || 'https://search.orbitstayintheloop.workers.dev/', verifyIdentity = authenticate, parentOrigin = process.env.ORBIT_SEARCH_PARENT_ORIGIN || 'https://silkroadhistoryprojects.onrender.com'} = {}) {
+export function createSearchServer({targetUrl = process.env.ORBIT_SEARCH_TARGET_URL || 'https://search.orbitstayintheloop.workers.dev/chat/?entry=orbit', verifyIdentity = authenticate, parentOrigin = process.env.ORBIT_SEARCH_PARENT_ORIGIN || 'https://silkroadhistoryprojects.onrender.com'} = {}) {
 const parent = new URL(parentOrigin).origin;
 const target = new URL(targetUrl);
+if(target.origin==='https://search.orbitstayintheloop.workers.dev'&&['/','/chat/','/chat/index.html'].includes(target.pathname)){target.pathname='/chat/';target.searchParams.set('entry','orbit');}
 if(!['https:','http:'].includes(target.protocol)||target.username||target.password)throw new Error('Configure a web URL as the proxy destination.');
 const sessions = createSessions();
 const attempts = new Map();

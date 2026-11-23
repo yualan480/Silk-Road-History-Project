@@ -12,9 +12,17 @@ test('fixed-site guest sessions need no Orbit account, retain origin checks, exp
  assert.equal((await issue('https://unrelated.example')).status,403);
  assert.equal((await issue(base,'invalid')).status,400);
  const response=await issue(base);assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'no-store');
- const data=await response.json();assert.equal(data.target,'https://search.orbitstayintheloop.workers.dev/');assert.match(data.token,/^[a-zA-Z0-9_-]{43}$/);assert.ok(data.expires>Date.now()&&data.expires<=Date.now()+30*60*1000);
+ const data=await response.json();assert.equal(data.target,'https://search.orbitstayintheloop.workers.dev/chat/?entry=orbit');assert.match(data.token,/^[a-zA-Z0-9_-]{43}$/);assert.ok(data.expires>Date.now()&&data.expires<=Date.now()+30*60*1000);
  assert.equal((await (await issue(base)).json()).token,data.token);
  assert.notEqual((await (await issue(base,randomUUID())).json()).token,data.token);
  assert.equal((await fetch(base+'/api/relay-check',{method:'POST',headers:{Origin:base,'X-Orbit-Relay-Ticket':data.token}})).status,200);
  assert.equal(accountChecks,0);assert.equal(wisp.options.allow_private_ips,false);assert.equal(wisp.options.allow_loopback_ips,false);assert.equal(wisp.options.allow_direct_ip,false);assert.deepEqual(wisp.options.port_whitelist,[80,443]);
+});
+
+test('a previously configured history-root URL also opens direct Orbit',async t=>{
+ const server=createSearchServer({targetUrl:'https://search.orbitstayintheloop.workers.dev/'});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>{server.closeAllConnections();server.close();});
+ const base='http://127.0.0.1:'+server.address().port;
+ const response=await fetch(base+'/api/guest-session',{method:'POST',headers:{Origin:base,'X-Orbit-Guest-ID':randomUUID()}});
+ assert.equal((await response.json()).target,'https://search.orbitstayintheloop.workers.dev/chat/?entry=orbit');
 });
