@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { stat } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { server as wisp, logging } from '@mercuryworkshop/wisp-js/server';
-import { authenticate } from '../orbitcraft/server/auth.js';
+import { authenticate } from './auth.js';
 import { createSessions } from './security.js';
 const root = dirname(fileURLToPath(import.meta.url));
 export function createSearchServer({verifyIdentity = authenticate, parentOrigin = process.env.ORBIT_SEARCH_PARENT_ORIGIN || 'https://silkroadhistoryprojects.onrender.com'} = {}) {

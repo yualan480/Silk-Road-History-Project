@@ -56,7 +56,7 @@ test('vendor alias, module and WASM MIME types, root worker and embedded-page he
 });
 
 test('relay accepts twenty authenticated connections and rejects the twenty-first',async t=>{
- const {default:WebSocket}=await import('../../orbitcraft/node_modules/ws/wrapper.mjs');
+ const {default:WebSocket}=await import('ws');
  const server=createSearchServer({parentOrigin:'https://orbit.example',verifyIdentity:async()=>({id:'connection-limit-test',expiresAt:Date.now()+60000})});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const base='http://127.0.0.1:'+server.address().port,sockets=[];
@@ -69,7 +69,7 @@ test('relay accepts twenty authenticated connections and rejects the twenty-firs
 });
 
 test('renewal keeps active relay sockets alive past their original deadline, then expires them',async t=>{
- const {default:WebSocket}=await import('../../orbitcraft/node_modules/ws/wrapper.mjs');
+ const {default:WebSocket}=await import('ws');
  const server=createSearchServer({verifyIdentity:async()=>({id:'renewal-test',expiresAt:Date.now()+1000})});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
  let ws;t.after(()=>{ws?.terminate();server.closeAllConnections();server.close();});

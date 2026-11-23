@@ -1,3 +1,5 @@
+> Historical monorepo audit snapshot. For current setup, use README.md. The live server now imports `./auth.js` and `./auth-config.js`; the old parent-directory imports shown below are obsolete.
+
 # Complete reviewed proxy files
 
 Snapshot for the November 19 audit. These are full file contents, not snippets. Current changes include raised relay limits, popup/modal sandbox permissions, and Discord-scoped experimental service-worker emulation with fail-closed intercepts. Root `_headers` is unchanged and is not consumed by the Render Node service. Existing CSS, logo, lockfile, installed dependencies, and `orbitcraft/server/auth.js` remain required. Keep files at their listed paths.

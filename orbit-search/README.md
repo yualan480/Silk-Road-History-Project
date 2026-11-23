@@ -2,7 +2,15 @@
 
 Scramjet browser proxy embedded in Orbit, directly below Ask Your Guide. Includes web search, website address entry, back/forward/reload, mobile layout and an authenticated Wisp relay.
 
-## Render deployment
+## Standalone repository
+
+For `yualan480/Orbit-Search`, put these directory contents at the repository root.
+Build with `npm ci --omit=dev` and start with `npm start`. The included `auth.js`
+and `auth-config.js` are self-contained; no sibling `orbitcraft/` or `chat/`
+folder is required. The configuration includes only Orbit's public Supabase
+identity settings, never a service-role key.
+
+## Render deployment (main repository)
 
 The repository's `render.yaml` describes both web services. Existing Render services do not automatically add another service when this file changes.
 
