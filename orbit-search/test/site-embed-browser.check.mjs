@@ -1,32 +1,25 @@
 import {createServer} from 'node:http';
-import {readFile} from 'node:fs/promises';
-import {fileURLToPath,pathToFileURL} from 'node:url';
-import {existsSync} from 'node:fs';
-import {resolve,dirname,extname} from 'node:path';
 import assert from 'node:assert/strict';
+import {createSearchServer} from '../server.js';
+import {server as wisp} from '@mercuryworkshop/wisp-js/server';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'@playwright/test');
-const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'..');
-let render,policy='';
-const mainRoot=process.env.ORBIT_MAIN_REPO||resolve(root,'..');if(existsSync(resolve(mainRoot,'chat/orbit-search.js'))){render=(await import(pathToFileURL(resolve(mainRoot,'chat/orbit-search.js')).href)).renderOrbitSearch;policy=(await readFile(resolve(mainRoot,'chat/index.html'),'utf8')).match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];}
-const server=createServer(async(req,res)=>{try{
- const path=new URL(req.url,'http://local').pathname;
- if(path==='/main-fixture'&&render){res.setHeader('Content-Type','text/html');res.end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="${policy}"><button id="launch">Orbit Search</button><main id="main" style="height:90dvh;display:flex;flex-direction:column"></main><script src="/fixture.js"></script>`);return;}
- if(path==='/fixture.js'&&render){res.setHeader('Content-Type','text/javascript');res.end(`const render=${render.toString()};document.querySelector('#launch').onclick=()=>render(document.querySelector('#main'),{menuBtn:()=>'',bindMenu:()=>{}});`);return;}
- const file=path==='/'?'index.html':path.slice(1);res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png'})[extname(file)]||'application/octet-stream');res.end(await readFile(resolve(root,'public',file)));
- }catch{res.writeHead(404);res.end();}}).listen(0,'127.0.0.1');await new Promise(r=>server.on('listening',r));
+const listen=s=>new Promise(r=>s.listen(0,'127.0.0.1',()=>r('http://127.0.0.1:'+s.address().port)));
+let hits=0,identities=0;
+const target=createServer((req,res)=>{hits++;res.setHeader('Content-Type','text/html');res.end('<h1>Fixed website through proxy</h1><button onclick="this.textContent=\'Interactive\'">Test page</button>');});
+const targetBase=await listen(target),destination='http://fixture.test:'+new URL(targetBase).port+'/';
+const server=createSearchServer({targetUrl:destination,verifyIdentity:async()=>{identities++;throw Error('Account connection must not be used');}});const base=await listen(server);
+// Only this local test overrides production destination protections.
+wisp.options.allow_private_ips=true;wisp.options.allow_loopback_ips=true;wisp.options.port_whitelist=[Number(new URL(targetBase).port)];wisp.options.dns_method=async()=> '127.0.0.1';
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
-try{for(const width of [1280,390])for(const main of render?[false,true]:[false]){
- const page=await browser.newPage({viewport:{width,height:850}}),errors=[],legacy=[];
- page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/\/orbit-search\/(config|ready)|\/api\/session/.test(r.url()))legacy.push(r.url());});
- await page.route('https://search.orbitstayintheloop.workers.dev/**',route=>route.fulfill({contentType:'text/html',body:'<h1>Embedded destination</h1><button onclick="this.textContent=\'Works\'">Test</button>'}));
- await page.goto('http://127.0.0.1:'+server.address().port+(main?'/main-fixture':'/'));
- if(main)await page.locator('#launch').click();
- const frame=page.locator('iframe[title="Orbit Search website"]');await frame.waitFor();assert.equal(await frame.getAttribute('src'),'https://search.orbitstayintheloop.workers.dev/');
- const content=page.frameLocator('iframe');await content.getByRole('heading',{name:'Embedded destination'}).waitFor();await content.getByRole('button',{name:'Test',exact:true}).click();await content.getByRole('button',{name:'Works'}).waitFor();
- assert.equal(await page.locator('input').count(),0);assert.deepEqual(legacy,[]);assert.deepEqual(errors,[]);
- assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
- if(!await page.evaluate(()=>!!document.fullscreenElement))await page.getByRole('button',{name:'Fullscreen',exact:true}).click();
- await page.waitForFunction(()=>!!document.fullscreenElement);await page.getByRole('button',{name:'Exit fullscreen'}).click();await page.waitForFunction(()=>!document.fullscreenElement);
- if(main){await page.getByRole('button',{name:'Fullscreen',exact:true}).click();await page.locator('#main').evaluate(el=>el.replaceChildren());await page.waitForFunction(()=>!document.fullscreenElement);}
- await page.close();
-}console.log('PASS fixed destination embedded and interactive; no local search UI/account handshake; exact-origin CSP, fullscreen, cleanup and mobile sizing.');}finally{await browser.close();server.close();}
+try{for(const width of [1280,390]){
+ const context=await browser.newContext({viewport:{width,height:850}}),page=await context.newPage(),direct=[],accounts=[],errors=[];
+ page.on('request',r=>{if(new URL(r.url()).hostname==='fixture.test')direct.push(r.url());if(r.url().endsWith('/api/session'))accounts.push(r.url());});page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base);const frame=page.frameLocator('#site iframe');await frame.getByRole('heading',{name:'Fixed website through proxy'}).waitFor({timeout:45000});
+ await frame.getByRole('button',{name:'Test page'}).click();await frame.getByRole('button',{name:'Interactive'}).waitFor();
+ assert.ok(new URL(await page.locator('#site iframe').getAttribute('src'),base).href.startsWith(base+'/service/'));assert.equal(await page.locator('input').count(),0);
+ const id=await page.evaluate(()=>sessionStorage.getItem('orbit-search-guest'));
+ await page.reload();await frame.getByRole('heading',{name:'Fixed website through proxy'}).waitFor({timeout:45000});assert.equal(await page.evaluate(()=>sessionStorage.getItem('orbit-search-guest')),id);
+ assert.deepEqual(direct,[]);assert.deepEqual(accounts,[]);assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.getByRole('button',{name:'Fullscreen',exact:true}).click();await page.waitForFunction(()=>!!document.fullscreenElement);await page.getByRole('button',{name:'Exit fullscreen'}).click();await page.waitForFunction(()=>!document.fullscreenElement);
+ await context.close();
+}assert.equal(identities,0);assert.ok(hits>=4);console.log('PASS real Scramjet/Wisp: fixed website proxied and interactive, reload and fullscreen work, no direct destination requests, no Orbit account, desktop/phone layout.');}finally{await browser.close();for(const s of [server,target]){s.closeAllConnections();s.close();}}

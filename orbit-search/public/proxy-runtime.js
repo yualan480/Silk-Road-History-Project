@@ -36,7 +36,7 @@ export function createProxyRuntime(){
     return boot;
   }
   return {async connect(ticket){
-    if(typeof ticket!=='string'||!ticket)throw new Error('Connect your Orbit account before browsing.');
+    if(typeof ticket!=='string'||!ticket)throw new Error('Create a proxy session before loading the website.');
     await verifyRelay(ticket);
     const {controller,connection}=await initialize();
     const wisp=new URL('/wisp/',location.href);wisp.protocol=location.protocol==='https:'?'wss:':'ws:';wisp.searchParams.set('ticket',ticket);

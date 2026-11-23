@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {createHash} from 'node:crypto';
 import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stat } from 'node:fs/promises';
@@ -7,8 +8,10 @@ import { server as wisp, logging } from '@mercuryworkshop/wisp-js/server';
 import { authenticate } from './auth.js';
 import { createSessions } from './security.js';
 const root = dirname(fileURLToPath(import.meta.url));
-export function createSearchServer({verifyIdentity = authenticate, parentOrigin = process.env.ORBIT_SEARCH_PARENT_ORIGIN || 'https://silkroadhistoryprojects.onrender.com'} = {}) {
+export function createSearchServer({targetUrl = process.env.ORBIT_SEARCH_TARGET_URL || 'https://search.orbitstayintheloop.workers.dev/', verifyIdentity = authenticate, parentOrigin = process.env.ORBIT_SEARCH_PARENT_ORIGIN || 'https://silkroadhistoryprojects.onrender.com'} = {}) {
 const parent = new URL(parentOrigin).origin;
+const target = new URL(targetUrl);
+if(!['https:','http:'].includes(target.protocol)||target.username||target.password)throw new Error('Configure a web URL as the proxy destination.');
 const sessions = createSessions();
 const attempts = new Map();
 Object.assign(wisp.options, {
@@ -34,6 +37,21 @@ const server = http.createServer(async (req, res) => {
   // It has no stored login and cannot authenticate an unrelated embedding site.
   if(!['/','/index.html'].includes(url.pathname))res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${parent}`);
   if (url.pathname === '/health') { res.writeHead(200); return res.end('Orbit Search ready'); }
+  if (url.pathname === '/api/guest-session') {
+    res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json');
+    let own=false;try{const source=new URL(req.headers.origin);own=['http:','https:'].includes(source.protocol)&&source.host===req.headers.host;}catch{}
+    if(req.method!=='POST'||!own){res.writeHead(403);return res.end(JSON.stringify({message:'Open this page to connect its proxy.'}));}
+    const guest=req.headers['x-orbit-guest-id'];
+    if(typeof guest!=='string'||!/^[a-f0-9-]{36}$/i.test(guest)){res.writeHead(400);return res.end(JSON.stringify({message:'Reload this page to create a guest session.'}));}
+    const ip=req.socket.remoteAddress,now=Date.now(),key='guest:'+ip;
+    for(const [key,value] of attempts)if(now-value.start>60000)attempts.delete(key);
+    const rate=attempts.get(key)||{start:now,count:0};attempts.set(key,rate);
+    if(++rate.count>60){res.writeHead(429);return res.end(JSON.stringify({message:'Please wait a minute and retry.'}));}
+    try{
+      const id='guest:'+createHash('sha256').update(ip+'|'+guest).digest('hex');
+      return res.end(JSON.stringify({...sessions.issue({id,expiresAt:now+30*60*1000}),target:target.href}));
+    }catch{res.writeHead(503);return res.end(JSON.stringify({message:'The proxy is busy. Try again shortly.'}));}
+  }
   if (url.pathname === '/api/session') {
     res.setHeader('Cache-Control','no-store');
     let ownOrigin=false;try{const source=new URL(req.headers.origin);ownOrigin=['http:','https:'].includes(source.protocol)&&source.host===req.headers.host;}catch{}
@@ -64,7 +82,7 @@ const server = http.createServer(async (req, res) => {
     let own=false;try{const origin=new URL(req.headers.origin);own=['http:','https:'].includes(origin.protocol)&&origin.host===req.headers.host;}catch{}
     if(req.method!=='POST'||!own){res.writeHead(403);return res.end(JSON.stringify({message:'Open Orbit Search from its authorized page.'}));}
     const session=sessions.get(req.headers['x-orbit-relay-ticket']);
-    if(!session){res.writeHead(401);return res.end(JSON.stringify({message:'Relay ticket expired or the service restarted. Reopen Orbit Search to reconnect your account.'}));}
+    if(!session){res.writeHead(401);return res.end(JSON.stringify({message:'Relay ticket expired or the service restarted. Reload this page to reconnect the proxy.'}));}
     if(session.connections.size>=20){res.writeHead(429);return res.end(JSON.stringify({message:'Your relay has reached 20 connections. Close unused Orbit Search tabs and retry.'}));}
     return res.end(JSON.stringify({ready:true}));
   }
@@ -93,7 +111,7 @@ server.on('upgrade', (req, socket, head) => {
   const session = sessions.get(url.searchParams.get('ticket'));
   const origin = req.headers.origin;
   let ownOrigin=false;try{ownOrigin=!!origin&&new URL(origin).host===req.headers.host;}catch{}
-  // Only the dedicated proxy origin can open its relay; never expose a public unauthenticated Wisp server.
+  // Only this proxy origin can use a short-lived server-issued account or guest ticket.
   if (url.pathname !== '/wisp/' || !session || !ownOrigin || session.connections.size >= 20) {
     console.warn('[Orbit Search relay] upgrade rejected:',url.pathname!=='/wisp/'?'path':!session?'expired-or-missing-ticket':!ownOrigin?'origin':'connection-limit');
     socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;

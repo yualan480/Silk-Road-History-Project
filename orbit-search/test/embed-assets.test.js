@@ -7,12 +7,13 @@ test('deployed launcher serves every local stylesheet, script and icon without l
  t.after(()=>{server.closeAllConnections();server.close();});
  const base='http://127.0.0.1:'+server.address().port;
  const response=await fetch(base+'/');assert.equal(response.status,200);const html=await response.text();
- assert.match(html,/src="https:\/\/search\.orbitstayintheloop\.workers\.dev\/"/);
+ assert.doesNotMatch(html,/<iframe[^>]+src="https:/);
+ assert.match(html,/id="site"/);
  const assets=[...html.matchAll(/<(?:link|script)\b[^>]*(?:href|src)="(\/[^"]+)"[^>]*>/g)].map(m=>m[1]);
- assert.ok(assets.some(path=>path.endsWith('.css')));assert.ok(assets.some(path=>path.endsWith('.js')));
+ assert.ok(assets.some(path=>path.split('?')[0].endsWith('.css')));assert.ok(assets.some(path=>path.split('?')[0].endsWith('.js')));
  for(const path of assets){const asset=await fetch(base+path);assert.equal(asset.status,200,path);
-  if(path.endsWith('.css'))assert.match(asset.headers.get('content-type'),/text\/css/);
-  if(path.endsWith('.js'))assert.match(asset.headers.get('content-type'),/javascript/);
+  if(path.split('?')[0].endsWith('.css'))assert.match(asset.headers.get('content-type'),/text\/css/);
+  if(path.split('?')[0].endsWith('.js'))assert.match(asset.headers.get('content-type'),/javascript/);
   assert.ok((await asset.arrayBuffer()).byteLength>0,path);
  }
  assert.equal((await fetch(base+'/auth-config.js')).status,404);

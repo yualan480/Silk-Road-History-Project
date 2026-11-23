@@ -1,18 +1,33 @@
 # Current Orbit Search page
 
-The public launcher now embeds **https://search.orbitstayintheloop.workers.dev/**
-as the page itself. It has no local address bar, search form or account handoff.
-Fullscreen and Open site controls remain. The main Orbit tab also embeds this
-exact URL directly, so it no longer waits for this service or calls its session API.
-The target currently returns the Silk Road history homepage; that is the supplied
-URL's content. The wrapper does not change that remote site.
+The page automatically loads **https://search.orbitstayintheloop.workers.dev/**
+through the existing Scramjet/BareMux/Epoxy/Wisp proxy. It does not embed that
+remote origin directly. There is no address bar or local search form, and no
+Orbit account connection is requested or sent to the website.
 
-The existing Node server and legacy proxy code remain in the repository for
-compatibility, but the new page does not initialize Scramjet, Wisp or the old UI.
-The former proxy browser checks describe that retired UI. The current page check
-is `node test/site-embed-browser.check.mjs` (requires Playwright and Chromium).
-Existing Node deployments still build with `npm ci --omit=dev` and start with
-`npm start` when this directory is the repository root.
+The Node service issues short-lived guest relay tickets to this launcher's
+same-origin requests. Guest sessions retain rate limits, expiry, connection and
+stream limits, and the existing private/loopback/direct-IP/port protections.
+A random per-tab sessionStorage identifier supports reload and renewal; it is
+not an Orbit account or login token. The legacy authenticated endpoint remains
+for compatibility, but this page does not use it.
+
+The main Orbit tab embeds `https://orbitsearch.onrender.com/`, so the separate
+Node proxy service must be deployed. The proxy then loads the Workers target.
+Set `ORBIT_SEARCH_PARENT_ORIGIN` to the actual main site's origin as before.
+`ORBIT_SEARCH_TARGET_URL` optionally changes the server-selected destination;
+it defaults to the Workers URL above. Fullscreen, Reload site and Open in new
+tab controls are available. Opening a new tab keeps proxy loading enabled.
+
+Standalone deployment: build `npm ci --omit=dev`, start `npm start`.
+This Wisp service requires Node hosting; the main site can remain on Cloudflare.
+Run `npm test` for server checks and `node test/site-embed-browser.check.mjs`
+with Playwright and Chromium for actual guest-mode proxied loading. That test
+checks that no browser request contacts the destination directly.
+
+Proxied sites can still reject proxy/datacenter traffic or impose CAPTCHAs.
+This change does not modify school/network rules or guarantee access to every
+site. The target currently serves the Silk Road history homepage.
 
 ---
 
