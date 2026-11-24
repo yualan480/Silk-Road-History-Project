@@ -1,7 +1,7 @@
 /* Stogademy page scale. Windows laptops usually run at 125-175% display scaling, so at a browser zoom of 100% the whole site looks
    oversized (the browser then reads "67%" at 100% zoom only after pressing Ctrl and -). This shrinks the page by exactly that scaling,
    so what you see at 100% matches 1 page pixel = 1 screen pixel.
-   - Only the top-level desktop page is scaled (never an iframe, phone or tablet) and only when a display scaling of 125-175% is detected.
+   - Top-level desktop pages and direct Orbit proxy documents are scaled (never phones or tablets) and only when a display scaling of 125-175% is detected.
    - Ctrl + and Ctrl - still work on top of it; the scale is worked out from the display scaling, not from your current zoom.
    - Override for testing: localStorage stg_pagescale = a number such as 0.667 (or 1 to switch the scale off). */
 (function () {
@@ -14,17 +14,17 @@
     d.style.zoom = String(z); d.style.setProperty('--pz', String(z));
   }
   function calc() {
-    // Direct Orbit replaces the old unscaled chat iframe, including in Scramjet.
-    // Do not apply a second desktop shrink simply because the proxy presents it
-    // as a top-level document.
-    if (/^\/chat(?:\/|$)/.test(location.pathname) && new URLSearchParams(location.search).get('entry') === 'orbit') return 1;
-    try {
-      if (window.top !== window.self) return 1;
-    } catch (e) { if (window.top !== window.self) return 1; }
+    // A direct Orbit document owns its desktop UI even inside the proxy frame.
+    // Normalize OS display scaling here; the launcher does not scale its iframe.
+    var directOrbit = /^\/chat(?:\/|$)/.test(location.pathname) && new URLSearchParams(location.search).get('entry') === 'orbit';
+    if (!directOrbit) {
+      try { if (window.top !== window.self) return 1; }
+      catch (e) { if (window.top !== window.self) return 1; }
+    }
     if (matchMedia('(pointer:coarse)').matches || !matchMedia('(min-width:801px)').matches) return 1;
     /* Keep Orbit's desktop experience compact, matching the wider dashboard view. */
     var isOrbit = /^\/chat(?:\/|$)/.test(window.location.pathname);
-    var defaultScale = isOrbit ? 0.8 : 1;
+    var defaultScale = isOrbit && !directOrbit ? 0.8 : 1;
     try { var o = parseFloat(localStorage.getItem('stg_pagescale')); if (o >= 0.4 && o <= 1) return o; } catch (e) { /* storage unavailable */ }
     /* browser zoom = window width (not affected by zoom) / page width (shrinks as you zoom in) */
     var oi = window.outerWidth / window.innerWidth;
@@ -34,7 +34,7 @@
     var sys = (window.devicePixelRatio || 1) / bz;       /* Windows display scaling, e.g. 1.5 for 150% */
     if (sys < 1.2 || sys > 1.8) return defaultScale;
     var calibrated = 1 / (Math.round(sys * 4) / 4);
-    return isOrbit ? Math.min(calibrated, 0.8) : calibrated;                  /* 125% -> .8, 150% -> .6667, 175% -> .5714 */
+    return isOrbit && !directOrbit ? Math.min(calibrated, 0.8) : calibrated;                  /* 125% -> .8, 150% -> .6667, 175% -> .5714 */
   }
   set(calc());
   var t; addEventListener('resize', function () { clearTimeout(t); t = setTimeout(function () { set(calc()); }, 120); });

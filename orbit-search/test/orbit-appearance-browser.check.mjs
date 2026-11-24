@@ -13,7 +13,7 @@ const targetBase=await listen(target),proxy=createSearchServer({targetUrl:'http:
 // Local fixtures only; production retains its private-address restrictions.
 wisp.options.allow_private_ips=true;wisp.options.allow_loopback_ips=true;wisp.options.port_whitelist=[Number(new URL(targetBase).port)];wisp.options.dns_method=async()=> '127.0.0.1';
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
-try{for(const [width,height,dpr]of[[1920,1080,1],[1280,720,1.5]]){
+try{for(const [width,height,dpr]of[[1920,1080,1],[1536,864,1.25],[1280,720,1.5],[1097,617,1.75]]){
  let baseline;
  for(const proxied of[false,true]){
   const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:dpr}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -22,8 +22,12 @@ try{for(const [width,height,dpr]of[[1920,1080,1],[1280,720,1.5]]){
   const response=await picture;assert.equal(response.status(),200,'The real backdrop URL must load through the relay');assert.match(response.headers()['content-type'],/image\/jpeg/);
   const frame=proxied?page.frames().find(f=>f!==page.mainFrame()):page.mainFrame();await frame.waitForFunction(()=>!!window.backdrop);await page.waitForTimeout(200);
   const state=await frame.evaluate(()=>{window.backdrop.pause();window.backdrop.currentTime=0;const c=window.backdrop;return {zoom:getComputedStyle(document.documentElement).zoom,sidebar:document.querySelector('.side').getBoundingClientRect().width,geometry:Object.fromEntries(['.ologo','.owm','.oann','.oquick'].map(sel=>{const r=document.querySelector(sel).getBoundingClientRect();return[sel,{x:r.x,y:r.y,width:r.width,height:r.height}]})),columns:getComputedStyle(document.querySelector('.app')).gridTemplateColumns,display:getComputedStyle(c).display,pixel:[...c.getContext('2d').getImageData(Math.floor(c.width*.5),Math.floor(c.height*.4),1,1).data]};});
-  assert.equal(state.zoom,'1');assert.equal(state.display,'block');assert.ok(Math.abs(state.sidebar-(width===1920?320:220))<1);assert.deepEqual(errors,[]);
-  if(width===1920){assert.equal(state.geometry['.oann'].width,1180);assert.equal(state.geometry['.owm'].width,280);assert.ok(Math.abs(state.geometry['.ologo'].y-190)<1);assert.ok(Math.abs(state.geometry['.oann'].y-619)<2);}if(!proxied)baseline=state;else{assert.equal(state.columns,baseline.columns);assert.deepEqual(state.geometry,baseline.geometry);state.pixel.forEach((v,i)=>assert.ok(Math.abs(v-baseline.pixel[i])<=3,'The proxied canvas must draw the original background'));await page.screenshot({path:'/tmp/orbit-restored-'+width+'.png'});}
+  assert.ok(Math.abs(Number(state.zoom)-1/dpr)<.001);assert.equal(state.display,'block');assert.ok(Math.abs(state.sidebar*dpr-320)<1);assert.deepEqual(errors,[]);
+  assert.ok(Math.abs(state.geometry['.oann'].width*dpr-1180)<2);
+  assert.ok(Math.abs(state.geometry['.owm'].width*dpr-280)<2);
+  assert.ok(Math.abs(state.geometry['.ologo'].y*dpr-190)<2);
+  assert.ok(Math.abs(state.geometry['.oann'].y*dpr-619)<3);
+  if(!proxied)baseline=state;else{assert.equal(state.columns,baseline.columns);assert.deepEqual(state.geometry,baseline.geometry);state.pixel.forEach((v,i)=>assert.ok(Math.abs(v-baseline.pixel[i])<=3,'The proxied canvas must draw the original background'));await page.screenshot({path:'/tmp/orbit-restored-'+width+'.png'});}
   await context.close();
  }
-}console.log('PASS actual Orbit assets through Scramjet: original background loads/draws and desktop layout matches direct rendering at 100% and 150% display scaling.');}finally{await browser.close();for(const s of[proxy,target]){s.closeAllConnections();s.close();}}
+}console.log('PASS actual Orbit assets through Scramjet: original background loads/draws and desktop layout matches direct rendering at 100%, 125%, 150% and 175% display scaling.');}finally{await browser.close();for(const s of[proxy,target]){s.closeAllConnections();s.close();}}
