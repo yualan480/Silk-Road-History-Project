@@ -57,7 +57,7 @@
    cancels the ellipse's stretch so each satellite remains a true circle. */
 .side .brand .bwrap.sidebar-orbit-logo{
   display:flex;flex-direction:row;align-items:center;justify-content:flex-start;
-  gap:0;width:236px;max-width:100%;position:relative;text-decoration:none;
+  gap:0;width:236px;max-width:100%;position:relative;text-decoration:none;cursor:var(--cur-auto,auto);
 }
 .side .brand .sbplanet{flex:0 0 46%;position:relative;display:block;min-width:0}
 .side .brand .sbplanet>img{display:block;width:100%;height:auto;filter:drop-shadow(0 0 14px #2f8bff88)}
@@ -87,28 +87,11 @@
   width:7px;height:7px;left:-3.5px;top:-3.5px;
   background:radial-gradient(circle at 30% 25%,#fff 0,#b2edff 28%,#8274ff 75%,#3e4fa8 100%);
 }
-.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-track{
-  animation:sidebar-orbit-track var(--moon-speed) linear infinite;
-}
-.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon{
-  animation:sidebar-orbit-sphere var(--moon-speed) linear infinite;
-}
-@keyframes sidebar-orbit-track{
-  from{transform:rotate(var(--moon-start))}
-  to{transform:rotate(calc(var(--moon-start) + 360deg))}
-}
-@keyframes sidebar-orbit-sphere{
-  from{transform:translateX(var(--moon-radius)) rotate(var(--moon-counter-start)) scaleY(var(--moon-correct))}
-  to{transform:translateX(var(--moon-radius)) rotate(var(--moon-counter-end)) scaleY(var(--moon-correct))}
-}
 @media(max-width:800px){
   .side .brand .bwrap.sidebar-orbit-logo{width:206px}
   .side .brand .sbmoon-orbits{--moon-radius:45px}
 }
-@media(prefers-reduced-motion:reduce){
-  html:not(.force-motion) .side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-track,
-  html:not(.force-motion) .side .brand .bwrap:is(:hover,:focus-visible) .sbmoon{animation:none!important}
-}
+
 
 /* Profile class roles and the owner's assignment list. */
 .profile-class-roles{margin:14px 0 10px}
