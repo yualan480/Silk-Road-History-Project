@@ -136,4 +136,4 @@
 }
 .home-download-app:disabled{opacity:.6;cursor:wait}
 
-.orbithome .ohbtns[hidden]{display:none}
+.orbithome .ohbtns[hidden]{display:flex;visibility:hidden;pointer-events:none}
