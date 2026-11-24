@@ -28,11 +28,10 @@ const GAMER_URL = 'https://gamer1.unblocker4school.workers.dev/';
 const openGamer = () => { try { if (top !== self) { top.location.hash = '#/games'; return; } } catch (e) { /* ignore */ } window.open(GAMER_URL, '_blank', 'noopener,noreferrer'); };
 
 /* "Install as app": Chrome tells us when the site can be installed; we hold on to that and open it from the sidebar tab */
-let installEv = null, installed = false;
+const installState = window.OrbitInstallPrompt || {event:null, installed:false};
 const isApp = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches || navigator.standalone === true;
-const canInstall = () => !installed && !isApp() && (!!installEv || /Chrome\//.test(navigator.userAgent));
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; try { renderSide(); } catch {} });
-window.addEventListener('appinstalled', () => { installed = true; installEv = null; try { renderSide(); } catch {} });
+const canInstall = () => !installState.installed && !isApp() && (!!installState.event || /Chrome\//.test(navigator.userAgent));
+window.addEventListener('orbit-install-change', () => { try { renderSide(); } catch {} });
 
 const $ = (s, e = document) => e.querySelector(s);
 const root = $('#root');
@@ -1042,9 +1041,9 @@ function serverList() {
 }
 async function installApp() {
   closeSide();
-  if(isApp()||installed){toast('Orbit is already installed.');return;}
-  if (installEv) {   // Chrome is ready: one click opens its own install box
-    const ev = installEv; installEv = null;
+  if(isApp()||installState.installed){toast('Orbit is already installed.');return;}
+  if (installState.event) {   // Chrome is ready: one click opens its own install box
+    const ev = installState.event; installState.event = null;
     try { await ev.prompt(); await ev.userChoice; } catch {}
     renderSide(); return;
   }
