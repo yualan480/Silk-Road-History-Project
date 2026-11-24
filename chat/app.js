@@ -1,4 +1,4 @@
-import {requestParentInstall} from './install-app.js?v=1';
+import {requestParentInstall} from './install-app.js?v=2';
 import {signupWindowPanel} from './signup-window.js?v=1';
 import {createGmsDrawer,isGmsChannel} from './gms-drawer.js?v=1';
 import {pollTotals} from './poll-totals.js?v=1';
@@ -10,7 +10,7 @@ import { initGuides } from './guides.js?v=5';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js?v=2';
-import { initOrbit } from './orbit.js?v=34';
+import { initOrbit } from './orbit.js?v=35';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=14').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
@@ -31,6 +31,8 @@ const installState = window.OrbitInstallPrompt || {event:null, installed:false};
 const isApp = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches || navigator.standalone === true;
 const canInstall = () => !installState.installed && !isApp() && (!!installState.event || /Chrome\//.test(navigator.userAgent));
 window.addEventListener('orbit-install-change', () => { try { renderSide(); } catch {} });
+requestParentInstall({statusOnly:true});
+window.addEventListener('focus',()=>requestParentInstall({statusOnly:true}));
 
 const $ = (s, e = document) => e.querySelector(s);
 const root = $('#root');
@@ -274,7 +276,7 @@ const convAv = c => c.is_group ? `<span class="av group-av" aria-hidden="true">$
 const grpErr = e => /could not find the function|schema cache/i.test(e?.message || '') ? 'Group chats are not set up yet. Run migration-group-chats.sql in the Supabase SQL Editor.' : (e?.message || 'Something went wrong.');
 
 /* ───────── Orbit features (home, events, whiteboard, AI, formatting bar): see orbit.js ───────── */
-const O = initOrbit({ installApp, setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, md, plain, menuBtn, bindMenu, gamerUrl: GAMER_URL, collectibles: () => SHOP?.collectibles?.() || [],
+const O = initOrbit({ installApp, isInstalled:()=>installState.installed||isApp(), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, md, plain, menuBtn, bindMenu, gamerUrl: GAMER_URL, collectibles: () => SHOP?.collectibles?.() || [],
   needProfiles: ids => needProfiles(ids), renderMain: () => renderMain(), renderSide: () => renderSide(), closeSide: () => closeSide(), navTo: k => navTo(k),
   openChan: id => openChan(id), openFirstChannel: () => openFirstChannel(), profileModal: id => profileModal(id), send: () => send(), osNotify: (t, b, g) => osNotify(t, b, g),
   chooseGuide: () => GUIDE.chooseGuide(), selectedGuide: () => GUIDE.selected(), guideName: () => GUIDE.selectedName(), guidePortrait: (who, expression) => GUIDE.portrait(who, expression), searchModal: () => searchModal(), bindSearch: (i, o) => bindOrbitSearch(i, o), onlineCount: () => onlineCount(), unreadDms: () => S.convs.filter(unread).length, isStaff: () => isStaff(), classRoles: () => crOf(S.me.id), renderDayBadge: () => homeDayBadge() });
@@ -1040,7 +1042,7 @@ async function installApp() {
   if(isApp()||installState.installed){toast('Orbit is already installed.');return;}
   if (installState.event) {   // Chrome is ready: one click opens its own install box
     const ev = installState.event; installState.event = null;
-    try { await ev.prompt(); await ev.userChoice; } catch {}
+    try { await ev.prompt(); const choice=await ev.userChoice;if(choice?.outcome==='accepted')installState.setInstalled?.(true); } catch {}
     renderSide(); return;
   }
   if(await requestParentInstall())return;

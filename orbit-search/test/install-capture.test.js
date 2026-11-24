@@ -19,3 +19,13 @@ test('Chrome install event survives app-module loading and is cleared after inst
  assert.equal(consumerState.event,null);
  assert.equal(consumerState.installed,true);
 });
+
+test('installation is remembered across reloads and cleared when Chrome offers reinstall',async()=>{
+ const storage=new Map(),source=await readFile(new URL('../../chat/install-prompt.js',import.meta.url),'utf8');
+ const boot=()=>{const events=new EventTarget(),window={};runInNewContext(source,{window,Event,localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},addEventListener:events.addEventListener.bind(events),dispatchEvent:events.dispatchEvent.bind(events)});return{events,window};};
+ const first=boot();first.events.dispatchEvent(new Event('appinstalled'));
+ const next=boot();assert.equal(next.window.OrbitInstallPrompt.installed,true);
+ next.events.dispatchEvent(new Event('beforeinstallprompt',{cancelable:true}));
+ assert.equal(next.window.OrbitInstallPrompt.installed,false);
+ assert.equal(storage.has('orbit-app-installed-v1'),false);
+});

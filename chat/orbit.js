@@ -31,6 +31,7 @@ const PEN_COLORS = ['#111111', '#ffffff', '#ef4444', '#f97316', '#facc15', '#22c
 const BW = 1200, BH = 800;   // the drawing space; everything is stored in these units and scaled to the screen
 
 export function initOrbit(c) {
+  window.addEventListener('orbit-install-change',()=>{document.querySelectorAll('[data-home-install]').forEach(button=>button.parentElement.hidden=!!c.isInstalled?.());});
   const { S, sb, $, esc, ic, I, modal, toast, prof, av, md, menuBtn, bindMenu } = c;
   const homeThemes = createHomeThemes({ S, sb, toast, modal, setOrbits: n => c.setOrbits(n) });
   const drift = createDrift({ sb, toast, getOrbits: () => S.orbits || 0, setOrbits: n => c.setOrbits(n), reloadOrbits: () => c.loadOrbits() });   // the drifting Orbit coin (orbit-drift.js)
@@ -297,6 +298,8 @@ export function initOrbit(c) {
     if (oldStars) main.querySelector('.orbithome > .ostars')?.replaceWith(oldStars);
     if (oldLogo) main.querySelector('.orbithome .ologo')?.replaceWith(oldLogo);
     homeThemes.mount(main.querySelector('.home-theme-slot'));
+    const updateInstallButton=()=>{const button=main.querySelector('[data-home-install]');if(button)button.parentElement.hidden=!!c.isInstalled?.();};
+    updateInstallButton();
     main.querySelector('[data-home-install]').onclick=async event=>{const button=event.currentTarget;button.disabled=true;try{await c.installApp();}finally{if(button.isConnected)button.disabled=false;}};
     bindMenu(); startStars(main.querySelector('.ostars')); startLogo(main.querySelector('.ologo'));
     const vid = homeVideo(), appEl = document.getElementById('app');

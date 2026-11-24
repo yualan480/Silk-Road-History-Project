@@ -135,3 +135,5 @@
  .orbithome .qlink b{font-size:15px}.orbithome .qlink small{font-size:12px}
 }
 .home-download-app:disabled{opacity:.6;cursor:wait}
+
+.orbithome .ohbtns[hidden]{display:none}
