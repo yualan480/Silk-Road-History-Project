@@ -129,22 +129,25 @@
 
 .search-shell-top{font-family:Arial,Helvetica,sans-serif;min-height:54px;padding:10px 18px;border-bottom:1px solid #b9c9ff18;background:linear-gradient(110deg,#0b112f,#10163b);gap:12px}.search-shell-top .title{font-size:14px;font-weight:600;letter-spacing:.15px}.search-shell-top [data-search-fullscreen]{padding:8px 13px;border:1px solid #a5b7ff25;border-radius:999px;background:#8da4ff12;color:#cad6ff;font:500 12px Arial,Helvetica,sans-serif;transition:background 140ms}.search-shell-top [data-search-fullscreen]:hover{background:#8da4ff24}@media(max-width:560px){.search-shell-top{padding:8px 12px}}
 
-/* Desktop reference: 320px sidebar at 1920px, full-size branding and 1050px cards. */
+/* Desktop reference: 320px sidebar at 1920px, full-size branding and 1180px cards. */
 @media(min-width:1100px){
- .side .nav-i{font-size:14px;min-height:38px}
+ .side .nav-i{font-size:15px;min-height:44px}
  .side .brand .bwrap.sidebar-orbit-logo{width:280px}
- .top.otop{min-height:76px;padding:16px 28px}
+ .top.otop{min-height:90px;padding:22px 32px 18px}
+ .top.otop .home-theme-picker>summary{min-width:130px;min-height:50px;justify-content:space-between}
+ .top.otop .osearch{height:50px}
+ .top.otop .otop-actions>.otb{width:50px;height:50px;flex-basis:50px}
  .main>.panel.orbithome{padding:20px 24px 28px}
- .orbithome .ohero{padding:clamp(24px,calc(100dvh - 1016px),64px) 12px 17px}
- .orbithome .oann,.orbithome .oquick{width:min(1050px,100%)}
+ .orbithome .ohero{padding:clamp(24px,calc(100dvh - 1000px),80px) 12px 23px}
+ .orbithome .oann,.orbithome .oquick{width:min(1180px,100%)}
  .orbithome .ologo{width:clamp(180px,12.24vw,235px)}
  .orbithome .ologo .ohero-logo{width:100%}
  .orbithome .owm{width:clamp(210px,14.584vw,280px)}
  .orbithome .otag{font-size:20px;letter-spacing:.4em;margin-top:20px}
  .orbithome .ohbtns{margin-top:28px}
- .app .orbithome .obtn{min-height:52px;font-size:15px;padding:14px 28px}
- .orbithome .oann{min-height:198px;padding:18px 20px}
- .orbithome .qlink{min-height:116px;padding:16px}
- .orbithome .qlink b{font-size:14px}.orbithome .qlink small{font-size:12px}
+ .app .orbithome .obtn{min-height:60px;font-size:16px;padding:16px 30px}
+ .orbithome .oann{min-height:222px;padding:22px}
+ .orbithome .qlink{min-height:130px;padding:18px}
+ .orbithome .qlink b{font-size:15px}.orbithome .qlink small{font-size:12px}
 }
 .home-download-app:disabled{opacity:.6;cursor:wait}
