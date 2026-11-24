@@ -146,7 +146,8 @@
  .orbithome .otag{font-size:20px;letter-spacing:.4em;margin-top:20px}
  .orbithome .ohbtns{margin-top:28px}
  .app .orbithome .obtn{min-height:60px;font-size:16px;padding:16px 30px}
- .orbithome .oann{min-height:222px;padding:22px}
+ .orbithome .oann{min-height:0;padding:16px 20px}
+ .orbithome .oann-read-actions{margin-top:10px;padding-top:10px}
  .orbithome .qlink{min-height:130px;padding:18px}
  .orbithome .qlink b{font-size:15px}.orbithome .qlink small{font-size:12px}
 }
