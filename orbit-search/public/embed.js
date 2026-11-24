@@ -1,4 +1,4 @@
-import {createProxyRuntime} from './proxy-runtime.js?v=2';
+import {createProxyRuntime} from './proxy-runtime.js?v=3';
 const status=document.querySelector('#site-status'),container=document.querySelector('#site');
 let guestId;try{guestId=sessionStorage.getItem('orbit-search-guest');}catch{}
 if(!/^[a-f0-9-]{36}$/i.test(guestId||'')){guestId=crypto.randomUUID();try{sessionStorage.setItem('orbit-search-guest',guestId);}catch{}}

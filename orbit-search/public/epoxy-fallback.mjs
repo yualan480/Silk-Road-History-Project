@@ -1,5 +1,5 @@
 import EpoxyTransport from '/vendor/epoxy/index.mjs';
-import {createRelayRecovery,withRelayRecovery} from '/relay-recovery.js';
+import {createRelayRecovery,withRelayRecovery} from '/relay-recovery.js?v=2';
 import {withHttp1Fallback} from '/http-fallback.js';
 async function makeHttp1(opts,wisp){
  const {default:init,EpoxyClient,EpoxyClientOptions}=await import('/vendor/epoxy-http1/epoxy-bundled.js');

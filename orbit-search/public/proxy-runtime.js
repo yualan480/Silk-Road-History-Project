@@ -40,7 +40,7 @@ export function createProxyRuntime(){
     await verifyRelay(ticket);
     const {controller,connection}=await initialize();
     const wisp=new URL('/wisp/',location.href);wisp.protocol=location.protocol==='https:'?'wss:':'ws:';wisp.searchParams.set('ticket',ticket);
-    await connection.setTransport('/epoxy-fallback.mjs?v=3',[{wisp:wisp.href}]);
+    await connection.setTransport('/epoxy-fallback.mjs?v=4',[{wisp:wisp.href}]);
     return controller; // No proxied frame is loaded before transport setup resolves.
   }};
 }
