@@ -277,7 +277,7 @@ export function initOrbit(c) {
     const enterMs = Math.round(performance.now() - O.homeAt), enter = enterMs < 1500;   // fade-in only when you arrive, not on every live refresh
     const oldStars = main.querySelector('.orbithome > .ostars');
     const oldLogo = main.querySelector('.orbithome .ologo');
-    main.innerHTML = `<div class="top otop${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">${menuBtn()}<div class="home-theme-slot"></div><div class="osearchw"><label class="osearch">${ic('search', 18)}<input id="oq" type="text" placeholder="Search Orbit…" autocomplete="off" spellcheck="false" aria-label="Search Orbit"><kbd>Ctrl + K</kbd></label><div class="ores" id="ores" hidden></div></div><div class="otop-actions">
+    main.innerHTML = `<div class="top otop${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">${menuBtn()}<div class="home-tools"><div class="home-theme-slot"></div><button type="button" class="home-download-app" data-home-install>Download as App</button></div><div class="osearchw"><label class="osearch">${ic('search', 18)}<input id="oq" type="text" placeholder="Search Orbit…" autocomplete="off" spellcheck="false" aria-label="Search Orbit"><kbd>Ctrl + K</kbd></label><div class="ores" id="ores" hidden></div></div><div class="otop-actions">
       <button class="otb osnd" type="button" aria-pressed="true" aria-label="Turn Orbit sound off" title="Sound on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="sw" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="sw" d="M18.5 5.5a9 9 0 0 1 0 13"/><path class="sx" d="m16 9 5 6M21 9l-5 6"/></svg></button>
       <button class="otb omus" type="button" aria-pressed="true" aria-label="Turn Orbit music off" title="Music on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="mx" d="M3 3l18 18"/></svg></button>
       <button class="otb" data-o="go" data-k="friends" aria-label="Friends${inN ? ' (' + inN + ' requests)' : ''}">${ic('friends', 20)}${inN ? '<i class="otbdot"></i>' : ''}</button>
@@ -287,7 +287,7 @@ export function initOrbit(c) {
     <div class="panel orbithome${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">
       <canvas class="ostars" aria-hidden="true"></canvas>
       <div class="oh-day-position" aria-label="Today’s school day">${c.renderDayBadge()}</div>
-      <section class="ohero"><div class="ologo"><img class="ohero-logo" src="orbit-logo-planet.png" alt=""><i class="op op-a"></i><i class="op op-b"></i></div><h1 class="owt"><img class="owm" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></h1><p class="otag">Stay in the Loop.</p><div class="ohbtns">${top !== self && typeof top.OpenOrbitTab === 'function' ? `<button class="obtn" data-ob="blank">${ic('arrow',16)}<span>Open Orbit in new tab</span></button>` : ''}${top !== self ? `<button class="obtn" data-ob="back">${ic('arrow', 16)}<span>Back to Silk Road</span></button>` : ''}</div></section>
+      <section class="ohero"><div class="ologo"><img class="ohero-logo" src="orbit-logo-planet.png" alt=""><i class="op op-a"></i><i class="op op-b"></i></div><h1 class="owt"><img class="owm" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></h1><p class="otag">Stay in the Loop.</p></section>
       ${annCard(a0)}
       <section class="oquick"><h3>${ic('sparkle', 20)} Quick links</h3><div class="qlinks">${links.map(([k, i, t, s]) => `<button class="qlink" data-o="go" data-k="${k}">${ic(i, 24)}<span class="t"><b>${t}</b><small>${esc(s)}</small></span>${ic('arrow', 16)}</button>`).join('')}</div></section>
       <p class="omore"><span></span>More Connections <i>·</i> More Moments <i>·</i> One Orbit<span></span></p>
@@ -297,6 +297,7 @@ export function initOrbit(c) {
     if (oldStars) main.querySelector('.orbithome > .ostars')?.replaceWith(oldStars);
     if (oldLogo) main.querySelector('.orbithome .ologo')?.replaceWith(oldLogo);
     homeThemes.mount(main.querySelector('.home-theme-slot'));
+    main.querySelector('[data-home-install]').onclick=async event=>{const button=event.currentTarget;button.disabled=true;try{await c.installApp();}finally{if(button.isConnected)button.disabled=false;}};
     bindMenu(); startStars(main.querySelector('.ostars')); startLogo(main.querySelector('.ologo'));
     const vid = homeVideo(), appEl = document.getElementById('app');
     if (appEl && vid.parentNode !== appEl) appEl.insertBefore(vid, appEl.firstChild);   // the backdrop sits behind the whole window (sidebar included), so the sidebar can be see-through
@@ -304,10 +305,6 @@ export function initOrbit(c) {
     drift.attach(main);
     mountFloaters(main.querySelector('.orbithome'), c.collectibles ? c.collectibles() : []);   // your collectibles float across the page; click one to hear it
     playHomeVideo(vid);
-    main.querySelectorAll('[data-ob]').forEach(b => b.onclick = () => {
-      if(b.dataset.ob==='blank'){try{top.OpenOrbitTab();}catch{}return;}
-      try { if(typeof top.SilkRoadHome==='function')top.SilkRoadHome();else top.location.href='../'; } catch { try { top.location.href = '../'; } catch {} }   // Return to the history page.
-    });
     main.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => c.openChan(b.dataset.ch));
     c.bindSearch(main.querySelector('#oq'), main.querySelector('#ores'));
     if (oqVal) { const q = main.querySelector('#oq'); q.value = oqVal; if (oqFocus) { q.focus(); q.dispatchEvent(new Event('input')); } }

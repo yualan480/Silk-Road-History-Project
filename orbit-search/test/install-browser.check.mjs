@@ -1,0 +1,15 @@
+import {createServer}from'node:http';import{readFile}from'node:fs/promises';import assert from'node:assert/strict';
+import{createSearchServer}from'../server.js';import{server as wisp}from'@mercuryworkshop/wisp-js/server';import{chromium}from'../../orbitcraft/node_modules/@playwright/test/index.mjs';
+const listen=s=>new Promise(r=>s.listen(0,'127.0.0.1',()=>r('http://127.0.0.1:'+s.address().port)));
+const target=createServer(async(req,res)=>{res.setHeader('Content-Type','text/html');if(req.url==='/chat/install-app.js'){res.setHeader('Content-Type','text/javascript');return res.end(await readFile(new URL('../../chat/install-app.js',import.meta.url)));}if(req.url==='/install-test.js'){res.setHeader('Content-Type','text/javascript');return res.end("import{requestParentInstall}from'/chat/install-app.js';document.querySelector('button').onclick=async()=>{document.querySelector('output').textContent=await requestParentInstall()?'Handled':'Instructions';};");}res.end('<button>Download as App</button><output></output><script type="module" src="/install-test.js"></script>');});
+const targetBase=await listen(target),proxy=createSearchServer({targetUrl:'http://fixture.test:'+new URL(targetBase).port+'/chat/'}),base=await listen(proxy);
+wisp.options.allow_private_ips=true;wisp.options.allow_loopback_ips=true;wisp.options.port_whitelist=[Number(new URL(targetBase).port)];wisp.options.dns_method=async()=> '127.0.0.1';
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
+try{
+ const page=await browser.newPage();await page.goto(base);const content=page.frameLocator('#site iframe');await content.getByRole('button',{name:'Download as App'}).waitFor({timeout:45000});
+ await page.evaluate(()=>{window.installPrompts=0;const event=new Event('beforeinstallprompt',{cancelable:true});event.prompt=async()=>{window.installPrompts++;window.promptHadActivation=navigator.userActivation.isActive;};event.userChoice=Promise.resolve({outcome:'accepted'});window.dispatchEvent(event);});
+ await content.getByRole('button',{name:'Download as App'}).click();await content.locator('output').filter({hasText:'Handled'}).waitFor({timeout:2000});assert.equal(await page.evaluate(()=>window.installPrompts),1);assert.equal(await page.evaluate(()=>window.promptHadActivation),true);
+ await content.getByRole('button',{name:'Download as App'}).click();await content.locator('output').filter({hasText:'Instructions'}).waitFor({timeout:6000});assert.equal(await page.evaluate(()=>window.installPrompts),1);
+ const manifest=await(await fetch(base+'/manifest.webmanifest')).json();assert.equal(manifest.name,'Orbit');assert.equal(manifest.start_url,'/');for(const icon of manifest.icons)assert.equal((await fetch(base+icon.src)).status,200);
+ console.log('PASS actual proxied install button: native parent prompt handoff, one-use prompt, instructions fallback, manifest and install icons. No app was actually installed.');
+}finally{await browser.close();for(const s of[proxy,target]){s.closeAllConnections();s.close();}}

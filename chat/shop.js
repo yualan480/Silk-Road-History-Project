@@ -26,7 +26,7 @@ const KIND_LABEL = { font: 'Text Font', frame: 'Avatar Ring', trail: 'Orbit Trai
 const RARITY = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
 /* custom cursors are an extra too: if shop-cursors.js is missing the rest of the shop still works */
 const TR = await import('./shop-trails.js?v=1').catch(e => (console.warn('Shop click effects unavailable', e), null));
-const CUR = await import('./shop-cursors.js?v=3').catch(e => (console.warn('Shop cursors unavailable', e), null));
+const CUR = await import('./shop-cursors.js?v=4').catch(e => (console.warn('Shop cursors unavailable', e), null));
 const HEX = /^#[0-9a-f]{6}$/i;
 const hex = (v, d) => (typeof v === 'string' && HEX.test(v) ? v : d);
 

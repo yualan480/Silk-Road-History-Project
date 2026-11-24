@@ -80,7 +80,7 @@ export function cursorSvg(it, mode = 'arrow', px = 32) {
 /* CSS values for `cursor:` (a data picture, its hot spot, then a safe fallback). Returns {arrow, pointer}. */
 export function cursorCss(it) {
   const [x, y] = SHAPES[shapeOf(it?.id)].hs;
-  const mk = (mode, fb) => `url("data:image/svg+xml,${encodeURIComponent(cursorSvg(it, mode, 32))}") ${x} ${y},${fb}`;
+  const mk = (mode, fb) => `url("data:image/svg+xml;base64,${btoa(cursorSvg(it, mode, 32))}") ${x} ${y},${fb}`;
   return { arrow: mk('arrow', 'auto'), pointer: mk('pointer', 'pointer') };
 }
 

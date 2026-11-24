@@ -16,9 +16,10 @@ function svg(d,st,c){var id='g'+Math.random().toString(36).slice(2,6),defs='',fi
  var gloss=st==='glass'?'<path d="'+d+'" fill="#fff" fill-opacity=".18" clip-path="inset(0 0 55% 0)"/>':'';
  var body='<path d="'+d+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'" stroke-linejoin="round" stroke-linecap="round"'+(st==='neon'?' filter="url(#f)"':'')+'/>';
  return'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><defs>'+defs+fx+'</defs>'+(st==='solid'||st==='glass'?'<path d="'+d+'" fill="#000" fill-opacity=".28" transform="translate(.8 1.2)"/>':'')+halo+body+gloss+'</svg>'}
-function url(s,x,y,fb){return'url("data:image/svg+xml,'+encodeURIComponent(s)+'") '+x+' '+y+','+fb}
+function url(s,x,y,fb){return'url("data:image/svg+xml;base64,'+btoa(s)+'") '+x+' '+y+','+fb}
+function upgradeSvgCursor(value){return value.replace(/data:image\/svg\+xml,([^"]*)/,function(_,svg){try{return'data:image/svg+xml;base64,'+btoa(decodeURIComponent(svg))}catch(e){return _}})}
 /* a cursor bought in the Orbit Shop (saved by chat/shop-cursors.js) wins over the settings below. Only a data: picture is accepted. */
-function shopCur(){try{var o=JSON.parse(localStorage.getItem(SKEY)),ok=/^url\("data:image\/svg\+xml,[^"]*"\) \d+ \d+,(auto|pointer)$/;if(o&&ok.test(o.a)&&ok.test(o.p))return o}catch(e){}return null}
+function shopCur(){try{var o=JSON.parse(localStorage.getItem(SKEY)),ok=/^url\("data:image\/svg\+xml(?:;base64)?,[^"]*"\) \d+ \d+,(auto|pointer)$/;if(o&&ok.test(o.a)&&ok.test(o.p)){o.a=upgradeSvgCursor(o.a);o.p=upgradeSvgCursor(o.p);return o}}catch(e){}return null}
 function apply(o){o=o||get();var r=document.documentElement.style,sc=shopCur();
  if(sc){r.setProperty('--cur-arrow',sc.a);r.setProperty('--cur-pointer',sc.p);return}
  if(o.style==='planet'){if(!BASE){r.removeProperty('--cur-arrow');r.removeProperty('--cur-pointer');return}r.setProperty('--cur-arrow','url("'+BASE+'cursor-arrow.png") 4 3,auto');r.setProperty('--cur-pointer',url(svg(HAND,'glass','#3b82f6'),13,3,'pointer'));return}

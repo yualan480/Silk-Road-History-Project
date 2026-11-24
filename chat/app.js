@@ -1,7 +1,7 @@
+import {requestParentInstall} from './install-app.js?v=1';
 import {signupWindowPanel} from './signup-window.js?v=1';
 import {createGmsDrawer,isGmsChannel} from './gms-drawer.js?v=1';
 import {pollTotals} from './poll-totals.js?v=1';
-import {renderOrbitSearch} from './orbit-search.js?v=12';
 import {schoolSignupDetails} from './school-signup.js?v=4';
 import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
@@ -11,10 +11,10 @@ import { initGuides } from './guides.js?v=4';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js?v=2';
-import { initOrbit } from './orbit.js?v=32';
+import { initOrbit } from './orbit.js?v=33';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
-const { initShop } = await import('./shop.js?v=13').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
+const { initShop } = await import('./shop.js?v=14').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
 const { initGamble } = await import('./gamble.js?v=5').catch(e => (console.warn('Orbit Casino unavailable', e), {}));
 const { initArena } = await import('./arena.js?v=6').catch(e => (console.warn('Orbit Game unavailable', e), {}));
 const { dictateBtn, bindDictate } = await import('./dictate.js?v=1').catch(e => (console.warn('Voice typing unavailable', e), {}));
@@ -41,7 +41,6 @@ let _un = null, _unSize = -1;
 const userIdByName = u => { if (_unSize !== S.profiles.size) { _un = new Map([...S.profiles.values()].map(p => [p.username, p.id])); _unSize = S.profiles.size; } return _un.get(u); };
 /* ~tabs: type ~events, ~shop, ~friends... in a chat to link to that Orbit tab. [tag, label, nav key, icon, other names that work] */
 const TAB_TAGS = [
-  ['orbit-search', 'Orbit Search', 'search', 'search', ['search']],
   ['direct-messages', 'Direct Messages', 'dm', 'dm', ['dm', 'dms', 'messages', 'direct']],
   ['communities', 'Communities', 'communities', 'users', ['community']],
   ['friends', 'Friends', 'friends', 'friends', ['friend']],
@@ -277,7 +276,7 @@ const convAv = c => c.is_group ? `<span class="av group-av" aria-hidden="true">$
 const grpErr = e => /could not find the function|schema cache/i.test(e?.message || '') ? 'Group chats are not set up yet. Run migration-group-chats.sql in the Supabase SQL Editor.' : (e?.message || 'Something went wrong.');
 
 /* ───────── Orbit features (home, events, whiteboard, AI, formatting bar): see orbit.js ───────── */
-const O = initOrbit({ setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, md, plain, menuBtn, bindMenu, gamerUrl: GAMER_URL, collectibles: () => SHOP?.collectibles?.() || [],
+const O = initOrbit({ installApp, setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, md, plain, menuBtn, bindMenu, gamerUrl: GAMER_URL, collectibles: () => SHOP?.collectibles?.() || [],
   needProfiles: ids => needProfiles(ids), renderMain: () => renderMain(), renderSide: () => renderSide(), closeSide: () => closeSide(), navTo: k => navTo(k),
   openChan: id => openChan(id), openFirstChannel: () => openFirstChannel(), profileModal: id => profileModal(id), send: () => send(), osNotify: (t, b, g) => osNotify(t, b, g),
   chooseGuide: () => GUIDE.chooseGuide(), selectedGuide: () => GUIDE.selected(), guideName: () => GUIDE.selectedName(), guidePortrait: (who, expression) => GUIDE.portrait(who, expression), searchModal: () => searchModal(), bindSearch: (i, o) => bindOrbitSearch(i, o), onlineCount: () => onlineCount(), unreadDms: () => S.convs.filter(unread).length, isStaff: () => isStaff(), classRoles: () => crOf(S.me.id), renderDayBadge: () => homeDayBadge() });
@@ -890,7 +889,7 @@ const onlineCount = () => S.members.filter(m => statusOf(prof(m.user_id)) !== 'o
 
 function navTo(k) {
   if(k==='gms'){closeSide();GMS.open();return;}
-  if (['intelligence','tournaments','tournament'].includes(k)) k='home';
+  if (['intelligence','tournaments','tournament','search'].includes(k)) k='home';
   closeSide(); if (k !== 'gamer') { gamesLock(false); O.gameOpen(false); }   // leaving Orbit Games: the music comes back
   if (k === 'dm' || k === 'communities' || k === 'friends') S.socialOpen = true;
   if (k === 'unblocked' || k === 'gamer' || k === 'shop' || k === 'gamble' || k === 'orbitcraft') S.funOpen = true;
@@ -1043,11 +1042,13 @@ function serverList() {
 }
 async function installApp() {
   closeSide();
+  if(isApp()||installed){toast('Orbit is already installed.');return;}
   if (installEv) {   // Chrome is ready: one click opens its own install box
     const ev = installEv; installEv = null;
     try { await ev.prompt(); await ev.userChoice; } catch {}
     renderSide(); return;
   }
+  if(await requestParentInstall())return;
   modal('Install Orbit as an app', `<p class="muted">Orbit opens in its own window with its own icon, like a normal app. Use Google Chrome:</p>
     <ol><li><b>On a computer:</b> click the install icon at the right end of the address bar, or open the \u22EE menu, choose <b>Cast, save, and share</b>, then <b>Install page as app</b>.</li>
     <li><b>On an Android phone:</b> open the \u22EE menu and tap <b>Install app</b> (or <b>Add to Home screen</b>).</li></ol>
@@ -1073,7 +1074,7 @@ function renderSide() {
   const funNav = `<div class="nav-grp${funOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inFun && !funOpen ? ' on' : ''}" data-fun aria-expanded="${funOpen}" aria-controls="navfun">${ic('smile')}<span>Explore</span><span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
     <div class="nav-sub" id="navfun" role="group" aria-label="Explore"${funOpen ? '' : ' hidden'}>${nav('unblocked', 'Unblocked Games', 'compass')}${nav('gamer', 'Orbit Games', 'gamepad')}${nav('shop', 'Orbit Shop', 'shop')}${nav('gamble', 'Orbit Casino', 'dice')}${nav('orbitcraft', 'Orbitcraft', 'gamepad')}</div></div>`;
   side.innerHTML = `<div class="brand"><a class="bwrap sidebar-orbit-logo" href="./" aria-label="Refresh Orbit" title="Refresh Orbit"><span class="sbplanet" aria-hidden="true"><img src="orbit-logo-planet.png" alt="" width="660" height="444"><span class="sbmoon-orbits"><span class="sbmoon-track sbmoon-track-a"><i class="sbmoon sbmoon-a"></i></span><span class="sbmoon-track sbmoon-track-b"><i class="sbmoon sbmoon-b"></i></span></span></span><img class="sbword" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></a><button type="button" class="ib sidebar-close" data-sidebar-close aria-label="Close sidebar">${ic('x')}</button></div>
-  <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide', 'sparkle')}${nav('search', 'Orbit Search', 'search')}</nav>
+  <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide', 'sparkle')}</nav>
   ${O.sideCal()}
   <div class="scroll">${S.view === 'dm' ? dmList() : socialList()}</div>
   ${V.ch ? `<div class="vpanel" id="vp"><button class="t" id="vo" title="Open call" aria-label="Open call screen"><b>Voice connected</b><small></small></button><button class="ib" id="vl" title="Leave voice" aria-label="Leave voice channel">${ic('phoneOff', 18)}</button></div>` : ''}
@@ -1489,7 +1490,6 @@ function renderMainInner(loading) {
   if (S.view === 'tutorials') return renderTutorials(main);
   if (S.view === 'gms') {S.view='home';queueMicrotask(()=>GMS.open());return renderHome(main);}
   if (S.view === 'tesd-calendar') return renderTesdCalendar(main);
-  if (S.view === 'search') return renderOrbitSearch(main, {menuBtn, bindMenu});
   if (S.view === 'unblocked') return UB.render(main);
   if (S.view === 'leaderboard') return renderLeaderboard(main);
   if (S.view === 'shop') return SHOP.render(main);
@@ -1815,7 +1815,7 @@ function manageProfileClassRoles(uid) {
 }
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && S.me) { e.preventDefault(); if (S.view !== 'home') navTo('home'); setTimeout(() => $('#oq')?.focus(), 60); } });
 function bindOrbitSearch(inp, out) {
-  const pages = [['search', 'Orbit Search'], ['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide'], ['leaderboard', 'Orbit Leaderboard'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['unblocked', 'Unblocked Games'], ['gamer', 'Orbit Games'], ['roles', 'Roles'], ];
+  const pages = [['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', GUIDE.selectedName() ? 'Ask ' + GUIDE.selectedName() : 'Choose Your Guide'], ['leaderboard', 'Orbit Leaderboard'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['unblocked', 'Unblocked Games'], ['gamer', 'Orbit Games'], ['roles', 'Roles'], ];
   const item = (kind, id, t, s) => `<button class="ores-i" data-k="${kind}" data-id="${esc(id)}"><span class="t"><b>${esc(t)}</b>${s ? `<small>${esc(s)}</small>` : ''}</span></button>`;
   const group = (h, items) => items.length ? `<div class="ores-h">${h}</div>${items.join('')}` : '';
   let seq = 0;
