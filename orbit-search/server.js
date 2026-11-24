@@ -28,7 +28,7 @@ const vendors = {
   '/vendor/epoxy-http1/': '@mercuryworkshop/epoxy-tls/minimal/',
   '/vendor/epoxy/': '@mercuryworkshop/epoxy-transport/dist/'
 };
-const mime = {'.js':'text/javascript', '.mjs':'text/javascript', '.html':'text/html; charset=utf-8', '.css':'text/css', '.json':'application/json', '.wasm':'application/wasm', '.png':'image/png', '.webmanifest':'application/manifest+json'};
+const mime = {'.js':'text/javascript', '.mjs':'text/javascript', '.html':'text/html; charset=utf-8', '.css':'text/css', '.json':'application/json', '.wasm':'application/wasm', '.ico':'image/vnd.microsoft.icon', '.png':'image/png', '.webmanifest':'application/manifest+json'};
 const server = http.createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
@@ -98,7 +98,7 @@ const server = http.createServer(async (req, res) => {
     file = resolve(root, 'node_modules', directory, name);
   }
   if (!file) {
-    if (!['/', '/index.html', '/embed.css', '/embed.js', '/install-bridge.js', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/orbit-app-192.png', '/orbit-app-512.png', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/relay-recovery.js', '/relay-probe.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png', '/favicon-32.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
+    if (!['/', '/index.html', '/embed.css', '/embed.js', '/install-bridge.js', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/orbit-app-192.png', '/orbit-app-512.png', '/orbit-app.ico', '/search.js', '/style.css', '/sw.js', '/proxy-runtime.js', '/http-fallback.js', '/relay-recovery.js', '/relay-probe.js', '/epoxy-fallback.mjs', '/address.js', '/orbit-mark.png', '/favicon-32.png'].includes(pathname)) { res.writeHead(404); return res.end(); }
     file = resolve(root, 'public', pathname === '/' ? 'index.html' : pathname.slice(1));
   }
   try {
