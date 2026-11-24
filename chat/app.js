@@ -3,7 +3,6 @@ import {signupWindowPanel} from './signup-window.js?v=1';
 import {createGmsDrawer,isGmsChannel} from './gms-drawer.js?v=1';
 import {pollTotals} from './poll-totals.js?v=1';
 import {schoolSignupDetails} from './school-signup.js?v=4';
-import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
 import {initUnblockedGames} from './unblocked-games.js?v=50';
@@ -23,7 +22,7 @@ const NO_GB = { handles: v => v === 'gamble', render: m => { m.innerHTML = '<div
 const NO_SHOP = { render: m => { m.innerHTML = '<div class="empty"><h2>The shop is unavailable</h2><p>Reload the page. If this keeps happening, tell a staff member.</p></div>'; }, load: async () => {}, avAttr: () => '', glyphOf: () => '', coHtml: () => '', applyOwn() {}, refreshCos: async () => {} };
 import { attachFx, afterMain, pageSwap, clickRipple } from './fx.js?v=3';
 import { leaderboardHtml, startLeaderboardFx } from './leaderboard.js?v=5';
-const { SUPABASE_URL, SUPABASE_ANON_KEY, OAUTH_PROVIDERS } = CONFIG, HCAPTCHA_SITE_KEY = CONFIG.HCAPTCHA_SITE_KEY || '';
+const { SUPABASE_URL, SUPABASE_ANON_KEY } = CONFIG, HCAPTCHA_SITE_KEY = CONFIG.HCAPTCHA_SITE_KEY || '';
 const GAMER_URL = 'https://gamer1.unblocker4school.workers.dev/';
 const openGamer = () => { try { if (top !== self) { top.location.hash = '#/games'; return; } } catch (e) { /* ignore */ } window.open(GAMER_URL, '_blank', 'noopener,noreferrer'); };
 
@@ -317,16 +316,13 @@ const loadHcaptcha = () => hcLoad ||= new Promise((ok, no) => {
 function authView(mode = 'login') {
   const t = { login: 'Welcome back', signup: 'Create your account', reset: 'Reset your password' }[mode];
   root.innerHTML = `<div class="authwrap auth-shell"><div class="auth-orbits" aria-hidden="true"><i></i><i></i><i></i></div><form class="card auth-card" id="af" novalidate>${logo}<p class="auth-school">Conestoga 2030</p><h1>${t}</h1><p class="auth-subtitle">${mode === 'login' ? 'Log in to pick up where you left off.' : mode === 'signup' ? 'Your next connection starts here.' : 'We’ll help you get back into Orbit.'}</p>
-  ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin">Continue with personal Gmail</button><p class="auth-divider">OR</p>' : ''}
   <label for="em">Email</label><input id="em" type="email" autocomplete="email" placeholder="30yua@tesdk12.net" required>
-  ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Use your school email starting with 30 and ending with @tesdk12.net to join without Google. Your name is generated from your email as a first initial and last name—for example, 30yua@tesdk12.net becomes A Yu.</p>' : ''}
+  ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Use your school email starting with 30 and ending with @tesdk12.net to join Orbit. Your name is generated from your email as a first initial and last name—for example, 30yua@tesdk12.net becomes A Yu.</p>' : ''}
   ${mode !== 'reset' ? `<label for="pw">Password</label><input id="pw" type="password" placeholder="Enter your password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="8">` : ''}
   ${HCAPTCHA_SITE_KEY ? '<div id="cf" class="cf-wrap" aria-label="Security check"></div>' : ''}
   <p class="err" id="er" role="alert"></p><button class="btn" id="go">${{ login: 'Log in', signup: 'Create account', reset: 'Send reset link' }[mode]}</button>
   ${mode === 'signup' ? '<p class="auth-switch">Need approval? <button type="button" class="linkbtn" id="request-access">Request access</button></p>' : ''}
   <p class="auth-switch">${mode === 'login' ? `New to Orbit? <button type="button" class="linkbtn" data-m="signup">Create an account</button>` : `<button type="button" class="linkbtn" data-m="login">Back to log in</button>`}</p></form></div>`;
-  const googleButton=$('#google-signin');
-  if(googleButton)googleButton.onclick=async()=>{googleButton.disabled=true;try{await startGoogleSignIn(sb,location.origin,url=>window.top.location.assign(url));}catch(error){$('#er').textContent=error.message||'Google sign-in failed. Please try again.';googleButton.disabled=false;}};
   root.querySelectorAll('[data-m]').forEach(b => b.onclick = () => authView(b.dataset.m));
   const accessButton = $('#request-access');
   if (accessButton) accessButton.onclick = async () => {
