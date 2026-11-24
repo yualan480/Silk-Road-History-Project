@@ -11,7 +11,7 @@ import { initGuides } from './guides.js?v=4';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js?v=2';
-import { initOrbit } from './orbit.js?v=33';
+import { initOrbit } from './orbit.js?v=34';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=14').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
@@ -1049,10 +1049,7 @@ async function installApp() {
     renderSide(); return;
   }
   if(await requestParentInstall())return;
-  modal('Install Orbit as an app', `<p class="muted">Orbit opens in its own window with its own icon, like a normal app. Use Google Chrome:</p>
-    <ol><li><b>On a computer:</b> click the install icon at the right end of the address bar, or open the \u22EE menu, choose <b>Cast, save, and share</b>, then <b>Install page as app</b>.</li>
-    <li><b>On an Android phone:</b> open the \u22EE menu and tap <b>Install app</b> (or <b>Add to Home screen</b>).</li></ol>
-    <p class="muted">Not seeing it? Open Orbit in a normal Chrome tab (not a private window) and reload.</p>`);
+  toast('Chrome’s install popup is not available right now.');
 }
 /* Orbits balance beside your profile: the same balance the games add to and the Prize Room spends from */
 function orbitChip() { return `<span class="orbchip" id="orbchip" title="Your Orbits" aria-label="${Number(S.orbits || 0).toLocaleString()} Orbits"><img src="logo.svg" width="16" height="16" alt="">${Number(S.orbits || 0).toLocaleString()}</span>`; }
